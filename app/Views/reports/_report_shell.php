@@ -1,8 +1,6 @@
 <?php
 /**
- * Shell comum dos relatórios gerenciais (Etapa 17).
- *
- * Variáveis: title, description, reportKey, filters, filterErrors, metrics, tables, alerts, rankings, options, hasFilters, isEmpty
+ * Shell comum dos relatórios gerenciais (Etapa 17 + visualizações analíticas).
  */
 $title = $title ?? 'Relatório';
 $description = $description ?? '';
@@ -12,7 +10,7 @@ $filterErrors = $filterErrors ?? [];
 $metrics = $metrics ?? [];
 $tables = $tables ?? [];
 $alerts = $alerts ?? [];
-$rankings = $rankings ?? [];
+$visualizations = $visualizations ?? [];
 $options = $options ?? [];
 $reportKeys = $reportKeys ?? [];
 $hasFilters = !empty($hasFilters);
@@ -36,8 +34,11 @@ $canPrint = can('reports.print');
 $canSnapshotsList = can('reports.view');
 
 $f = static fn (string $k): string => (string) ($filters[$k] ?? '');
+
+$criticalAlerts = array_values(array_filter($alerts, static fn (array $a): bool => in_array($a['type'] ?? '', ['danger', 'warning'], true)));
+$infoAlerts = array_values(array_filter($alerts, static fn (array $a): bool => ($a['type'] ?? 'info') === 'info'));
 ?>
-<section class="section">
+<section class="section report-analytics-section">
     <div class="container">
         <div class="page-head report-index-head">
             <div>
@@ -46,9 +47,6 @@ $f = static fn (string $k): string => (string) ($filters[$k] ?? '');
                 <p class="page-sub"><?= e($description) ?></p>
             </div>
             <div class="report-actions actions-row">
-                <?php if ($canSnapshotsList): ?>
-                    <a href="<?= e(app_url('/reports/snapshots')) ?>" class="btn btn-ghost"><i data-lucide="camera"></i> Snapshots</a>
-                <?php endif; ?>
                 <?php if ($canPrint): ?>
                     <a href="<?= e(app_url('/reports/' . $reportKey . '/print?' . http_build_query(array_filter([
                         'period_start' => $f('period_start'),
@@ -63,11 +61,40 @@ $f = static fn (string $k): string => (string) ($filters[$k] ?? '');
                         'only_overdue' => !empty($filters['only_overdue']) ? 1 : '',
                     ])))) ?>" class="btn btn-ghost" target="_blank" rel="noopener"><i data-lucide="printer"></i> Imprimir</a>
                 <?php endif; ?>
+                <?php if ($canSnapshot): ?>
+                    <details class="report-snapshot-inline">
+                        <summary class="btn btn-yellow report-snapshot-trigger"><i data-lucide="camera"></i> Gerar snapshot</summary>
+                        <form method="post" action="<?= e(app_url('/reports/snapshots')) ?>" class="card card-pad report-snapshot-form">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="report_key" value="<?= e($reportKey) ?>">
+                            <input type="hidden" name="period_start" value="<?= e($f('period_start')) ?>">
+                            <input type="hidden" name="period_end" value="<?= e($f('period_end')) ?>">
+                            <input type="hidden" name="responsible_user_id" value="<?= (int) ($filters['responsible_user_id'] ?? 0) ?>">
+                            <input type="hidden" name="company_id" value="<?= (int) ($filters['company_id'] ?? 0) ?>">
+                            <input type="hidden" name="sponsor_id" value="<?= (int) ($filters['sponsor_id'] ?? 0) ?>">
+                            <input type="hidden" name="quota_id" value="<?= (int) ($filters['quota_id'] ?? 0) ?>">
+                            <input type="hidden" name="status" value="<?= e($f('status')) ?>">
+                            <input type="hidden" name="source" value="<?= e($f('source')) ?>">
+                            <input type="hidden" name="only_pending" value="<?= !empty($filters['only_pending']) ? '1' : '' ?>">
+                            <input type="hidden" name="only_overdue" value="<?= !empty($filters['only_overdue']) ? '1' : '' ?>">
+                            <div class="form-grid">
+                                <div class="span-2">
+                                    <label class="label-sm" for="snapshot_title">Título *</label>
+                                    <input type="text" id="snapshot_title" name="title" class="input" required minlength="3" placeholder="Ex.: Executivo — <?= e(date('d/m/Y')) ?>">
+                                </div>
+                                <div class="span-2">
+                                    <label class="label-sm" for="snapshot_description">Descrição</label>
+                                    <input type="text" id="snapshot_description" name="description" class="input">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-yellow" style="margin-top:12px;"><i data-lucide="save"></i> Salvar snapshot</button>
+                        </form>
+                    </details>
+                <?php endif; ?>
+                <?php if ($canSnapshotsList): ?>
+                    <a href="<?= e(app_url('/reports/snapshots')) ?>" class="btn btn-ghost"><i data-lucide="archive"></i> Snapshots</a>
+                <?php endif; ?>
             </div>
-        </div>
-
-        <div class="notice notice-info report-alert" style="margin-bottom:16px;">
-            <p class="mb-0"><i data-lucide="info"></i> Relatórios externos, BI, exportação Excel global, envio automático e integrações serão tratados em etapas futuras.</p>
         </div>
 
         <nav class="report-nav" aria-label="Relatórios">
@@ -78,57 +105,37 @@ $f = static fn (string $k): string => (string) ($filters[$k] ?? '');
             <?php endforeach; ?>
         </nav>
 
-        <?php if ($hasFilters): ?>
-            <div class="notice notice-warn report-alert">
-                <p class="mb-0"><i data-lucide="filter"></i> Filtros ativos aplicados ao relatório.</p>
-            </div>
-        <?php endif; ?>
-
         <?php require __DIR__ . '/_filters.php'; ?>
 
-        <?php foreach ($alerts as $alert): ?>
-            <?php $type = (string) ($alert['type'] ?? 'info'); ?>
-            <div class="notice notice-<?= e($type === 'danger' ? 'error' : ($type === 'warning' ? 'warn' : 'info')) ?> report-alert">
-                <p class="mb-0"><?= e((string) ($alert['message'] ?? '')) ?></p>
+        <?php foreach ($infoAlerts as $alert): ?>
+            <div class="notice notice-info report-alert report-alert--compact">
+                <p class="mb-0"><i data-lucide="info"></i> <?= e((string) ($alert['message'] ?? '')) ?></p>
             </div>
         <?php endforeach; ?>
 
-        <?php if ($canSnapshot): ?>
-            <details class="report-snapshot" style="margin:16px 0;">
-                <summary class="btn btn-yellow" style="display:inline-flex;cursor:pointer;"><i data-lucide="camera"></i> Gerar snapshot manual</summary>
-                <form method="post" action="<?= e(app_url('/reports/snapshots')) ?>" class="card card-pad" style="margin-top:12px;">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="report_key" value="<?= e($reportKey) ?>">
-                    <input type="hidden" name="period_start" value="<?= e($f('period_start')) ?>">
-                    <input type="hidden" name="period_end" value="<?= e($f('period_end')) ?>">
-                    <input type="hidden" name="responsible_user_id" value="<?= (int) ($filters['responsible_user_id'] ?? 0) ?>">
-                    <input type="hidden" name="company_id" value="<?= (int) ($filters['company_id'] ?? 0) ?>">
-                    <input type="hidden" name="sponsor_id" value="<?= (int) ($filters['sponsor_id'] ?? 0) ?>">
-                    <input type="hidden" name="quota_id" value="<?= (int) ($filters['quota_id'] ?? 0) ?>">
-                    <input type="hidden" name="status" value="<?= e($f('status')) ?>">
-                    <input type="hidden" name="source" value="<?= e($f('source')) ?>">
-                    <input type="hidden" name="only_pending" value="<?= !empty($filters['only_pending']) ? '1' : '' ?>">
-                    <input type="hidden" name="only_overdue" value="<?= !empty($filters['only_overdue']) ? '1' : '' ?>">
-                    <div class="form-grid">
-                        <div class="span-2">
-                            <label class="label-sm" for="snapshot_title">Título *</label>
-                            <input type="text" id="snapshot_title" name="title" class="input" required minlength="3" placeholder="Ex.: Executivo — <?= e(date('d/m/Y')) ?>">
-                        </div>
-                        <div class="span-2">
-                            <label class="label-sm" for="snapshot_description">Descrição</label>
-                            <input type="text" id="snapshot_description" name="description" class="input">
-                        </div>
-                        <div class="span-2">
-                            <label class="label-sm" for="snapshot_notes">Observações</label>
-                            <textarea id="snapshot_notes" name="notes" class="input" rows="2"></textarea>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-yellow" style="margin-top:12px;"><i data-lucide="save"></i> Salvar snapshot</button>
-                </form>
-            </details>
-        <?php endif; ?>
-
         <?php require __DIR__ . '/_metric_cards.php'; ?>
+
+        <?php require __DIR__ . '/_charts.php'; ?>
+
+        <article class="dcx-chart-card dcx-chart-card--wide dcx-critical-card">
+            <h3 class="dcx-chart-title"><i data-lucide="alert-triangle" aria-hidden="true"></i> Pendências críticas</h3>
+            <?php if ($criticalAlerts === []): ?>
+                <div class="dcx-empty-visual dcx-empty-visual--ok">
+                    <i data-lucide="check-circle" aria-hidden="true"></i>
+                    <p>Nenhuma pendência crítica no escopo atual.</p>
+                </div>
+            <?php else: ?>
+                <ul class="dcx-critical-list">
+                    <?php foreach ($criticalAlerts as $alert): ?>
+                        <li class="dcx-critical-item dcx-critical-item--<?= e((string) ($alert['type'] ?? 'warning')) ?>">
+                            <i data-lucide="alert-circle" aria-hidden="true"></i>
+                            <span><?= e((string) ($alert['message'] ?? '')) ?></span>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        </article>
+
         <?php require __DIR__ . '/_tables.php'; ?>
     </div>
 </section>

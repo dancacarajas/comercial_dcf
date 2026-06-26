@@ -15,6 +15,7 @@ use App\Models\Opportunity;
 use App\Models\Lead;
 use App\Models\Proposal;
 use App\Models\Quota;
+use App\Models\Report;
 use App\Models\Sponsor;
 use App\Models\SponsorDossier;
 use App\Models\Task;
@@ -293,6 +294,10 @@ final class DashboardController extends Controller
 
         $showAdminSection = can('users.view') || can('roles.view') || can('permissions.view');
 
+        $reportModel = new Report();
+        $execReport  = $reportModel->getExecutiveReport([]);
+        $visualizations = $reportModel->buildVisualizations('executive', $execReport);
+
         $this->view('dashboard/index', [
             'title'              => 'Painel Administrativo',
             'user'               => $this->currentUser(),
@@ -362,6 +367,7 @@ final class DashboardController extends Controller
             'dashboardAlerts'         => $dashboardAlerts,
             'criticalAlertsCount'     => $criticalAlertsCount,
             'showAdminSection'        => $showAdminSection,
+            'visualizations'          => $visualizations,
         ], 'layouts/admin');
     }
 }

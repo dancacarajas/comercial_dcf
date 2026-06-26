@@ -65,6 +65,7 @@ final class App
 
         require_once $this->basePath . '/app/Helpers/security.php';
         require_once $this->basePath . '/app/Helpers/csrf.php';
+        require_once $this->basePath . '/app/Helpers/charts.php';
     }
 
     private function loadConfig(): void

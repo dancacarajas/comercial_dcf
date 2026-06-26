@@ -21,8 +21,16 @@ $routeMap = [
 ];
 $action = $routeMap[$reportKey] ?? app_url('/reports');
 ?>
-<form method="get" action="<?= e($action) ?>" class="filter-box report-filter">
-    <div class="filter-grid">
+<form method="get" action="<?= e($action) ?>" class="filter-box report-filter report-filter--compact">
+    <details class="report-filter-details"<?= ($filters['period_start'] ?? null) || ($filters['period_end'] ?? null) || !empty($filters['responsible_user_id']) ? ' open' : '' ?>>
+        <summary class="report-filter-summary">
+            <i data-lucide="sliders-horizontal" aria-hidden="true"></i>
+            <span>Filtros do relatório</span>
+            <?php if ($hasFilters ?? false): ?>
+                <span class="pill pill-warn">Ativos</span>
+            <?php endif; ?>
+        </summary>
+        <div class="filter-grid report-filter-grid">
         <div>
             <label class="label-sm" for="period_start">Período início</label>
             <input type="date" id="period_start" name="period_start" class="input" value="<?= e($f('period_start')) ?>">
@@ -85,11 +93,12 @@ $action = $routeMap[$reportKey] ?? app_url('/reports');
                 Somente atrasados
             </label>
         </div>
-    </div>
-    <div class="filter-actions">
-        <button type="submit" class="btn btn-yellow"><i data-lucide="filter"></i> Aplicar filtros</button>
-        <a href="<?= e($action) ?>" class="btn btn-ghost">Limpar filtros</a>
-    </div>
+        </div>
+        <div class="filter-actions">
+            <button type="submit" class="btn btn-yellow btn-sm"><i data-lucide="filter"></i> Aplicar filtros</button>
+            <a href="<?= e($action) ?>" class="btn btn-ghost btn-sm">Limpar filtros</a>
+        </div>
+    </details>
 </form>
 <?php if ($filterErrors !== []): ?>
     <div class="notice notice-warn report-alert">

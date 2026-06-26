@@ -51,6 +51,8 @@ $dossiersTotal     = $dossiersTotal ?? null;
 $dossiersDelivered = $dossiersDelivered ?? null;
 $dossiersPending   = $dossiersPending ?? null;
 
+$visualizations = $visualizations ?? [];
+$reportKey      = $reportKey ?? 'executive';
 $reportsAvailable = !empty($reportsAvailable);
 
 $hasCommercial = $companiesCount !== null
@@ -75,7 +77,6 @@ $dateLabel = (new DateTime('now', new DateTimeZone('America/Belem')))->format('d
 
     <section class="dashboard-hero section-dark">
         <div class="container dashboard-hero__content">
-            <span class="kicker">Painel</span>
             <h1 class="h2-section dashboard-hero__title">Painel Administrativo</h1>
             <p class="lead dashboard-hero__lead">
                 Visão geral da captação, contratos, financeiro, contrapartidas e dossiês do Dança Carajás.
@@ -228,52 +229,18 @@ $dateLabel = (new DateTime('now', new DateTimeZone('America/Belem')))->format('d
                 </article>
             </section>
 
+            <?php
+            $reportKey = 'executive';
+            require __DIR__ . '/../reports/_charts.php';
+            ?>
+
             <?php if ($hasCommercial): ?>
                 <section class="dashboard-section">
                     <header class="dashboard-section__header">
                         <h2 class="dashboard-section__title"><i data-lucide="trending-up" aria-hidden="true"></i> Captação comercial</h2>
-                        <p class="dashboard-section__subtitle">Funil de empresas, oportunidades, propostas e fechamentos</p>
+                        <p class="dashboard-section__subtitle">Atalhos para empresas, oportunidades, propostas e relatórios</p>
                     </header>
                     <article class="dashboard-card dashboard-card--wide">
-                        <div class="dashboard-funnel">
-                            <?php if ($companiesCount !== null): ?>
-                                <div class="dashboard-funnel__item">
-                                    <span class="dashboard-funnel__label">Empresas</span>
-                                    <strong class="dashboard-funnel__value"><?= (int) $companiesCount ?></strong>
-                                </div>
-                            <?php endif; ?>
-                            <?php if ($contactsCount !== null): ?>
-                                <div class="dashboard-funnel__item">
-                                    <span class="dashboard-funnel__label">Contatos</span>
-                                    <strong class="dashboard-funnel__value"><?= (int) $contactsCount ?></strong>
-                                </div>
-                            <?php endif; ?>
-                            <?php if ($opportunitiesOpen !== null): ?>
-                                <div class="dashboard-funnel__item">
-                                    <span class="dashboard-funnel__label">Oportunidades</span>
-                                    <strong class="dashboard-funnel__value"><?= (int) $opportunitiesOpen ?></strong>
-                                </div>
-                            <?php endif; ?>
-                            <?php if ($proposalsOpen !== null): ?>
-                                <div class="dashboard-funnel__item">
-                                    <span class="dashboard-funnel__label">Propostas abertas</span>
-                                    <strong class="dashboard-funnel__value"><?= (int) $proposalsOpen ?></strong>
-                                </div>
-                            <?php endif; ?>
-                            <?php if ($proposalsClosed !== null): ?>
-                                <div class="dashboard-funnel__item">
-                                    <span class="dashboard-funnel__label">Propostas fechadas</span>
-                                    <strong class="dashboard-funnel__value"><?= (int) $proposalsClosed ?></strong>
-                                </div>
-                            <?php endif; ?>
-                            <?php if ($sponsorsConfirmed !== null): ?>
-                                <div class="dashboard-funnel__item">
-                                    <span class="dashboard-funnel__label">Patroc. confirmados</span>
-                                    <strong class="dashboard-funnel__value"><?= (int) $sponsorsConfirmed ?></strong>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-
                         <?php if ((int) ($opportunitiesOpen ?? 0) === 0 && can('opportunities.create')): ?>
                             <div class="dashboard-empty-state dashboard-empty-state--inline">
                                 <p>Nenhuma oportunidade aberta. Crie uma oportunidade para iniciar o acompanhamento comercial.</p>

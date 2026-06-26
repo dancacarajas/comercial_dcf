@@ -333,15 +333,19 @@ final class ReportController extends Controller
     {
         $model = new Report();
 
+        $visualizations = $model->buildVisualizations($reportKey, $data);
+
         return [
             'title'        => $meta['title'],
             'description'  => $meta['description'],
             'filters'      => $filters,
             'filterErrors' => $errors,
-            'metrics'      => $data['metrics'] ?? [],
+            'metrics'      => $visualizations['primary_kpis'] ?? ($data['metrics'] ?? []),
+            'allMetrics'   => $data['metrics'] ?? [],
             'tables'       => $data['tables'] ?? [],
             'alerts'       => $data['alerts'] ?? [],
             'rankings'     => $data['rankings'] ?? [],
+            'visualizations' => $visualizations,
             'options'      => $model->buildCommonOptions(),
             'reportKeys'   => $model->getReportKeys(),
             'hasFilters'   => $this->hasReportFilters($filters),

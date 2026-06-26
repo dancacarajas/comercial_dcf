@@ -1274,4 +1274,430 @@ final class Report extends Model
 
         return $items === [] ? [] : [['title' => 'Principais origens de leads', 'items' => $items]];
     }
+
+    /**
+     * Monta payloads visuais (barras, funil, donut, progresso) a partir dos dados do relatório.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    public function buildVisualizations(string $reportKey, array $data): array
+    {
+        $metrics  = $data['metrics'] ?? [];
+        $tables   = $data['tables'] ?? [];
+        $rankings = $data['rankings'] ?? [];
+
+        $viz = [
+            'primary_kpis'   => $this->vizPrimaryKpis($reportKey, $metrics),
+            'financial_bars' => [],
+            'funnel'         => [],
+            'donut'          => [],
+            'progress'       => [],
+            'bar_chart'      => [],
+            'rankings'       => $this->vizRankingBars($rankings),
+        ];
+
+        return match ($reportKey) {
+            'executive'    => $this->vizExecutiveCharts($viz, $metrics),
+            'pipeline'     => $this->vizPipelineCharts($viz, $metrics, $tables),
+            'proposals'    => $this->vizProposalCharts($viz, $metrics),
+            'sponsors'     => $this->vizSponsorCharts($viz, $metrics),
+            'financials'   => $this->vizFinancialCharts($viz, $metrics),
+            'contracts'    => $this->vizContractCharts($viz, $metrics),
+            'counterparts' => $this->vizCounterpartCharts($viz, $metrics),
+            'dossiers'     => $this->vizDossierCharts($viz, $metrics),
+            'tasks'        => $this->vizTaskCharts($viz, $metrics),
+            'leads'        => $this->vizLeadCharts($viz, $metrics, $tables),
+            default        => $viz,
+        };
+    }
+
+    /** @param array<int, array{label:string,value:mixed,type?:string}> $metrics @return list<array{label:string,value:mixed,type:string}> */
+    private function vizPrimaryKpis(string $reportKey, array $metrics): array
+    {
+        $pick = match ($reportKey) {
+            'executive' => [
+                'Valor comprometido', 'Recebido financeiro', 'Saldo financeiro',
+                'Patrocinadores ativos', 'Taxa de recebimento', 'Tarefas em aberto',
+            ],
+            'financials' => ['Previsto', 'Recebido', 'Saldo', 'Recebimento', 'Em atraso', 'Conciliados'],
+            'pipeline'   => ['Valor total aberto', 'Oportunidades abertas', 'Oportunidades no funil', 'Fechadas', 'Perdidas'],
+            'proposals'  => ['Valor em aberto', 'Abertas', 'Enviadas', 'Expiradas', 'Taxa de envio'],
+            'sponsors'   => ['Valor comprometido', 'Valor confirmado', 'Confirmados', 'Em atraso', 'Aguardando aporte'],
+            'contracts'  => ['Valor formalizado', 'Assinados', 'Aguardando assinatura', 'Taxa de assinatura'],
+            'counterparts' => ['Taxa de entrega', 'Entregues', 'Pendentes', 'Atrasadas'],
+            'dossiers'   => ['Taxa de entrega', 'Entregues', 'Pendentes', 'Com contrapartidas pendentes'],
+            'tasks'      => ['Em aberto', 'Vencidas', 'Vencem hoje', 'Taxa de atraso'],
+            'leads'      => ['Novos', 'Convertidos', 'Taxa de conversão', 'Em triagem'],
+            default      => [],
+        };
+
+        if ($pick === []) {
+            return array_slice($metrics, 0, 6);
+        }
+
+        $out = [];
+        foreach ($pick as $needle) {
+            $m = chart_metric_find($metrics, $needle);
+            if ($m !== null) {
+                $out[] = $m;
+            }
+            if (count($out) >= 6) {
+                break;
+            }
+        }
+
+        return $out !== [] ? $out : array_slice($metrics, 0, 6);
+    }
+
+    /** @param array<string, mixed> $viz @param array<int, array{label:string,value:mixed,type?:string}> $metrics @return array<string, mixed> */
+    private function vizExecutiveCharts(array $viz, array $metrics): array
+    {
+        $bars = [
+            ['label' => 'Comprometido', 'value' => chart_metric_number($metrics, 'comprometido'), 'display' => (string) (chart_metric_find($metrics, 'comprometido')['value'] ?? 'R$ 0,00')],
+            ['label' => 'Confirmado', 'value' => chart_metric_number($metrics, 'confirmado'), 'display' => (string) (chart_metric_find($metrics, 'confirmado')['value'] ?? 'R$ 0,00')],
+            ['label' => 'Previsto', 'value' => chart_metric_number($metrics, 'previsto financeiro'), 'display' => (string) (chart_metric_find($metrics, 'previsto')['value'] ?? 'R$ 0,00')],
+            ['label' => 'Recebido', 'value' => chart_metric_number($metrics, 'recebido financeiro'), 'display' => (string) (chart_metric_find($metrics, 'recebido')['value'] ?? 'R$ 0,00')],
+            ['label' => 'Saldo', 'value' => chart_metric_number($metrics, 'saldo financeiro'), 'display' => (string) (chart_metric_find($metrics, 'saldo')['value'] ?? 'R$ 0,00')],
+        ];
+        $max = max(array_column($bars, 'value') ?: [0]);
+        foreach ($bars as &$b) {
+            $b['pct'] = chart_pct_width((float) $b['value'], (float) $max);
+        }
+        unset($b);
+        $viz['financial_bars'] = $bars;
+
+        $steps = [
+            ['label' => 'Empresas', 'count' => (int) chart_metric_number($metrics, 'empresas')],
+            ['label' => 'Contatos', 'count' => (int) chart_metric_number($metrics, 'contatos')],
+            ['label' => 'Oportunidades', 'count' => (int) chart_metric_number($metrics, 'oportunidades abertas')],
+            ['label' => 'Propostas', 'count' => (int) chart_metric_number($metrics, 'propostas abertas')],
+            ['label' => 'Patrocinadores', 'count' => (int) chart_metric_number($metrics, 'patrocinadores')],
+            ['label' => 'Dossiês', 'count' => (int) chart_metric_number($metrics, 'dossiês pendentes')],
+        ];
+        $prev = null;
+        foreach ($steps as &$step) {
+            $step['conversion'] = $prev !== null ? chart_conversion_pct((float) $step['count'], (float) $prev) : null;
+            $prev = $step['count'];
+        }
+        unset($step);
+        $viz['funnel'] = $this->enrichFunnelSteps($steps, [
+            'building-2', 'contact', 'target', 'file-text', 'handshake', 'folder-check',
+        ]);
+        if (isset($viz['funnel'][5])) {
+            $viz['funnel'][5]['meta'] = 'Pendentes de entrega';
+        }
+
+        $planned  = chart_metric_number($metrics, 'previsto financeiro');
+        $received = chart_metric_number($metrics, 'recebido financeiro');
+        $viz['progress'][] = [
+            'label' => 'Taxa de recebimento',
+            'pct'   => $planned > 0 ? chart_pct_width($received, $planned) : 0,
+            'text'  => (string) (chart_metric_find($metrics, 'taxa de recebimento')['value'] ?? '0,0%'),
+        ];
+
+        return $viz;
+    }
+
+    /** @param array<int, array<string, mixed>> $tables */
+    private function vizPipelineCharts(array $viz, array $metrics, array $tables): array
+    {
+        $rows = $tables[0]['rows'] ?? [];
+        $max  = 0;
+        $bars = [];
+        foreach ($rows as $row) {
+            $count = (int) chart_parse_number($row[1] ?? 0);
+            $max   = max($max, $count);
+            $bars[] = [
+                'label'   => (string) ($row[0] ?? ''),
+                'value'   => $count,
+                'display' => (string) ($row[1] ?? '0'),
+                'sub'     => (string) ($row[2] ?? ''),
+            ];
+        }
+        foreach ($bars as &$b) {
+            $b['pct'] = chart_pct_width((float) $b['value'], (float) max(1, $max));
+        }
+        unset($b);
+        $viz['bar_chart'] = $bars;
+
+        $open   = (int) chart_metric_number($metrics, 'oportunidades abertas');
+        $closed = (int) chart_metric_number($metrics, 'fechadas');
+        $lost   = (int) chart_metric_number($metrics, 'perdidas');
+        $steps  = [
+            ['label' => 'Abertas', 'count' => $open],
+            ['label' => 'Fechadas', 'count' => $closed],
+            ['label' => 'Perdidas', 'count' => $lost],
+        ];
+        $prev = null;
+        foreach ($steps as &$step) {
+            $step['conversion'] = $prev !== null ? chart_conversion_pct((float) $step['count'], (float) $prev) : null;
+            $prev = $step['count'];
+        }
+        unset($step);
+        $viz['funnel'] = $this->enrichFunnelSteps($steps, ['target', 'check-circle', 'x-circle']);
+
+        $totalOpen = (int) chart_metric_number($metrics, 'oportunidades no funil');
+        $closed    = (int) chart_metric_number($metrics, 'fechadas');
+        $viz['progress'][] = [
+            'label' => 'Conversão para fechamento',
+            'pct'   => chart_pct_width($closed, max(1, $totalOpen + $closed)),
+            'text'  => $totalOpen + $closed > 0
+                ? number_format(($closed / ($totalOpen + $closed)) * 100, 1, ',', '.') . '%'
+                : '0,0%',
+        ];
+
+        return $viz;
+    }
+
+    /** @param array<int, array{label:string,value:mixed,type?:string}> $metrics */
+    private function vizProposalCharts(array $viz, array $metrics): array
+    {
+        $total = chart_metric_number($metrics, 'total');
+        $open  = chart_metric_number($metrics, 'abertas');
+        $sent  = chart_metric_number($metrics, 'enviadas');
+        $exp   = chart_metric_number($metrics, 'expiradas');
+
+        $viz['donut'] = [
+            ['label' => 'Abertas', 'value' => $open, 'color' => '#f7c400'],
+            ['label' => 'Enviadas', 'value' => $sent, 'color' => '#222222'],
+            ['label' => 'Expiradas', 'value' => $exp, 'color' => '#767676'],
+        ];
+        $viz['progress'][] = [
+            'label' => 'Taxa de envio',
+            'pct'   => chart_pct_width($sent, max(1, $total)),
+            'text'  => (string) (chart_metric_find($metrics, 'taxa de envio')['value'] ?? '0,0%'),
+        ];
+
+        return $viz;
+    }
+
+    private function vizSponsorCharts(array $viz, array $metrics): array
+    {
+        $committed = chart_metric_number($metrics, 'comprometido');
+        $confirmed = chart_metric_number($metrics, 'confirmado');
+        $viz['financial_bars'] = [
+            ['label' => 'Comprometido', 'value' => $committed, 'display' => (string) (chart_metric_find($metrics, 'comprometido')['value'] ?? ''), 'pct' => 100],
+            ['label' => 'Confirmado', 'value' => $confirmed, 'display' => (string) (chart_metric_find($metrics, 'confirmado')['value'] ?? ''), 'pct' => chart_pct_width($confirmed, max(1, $committed))],
+        ];
+        $viz['donut'] = [
+            ['label' => 'Confirmados', 'value' => chart_metric_number($metrics, 'confirmados'), 'color' => '#f7c400'],
+            ['label' => 'Aguardando', 'value' => chart_metric_number($metrics, 'aguardando'), 'color' => '#222222'],
+            ['label' => 'Em atraso', 'value' => chart_metric_number($metrics, 'atraso'), 'color' => '#767676'],
+        ];
+
+        return $viz;
+    }
+
+    private function vizFinancialCharts(array $viz, array $metrics): array
+    {
+        $planned  = chart_metric_number($metrics, 'previsto');
+        $received = chart_metric_number($metrics, 'recebido');
+        $remaining = chart_metric_number($metrics, 'saldo');
+        $max = max($planned, $received, $remaining, 1);
+
+        $viz['financial_bars'] = [
+            ['label' => 'Previsto', 'value' => $planned, 'display' => (string) (chart_metric_find($metrics, 'previsto')['value'] ?? ''), 'pct' => chart_pct_width($planned, $max)],
+            ['label' => 'Recebido', 'value' => $received, 'display' => (string) (chart_metric_find($metrics, 'recebido')['value'] ?? ''), 'pct' => chart_pct_width($received, $max)],
+            ['label' => 'Saldo', 'value' => $remaining, 'display' => (string) (chart_metric_find($metrics, 'saldo')['value'] ?? ''), 'pct' => chart_pct_width($remaining, $max)],
+        ];
+        $viz['donut'] = [
+            ['label' => 'Pendentes', 'value' => chart_metric_number($metrics, 'pendentes'), 'color' => '#767676'],
+            ['label' => 'Parciais', 'value' => chart_metric_number($metrics, 'parciais'), 'color' => '#222222'],
+            ['label' => 'Conciliados', 'value' => chart_metric_number($metrics, 'conciliados'), 'color' => '#f7c400'],
+            ['label' => 'Em atraso', 'value' => chart_metric_number($metrics, 'atraso'), 'color' => '#050505'],
+        ];
+        $viz['progress'][] = [
+            'label' => 'Taxa de recebimento',
+            'pct'   => chart_pct_width($received, max(1, $planned)),
+            'text'  => (string) (chart_metric_find($metrics, 'recebimento')['value'] ?? '0,0%'),
+        ];
+
+        return $viz;
+    }
+
+    private function vizContractCharts(array $viz, array $metrics): array
+    {
+        $viz['donut'] = [
+            ['label' => 'Assinados', 'value' => chart_metric_number($metrics, 'assinados'), 'color' => '#f7c400'],
+            ['label' => 'Vigentes', 'value' => chart_metric_number($metrics, 'vigentes'), 'color' => '#222222'],
+            ['label' => 'Aguard. assinatura', 'value' => chart_metric_number($metrics, 'aguardando'), 'color' => '#767676'],
+            ['label' => 'Expirados', 'value' => chart_metric_number($metrics, 'expirados'), 'color' => '#050505'],
+        ];
+        $viz['progress'][] = [
+            'label' => 'Taxa de assinatura',
+            'pct'   => chart_pct_width(
+                chart_metric_number($metrics, 'assinados'),
+                max(1, chart_metric_number($metrics, 'contratos'))
+            ),
+            'text'  => (string) (chart_metric_find($metrics, 'taxa de assinatura')['value'] ?? '0,0%'),
+        ];
+
+        return $viz;
+    }
+
+    private function vizCounterpartCharts(array $viz, array $metrics): array
+    {
+        $viz['donut'] = [
+            ['label' => 'Entregues', 'value' => chart_metric_number($metrics, 'entregues'), 'color' => '#f7c400'],
+            ['label' => 'Parciais', 'value' => chart_metric_number($metrics, 'parciais'), 'color' => '#222222'],
+            ['label' => 'Pendentes', 'value' => chart_metric_number($metrics, 'pendentes'), 'color' => '#767676'],
+            ['label' => 'Atrasadas', 'value' => chart_metric_number($metrics, 'atrasadas'), 'color' => '#050505'],
+        ];
+        $viz['progress'][] = [
+            'label' => 'Taxa de entrega',
+            'pct'   => chart_pct_width(
+                chart_metric_number($metrics, 'entregues'),
+                max(1, chart_metric_number($metrics, 'contrapartidas'))
+            ),
+            'text'  => (string) (chart_metric_find($metrics, 'taxa de entrega')['value'] ?? '0,0%'),
+        ];
+
+        return $viz;
+    }
+
+    private function vizDossierCharts(array $viz, array $metrics): array
+    {
+        $viz['donut'] = [
+            ['label' => 'Entregues', 'value' => chart_metric_number($metrics, 'entregues'), 'color' => '#f7c400'],
+            ['label' => 'Aprovados', 'value' => chart_metric_number($metrics, 'aprovados'), 'color' => '#222222'],
+            ['label' => 'Pendentes', 'value' => chart_metric_number($metrics, 'pendentes'), 'color' => '#767676'],
+            ['label' => 'C/ contrap. pend.', 'value' => chart_metric_number($metrics, 'contrapartidas pendentes'), 'color' => '#050505'],
+        ];
+        $viz['progress'][] = [
+            'label' => 'Taxa de entrega',
+            'pct'   => chart_pct_width(
+                chart_metric_number($metrics, 'entregues'),
+                max(1, chart_metric_number($metrics, 'dossi'))
+            ),
+            'text'  => (string) (chart_metric_find($metrics, 'taxa de entrega')['value'] ?? '0,0%'),
+        ];
+
+        return $viz;
+    }
+
+    private function vizTaskCharts(array $viz, array $metrics): array
+    {
+        $open    = chart_metric_number($metrics, 'aberto');
+        $overdue = chart_metric_number($metrics, 'vencidas');
+        $today   = chart_metric_number($metrics, 'hoje');
+        $viz['bar_chart'] = [
+            ['label' => 'Em aberto', 'value' => $open, 'display' => (string) $open, 'pct' => chart_pct_width($open, max(1, $open))],
+            ['label' => 'Vencidas', 'value' => $overdue, 'display' => (string) $overdue, 'pct' => chart_pct_width($overdue, max(1, $open))],
+            ['label' => 'Vencem hoje', 'value' => $today, 'display' => (string) $today, 'pct' => chart_pct_width($today, max(1, $open))],
+        ];
+        $viz['progress'][] = [
+            'label' => 'Taxa de atraso (abertas)',
+            'pct'   => chart_pct_width($overdue, max(1, $open)),
+            'text'  => (string) (chart_metric_find($metrics, 'atraso')['value'] ?? '0,0%'),
+        ];
+
+        return $viz;
+    }
+
+    /** @param array<int, array<string, mixed>> $tables */
+    private function vizLeadCharts(array $viz, array $metrics, array $tables): array
+    {
+        $rows = $tables[0]['rows'] ?? [];
+        $max  = 0;
+        $bars = [];
+        foreach ($rows as $row) {
+            $count = (int) chart_parse_number($row[1] ?? 0);
+            $max   = max($max, $count);
+            $bars[] = ['label' => (string) ($row[0] ?? ''), 'value' => $count, 'display' => (string) ($row[1] ?? '0')];
+        }
+        foreach ($bars as &$b) {
+            $b['pct'] = chart_pct_width((float) $b['value'], (float) max(1, $max));
+        }
+        unset($b);
+        $viz['bar_chart'] = $bars;
+        $viz['progress'][] = [
+            'label' => 'Taxa de conversão',
+            'pct'   => chart_pct_width(
+                chart_metric_number($metrics, 'convertidos'),
+                max(1, chart_metric_number($metrics, 'leads'))
+            ),
+            'text'  => (string) (chart_metric_find($metrics, 'conversão')['value'] ?? '0,0%'),
+        ];
+
+        return $viz;
+    }
+
+    /** @param list<array{title:string,items:list<array{label:string,value:string}>}> $rankings @return list<array{title:string,items:list<array{label:string,value:string,numeric:float,pct:float}>}> */
+    private function vizRankingBars(array $rankings): array
+    {
+        $out = [];
+        foreach ($rankings as $ranking) {
+            $items = $ranking['items'] ?? [];
+            $nums  = [];
+            foreach ($items as $item) {
+                $raw = chart_parse_money($item['value'] ?? 0);
+                if ($raw <= 0) {
+                    $raw = chart_parse_number($item['value'] ?? 0);
+                }
+                $nums[] = $raw;
+            }
+            $max = max($nums ?: [0]);
+            $newItems = [];
+            foreach ($items as $i => $item) {
+                $numeric = $nums[$i] ?? 0;
+                $newItems[] = [
+                    'label'   => (string) ($item['label'] ?? ''),
+                    'value'   => (string) ($item['value'] ?? ''),
+                    'numeric' => $numeric,
+                    'pct'     => chart_pct_width($numeric, max(1, $max)),
+                ];
+            }
+            $out[] = ['title' => (string) ($ranking['title'] ?? 'Ranking'), 'items' => $newItems];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Enriquece etapas do funil com ícone, meta, destaque e barra proporcional.
+     *
+     * @param list<array<string, mixed>> $steps
+     * @param list<string> $icons
+     * @return list<array<string, mixed>>
+     */
+    private function enrichFunnelSteps(array $steps, array $icons): array
+    {
+        if ($steps === []) {
+            return [];
+        }
+
+        $counts   = array_map(static fn (array $s): int => (int) ($s['count'] ?? 0), $steps);
+        $maxCount = max($counts);
+        $base     = max(1, (int) ($steps[0]['count'] ?? 0));
+
+        foreach ($steps as $i => &$step) {
+            $count = (int) ($step['count'] ?? 0);
+            $step['icon']       = $icons[$i] ?? 'circle-dot';
+            $step['strip_pct']  = chart_pct_width((float) $count, (float) $base);
+            $step['active']     = $count > 0;
+            $step['highlight']  = false;
+
+            if ($i === 0) {
+                $step['meta'] = 'Base inicial';
+            } elseif (($step['conversion'] ?? null) !== null) {
+                $step['meta'] = $count > 0 ? 'Convertidos' : 'Sem conversão';
+            } else {
+                $step['meta'] = 'Sem base';
+            }
+        }
+        unset($step);
+
+        if ($maxCount > 0) {
+            foreach ($steps as $i => &$step) {
+                if ((int) ($step['count'] ?? 0) === $maxCount) {
+                    $step['highlight'] = true;
+                    break;
+                }
+            }
+            unset($step);
+        }
+
+        return $steps;
+    }
 }

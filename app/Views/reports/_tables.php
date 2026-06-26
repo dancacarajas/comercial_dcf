@@ -1,22 +1,31 @@
 <?php
 $tables = $tables ?? [];
 $rankings = $rankings ?? [];
+$visualizations = $visualizations ?? [];
+
+$detailTitles = ['Resumo por módulo', 'Indicadores de patrocínio', 'Resumo financeiro', 'Resumo de contratos', 'Resumo de contrapartidas', 'Resumo de dossiês'];
 ?>
-<?php foreach ($tables as $table): ?>
+<?php foreach ($tables as $tableIndex => $table): ?>
     <?php
     $title   = (string) ($table['title'] ?? 'Tabela');
     $headers = $table['headers'] ?? [];
     $rows    = $table['rows'] ?? [];
+    $isDetail = in_array($title, $detailTitles, true)
+        || ($headers === ['Indicador', 'Valor'] && count($headers) === 2);
+    $displayTitle = $isDetail ? 'Detalhamento dos indicadores' : $title;
     ?>
-    <div class="report-section">
-        <h3 class="h4-section"><?= e($title) ?></h3>
+    <details class="report-section report-detail-section"<?= $isDetail ? '' : ' open' ?>>
+        <summary class="report-detail-summary">
+            <h3 class="h4-section report-detail-title"><?= e($displayTitle) ?></h3>
+            <?php if ($isDetail): ?>
+                <span class="report-detail-hint">Expandir tabela completa</span>
+            <?php endif; ?>
+        </summary>
         <?php if ($rows === []): ?>
-            <div class="empty-state" style="margin:12px 0;padding:20px;text-align:center;color:#666;">
-                <p class="mb-0">Sem registros para exibir.</p>
-            </div>
+            <div class="dcx-empty-visual"><p>Sem registros para exibir.</p></div>
         <?php else: ?>
-            <div class="table-wrap">
-                <table class="report-table">
+            <div class="table-wrap report-table-wrap">
+                <table class="report-table report-table--compact">
                     <thead>
                         <tr>
                             <?php foreach ($headers as $h): ?>
@@ -36,27 +45,5 @@ $rankings = $rankings ?? [];
                 </table>
             </div>
         <?php endif; ?>
-    </div>
-<?php endforeach; ?>
-
-<?php foreach ($rankings as $ranking): ?>
-    <?php
-    $title = (string) ($ranking['title'] ?? 'Ranking');
-    $items = $ranking['items'] ?? [];
-    ?>
-    <div class="report-section report-ranking">
-        <h3 class="h4-section"><?= e($title) ?></h3>
-        <?php if ($items === []): ?>
-            <div class="report-empty"><p class="mb-0">Sem itens no ranking.</p></div>
-        <?php else: ?>
-            <ol class="report-ranking-list">
-                <?php foreach ($items as $item): ?>
-                    <li>
-                        <span><?= e((string) ($item['label'] ?? '')) ?></span>
-                        <strong><?= e((string) ($item['value'] ?? '')) ?></strong>
-                    </li>
-                <?php endforeach; ?>
-            </ol>
-        <?php endif; ?>
-    </div>
+    </details>
 <?php endforeach; ?>
