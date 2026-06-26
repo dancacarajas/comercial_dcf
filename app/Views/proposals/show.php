@@ -129,6 +129,16 @@ $dash       = static fn ($v): string => ($v === null || $v === '') ? '—' : (st
             ?>
         <?php endif; ?>
 
+        <?php if (can('counterparts.view')): ?>
+            <?php
+            $blockTitle = 'Contrapartidas';
+            $createUrl  = can('counterparts.create') ? app_url('/proposals/' . $pid . '/counterparts/create') : '';
+            $allUrl     = app_url('/counterparts?proposal_id=' . $pid);
+            $emptyText  = 'Nenhuma contrapartida vinculada a esta proposta ainda.';
+            require dirname(__DIR__) . '/counterparts/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <article class="card meta-audit" style="margin-top:18px;">
             <dl class="meta-list meta-list-inline">
                 <dt>Criado por</dt><dd><?= e($dash($proposal['created_by_name'] ?? '')) ?></dd>

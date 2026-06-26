@@ -1519,9 +1519,82 @@ Blocos em empresa, contato, oportunidade, proposta e cota; link patrocinador em 
 - [ ] CRUD completo; confirmar; mudar status/pagamento; arquivar/restaurar
 - [ ] Filtros, paginação, snapshot de cota, blocos contextuais, dashboard
 - [ ] Documento vinculado via `sponsor_id`; bloco documentos em `/sponsors/{id}`
-- [ ] **NÃO** criados: Contrapartidas, Contratos, Assinatura Digital, Portal Externo, Financeiro detalhado, Relatórios avançados
+- [ ] **NÃO** criados: Contratos, Assinatura Digital, Portal Externo, Financeiro detalhado, Relatórios avançados
 
-> **Próxima etapa após validação:** Contrapartidas e módulos complementares (etapas futuras).
+> **Próxima etapa após validação:** Contrapartidas dos Patrocinadores (Etapa 13).
+
+---
+
+## Etapa 13 — Contrapartidas dos Patrocinadores
+
+Módulo interno para registrar, acompanhar e comprovar entregas prometidas aos patrocinadores (marca, mídia, redes sociais, telão, relatórios, clipping, etc.), sempre vinculadas a um fechamento comercial (`sponsor_id`).
+
+**Fora do escopo desta etapa:** contratos, assinatura digital, portal externo, financeiro detalhado, relatórios avançados, automação de e-mail/WhatsApp, integrações Drive/Dropbox.
+
+### Migration
+
+```bash
+# Docker local
+Get-Content -Raw database/migrations/2026_etapa13_counterparts.sql | docker exec -i dcc_db mariadb -udanca -pdanca danca_captacao
+```
+
+Cria:
+
+- Tabela `counterparts` (vínculos com patrocinador, empresa, contato, oportunidade, proposta, cota, documento de evidência)
+- Coluna `documents.counterpart_id` (integração contextual com Documentos)
+- Permissões `counterparts.view|create|edit|archive|deliver|status` e matriz por perfil
+
+### Permissões
+
+| Perfil | counterparts.* |
+|--------|----------------|
+| Administrador Geral | todas |
+| Captação / Comercial | todas |
+| Produção / Coordenação | view, create, edit, deliver, status |
+| Comunicação | view, create, edit, deliver, status |
+| Leitura / Consulta | view |
+
+### Listas controladas
+
+- **Categorias:** `divulgacao_marca`, `aplicacao_logomarca`, `site`, `redes_sociais`, `release_imprensa`, `midia_kit`, `telão_palco`, `banner_sinalizacao`, `credenciais_cortesias`, `ativacao_marca`, `estande`, `cerimonial`, `material_grafico`, `relatorio_visibilidade`, `clipping`, `registro_fotografico`, `registro_audiovisual`, `documento_comprobatorio`, `outra`
+- **Tipos de entrega:** `entrega_unica`, `entrega_recorrente`, `entrega_por_evento`, `entrega_por_postagem`, `entrega_por_material`, `entrega_documental`, `entrega_presencial`, `entrega_digital`, `outro`
+- **Status:** `planejada`, `em_execucao`, `aguardando_material`, `aguardando_aprovacao`, `entrega_parcial`, `entregue`, `aprovada`, `atrasada`, `cancelada`, `suspensa`, `substituida`, `arquivada`
+- **Prioridades:** `baixa`, `media`, `alta`, `critica`
+
+### Rotas principais
+
+- `GET /counterparts` — listagem (15/página, filtros, ordenação comercial)
+- `GET|POST /counterparts/create|store`
+- `GET /counterparts/{id}` — detalhes + bloco de documentos
+- `GET|POST /counterparts/{id}/edit|update`
+- `POST /counterparts/{id}/status|deliver|archive|restore`
+- Contextuais: `/sponsors|companies|contacts|opportunities|proposals|quotas/{id}/counterparts/create`
+- Documentos: `/counterparts/{id}/documents/create` e `/documents/create?counterpart_id={id}`
+
+### Integrações
+
+- Blocos **Contrapartidas** em patrocinador, empresa, contato, oportunidade, proposta e cota
+- Cards no dashboard (cadastradas, pendentes, entregues, parciais, atrasadas)
+- Documentos aceitam `counterpart_id`; opção “usar como evidência” preenche `evidence_document_id`
+- Activity logs: `counterpart_created`, `counterpart_updated`, `counterpart_status_changed`, `counterpart_delivery_progress_updated`, `counterpart_evidence_linked`, `counterpart_delivered`, `counterpart_partial_delivered`, `counterpart_archived`, `counterpart_restored`, `counterpart_document_linked`
+
+### Validação local
+
+```bash
+docker exec dcc_app php /var/www/html/scripts/validate_etapa13.php
+```
+
+Resultado esperado: **64 PASS / 0 FAIL** (ambiente Docker `http://localhost:8080`, admin `admin@dancacarajas.com`).
+
+### Checklist de testes (Etapa 13)
+
+- [ ] Migration executada; tabela `counterparts` e `documents.counterpart_id` criados
+- [ ] Permissões `counterparts.*` sem duplicidade; matriz por perfil correta
+- [ ] Auth, CSRF, validações, CRUD, entrega parcial/total, status aprovada, arquivar/restaurar
+- [ ] Filtros, paginação, blocos contextuais, dashboard, vínculo com documentos
+- [ ] **NÃO** criados: Contratos, Assinatura Digital, Portal Externo, Financeiro detalhado, Relatórios avançados
+
+> **Deploy em produção:** somente após validação local completa e aprovação explícita.
 
 ---
 

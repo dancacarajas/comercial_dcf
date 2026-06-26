@@ -14,6 +14,7 @@ use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Quota;
 use App\Models\Sponsor;
+use App\Models\Counterpart;
 use App\Models\User;
 
 /**
@@ -190,6 +191,15 @@ final class ProposalController extends Controller
             $sponsorSummary = $sponsorModel->summaryByProposal($pid);
         }
 
+        $counterparts        = [];
+        $counterpartSummary  = ['total' => 0, 'delivered' => 0, 'partial' => 0, 'overdue' => 0, 'pending' => 0];
+        $counterpartModel    = null;
+        if (can('counterparts.view')) {
+            $counterpartModel   = new Counterpart();
+            $counterparts       = $counterpartModel->findByProposal($pid, 6);
+            $counterpartSummary = $counterpartModel->summaryByProposal($pid);
+        }
+
         $this->view('proposals/show', [
             'title'    => $proposal['title'] ?? 'Proposta',
             'proposal' => $proposal,
@@ -202,6 +212,9 @@ final class ProposalController extends Controller
             'sponsors'        => $sponsors,
             'sponsorSummary'  => $sponsorSummary,
             'sponsorModel'    => $sponsorModel,
+            'counterparts'       => $counterparts,
+            'counterpartSummary' => $counterpartSummary,
+            'counterpartModel'   => $counterpartModel,
         ]);
     }
 

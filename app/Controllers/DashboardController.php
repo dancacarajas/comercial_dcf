@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\Counterpart;
 use App\Models\Document;
 use App\Models\Opportunity;
 use App\Models\Lead;
@@ -132,6 +133,20 @@ final class DashboardController extends Controller
             $sponsorsOverdue         = $sponsorModel->countOverdue();
         }
 
+        $counterpartsTotal = null;
+        $counterpartsPending = null;
+        $counterpartsDelivered = null;
+        $counterpartsPartial = null;
+        $counterpartsOverdue = null;
+        if (can('counterparts.view')) {
+            $counterpartModel      = new Counterpart();
+            $counterpartsTotal     = $counterpartModel->countActive();
+            $counterpartsPending   = $counterpartModel->countPending();
+            $counterpartsDelivered = $counterpartModel->countDelivered();
+            $counterpartsPartial   = $counterpartModel->countPartial();
+            $counterpartsOverdue   = $counterpartModel->countOverdue();
+        }
+
         $this->view('dashboard/index', [
             'title'              => 'Painel Administrativo',
             'user'               => $this->currentUser(),
@@ -166,6 +181,11 @@ final class DashboardController extends Controller
             'sponsorsConfirmedAmount' => $sponsorsConfirmedAmount,
             'sponsorsAwaiting'        => $sponsorsAwaiting,
             'sponsorsOverdue'         => $sponsorsOverdue,
+            'counterpartsTotal'       => $counterpartsTotal,
+            'counterpartsPending'     => $counterpartsPending,
+            'counterpartsDelivered'   => $counterpartsDelivered,
+            'counterpartsPartial'     => $counterpartsPartial,
+            'counterpartsOverdue'     => $counterpartsOverdue,
         ], 'layouts/admin');
     }
 }

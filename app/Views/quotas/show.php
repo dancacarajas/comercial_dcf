@@ -171,8 +171,18 @@ $oProbClass = static function (int $p): string {
             ?>
         <?php endif; ?>
 
+        <?php if (can('counterparts.view')): ?>
+            <?php
+            $blockTitle = 'Contrapartidas';
+            $createUrl  = can('counterparts.create') ? app_url('/quotas/' . $qid . '/counterparts/create') : '';
+            $allUrl     = app_url('/counterparts?quota_id=' . $qid);
+            $emptyText  = 'Nenhuma contrapartida vinculada a esta cota ainda.';
+            require dirname(__DIR__) . '/counterparts/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice" style="margin-top:18px;">
-            <p class="mb-0"><i data-lucide="info"></i> Contrapartidas, contratos e portal do patrocinador serão tratados em etapas futuras.</p>
+            <p class="mb-0"><i data-lucide="info"></i> Contratos, assinatura digital e portal do patrocinador serão tratados em etapas futuras.</p>
         </div>
 
         <article class="card meta-audit" style="margin-top:18px;">

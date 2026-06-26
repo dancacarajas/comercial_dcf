@@ -100,6 +100,24 @@ $err = static function (string $k) use ($errors): string {
             </select>
             <?= $err('sponsor_id') ?>
         </div>
+        <div>
+            <label for="counterpart_id">Contrapartida</label>
+            <select id="counterpart_id" name="counterpart_id">
+                <option value="">— Opcional —</option>
+                <?php foreach (($counterparts ?? []) as $cp): ?>
+                    <option value="<?= (int) $cp['id'] ?>" <?= (int) $val('counterpart_id') === (int) $cp['id'] ? 'selected' : '' ?>><?= e($cp['label'] ?? '') ?></option>
+                <?php endforeach; ?>
+            </select>
+            <?= $err('counterpart_id') ?>
+        </div>
+        <?php if (!empty($val('counterpart_id')) && can('counterparts.edit')): ?>
+            <div class="form-grid-full">
+                <label class="checkbox-inline">
+                    <input type="checkbox" name="use_as_evidence" value="1" <?= !empty($val('use_as_evidence')) ? 'checked' : '' ?>>
+                    Usar este documento como evidência da contrapartida
+                </label>
+            </div>
+        <?php endif; ?>
     </div>
 
     <h3 class="h3-card form-section-title"><i data-lucide="file-stack"></i> Dados do documento</h3>

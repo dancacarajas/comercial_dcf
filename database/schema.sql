@@ -552,6 +552,93 @@ CREATE TABLE IF NOT EXISTS `sponsors` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
+-- Tabela: counterparts (Etapa 13 — Contrapartidas dos Patrocinadores)
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `counterparts` (
+    `id`                     BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `sponsor_id`             BIGINT UNSIGNED NOT NULL,
+    `company_id`             BIGINT UNSIGNED NULL DEFAULT NULL,
+    `contact_id`             BIGINT UNSIGNED NULL DEFAULT NULL,
+    `opportunity_id`         BIGINT UNSIGNED NULL DEFAULT NULL,
+    `proposal_id`            BIGINT UNSIGNED NULL DEFAULT NULL,
+    `quota_id`               BIGINT UNSIGNED NULL DEFAULT NULL,
+    `evidence_document_id`   BIGINT UNSIGNED NULL DEFAULT NULL,
+    `title`                  VARCHAR(180)    NOT NULL,
+    `category`               VARCHAR(80)     NOT NULL DEFAULT 'divulgacao_marca',
+    `delivery_type`          VARCHAR(80)     NOT NULL DEFAULT 'entrega_unica',
+    `description`            TEXT            NULL DEFAULT NULL,
+    `promised_quantity`      DECIMAL(10,2)   NULL DEFAULT NULL,
+    `delivered_quantity`     DECIMAL(10,2)   NULL DEFAULT NULL,
+    `unit`                   VARCHAR(60)     NULL DEFAULT NULL,
+    `priority`               VARCHAR(40)     NOT NULL DEFAULT 'media',
+    `status`                 VARCHAR(60)     NOT NULL DEFAULT 'planejada',
+    `due_date`               DATE            NULL DEFAULT NULL,
+    `started_at`             DATETIME        NULL DEFAULT NULL,
+    `delivered_at`           DATETIME        NULL DEFAULT NULL,
+    `approved_at`            DATETIME        NULL DEFAULT NULL,
+    `evidence_description`   TEXT            NULL DEFAULT NULL,
+    `evidence_url`           VARCHAR(255)    NULL DEFAULT NULL,
+    `responsible_user_id`    BIGINT UNSIGNED NULL DEFAULT NULL,
+    `approved_by`            BIGINT UNSIGNED NULL DEFAULT NULL,
+    `notes`                  TEXT            NULL DEFAULT NULL,
+    `internal_notes`         TEXT            NULL DEFAULT NULL,
+    `created_by`             BIGINT UNSIGNED NULL DEFAULT NULL,
+    `updated_by`             BIGINT UNSIGNED NULL DEFAULT NULL,
+    `delivered_by`           BIGINT UNSIGNED NULL DEFAULT NULL,
+    `created_at`             DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`             DATETIME        NULL DEFAULT NULL,
+    `archived_at`            DATETIME        NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_counterparts_sponsor`            (`sponsor_id`),
+    KEY `idx_counterparts_company`            (`company_id`),
+    KEY `idx_counterparts_contact`            (`contact_id`),
+    KEY `idx_counterparts_opportunity`        (`opportunity_id`),
+    KEY `idx_counterparts_proposal`           (`proposal_id`),
+    KEY `idx_counterparts_quota`              (`quota_id`),
+    KEY `idx_counterparts_evidence_document`  (`evidence_document_id`),
+    KEY `idx_counterparts_category`           (`category`),
+    KEY `idx_counterparts_delivery_type`      (`delivery_type`),
+    KEY `idx_counterparts_priority`           (`priority`),
+    KEY `idx_counterparts_status`             (`status`),
+    KEY `idx_counterparts_due_date`           (`due_date`),
+    KEY `idx_counterparts_responsible`        (`responsible_user_id`),
+    KEY `idx_counterparts_archived_at`        (`archived_at`),
+    CONSTRAINT `fk_counterparts_sponsor`
+        FOREIGN KEY (`sponsor_id`) REFERENCES `sponsors` (`id`)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_counterparts_company`
+        FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_counterparts_contact`
+        FOREIGN KEY (`contact_id`) REFERENCES `contacts` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_counterparts_opportunity`
+        FOREIGN KEY (`opportunity_id`) REFERENCES `opportunities` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_counterparts_proposal`
+        FOREIGN KEY (`proposal_id`) REFERENCES `proposals` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_counterparts_quota`
+        FOREIGN KEY (`quota_id`) REFERENCES `quotas` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_counterparts_responsible`
+        FOREIGN KEY (`responsible_user_id`) REFERENCES `users` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_counterparts_approved_by`
+        FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_counterparts_created_by`
+        FOREIGN KEY (`created_by`) REFERENCES `users` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_counterparts_updated_by`
+        FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_counterparts_delivered_by`
+        FOREIGN KEY (`delivered_by`) REFERENCES `users` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
 -- Tabela: documents (Etapa 11 — Documentos e Arquivos)
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `documents` (
@@ -563,6 +650,7 @@ CREATE TABLE IF NOT EXISTS `documents` (
     `proposal_id`          BIGINT UNSIGNED NULL DEFAULT NULL,
     `lead_id`              BIGINT UNSIGNED NULL DEFAULT NULL,
     `sponsor_id`           BIGINT UNSIGNED NULL DEFAULT NULL,
+    `counterpart_id`       BIGINT UNSIGNED NULL DEFAULT NULL,
     `title`                VARCHAR(180)    NOT NULL,
     `description`          TEXT            NULL DEFAULT NULL,
     `category`             VARCHAR(80)     NOT NULL DEFAULT 'documento_comercial',
@@ -594,6 +682,7 @@ CREATE TABLE IF NOT EXISTS `documents` (
     KEY `idx_documents_proposal`     (`proposal_id`),
     KEY `idx_documents_lead`         (`lead_id`),
     KEY `idx_documents_sponsor`      (`sponsor_id`),
+    KEY `idx_documents_counterpart`  (`counterpart_id`),
     KEY `idx_documents_category`     (`category`),
     KEY `idx_documents_status`       (`status`),
     KEY `idx_documents_access_level` (`access_level`),
@@ -623,6 +712,9 @@ CREATE TABLE IF NOT EXISTS `documents` (
     CONSTRAINT `fk_documents_sponsor`
         FOREIGN KEY (`sponsor_id`) REFERENCES `sponsors` (`id`)
         ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_documents_counterpart`
+        FOREIGN KEY (`counterpart_id`) REFERENCES `counterparts` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT `fk_documents_parent`
         FOREIGN KEY (`parent_document_id`) REFERENCES `documents` (`id`)
         ON DELETE SET NULL ON UPDATE CASCADE,
@@ -640,6 +732,11 @@ CREATE TABLE IF NOT EXISTS `documents` (
 ALTER TABLE `sponsors`
     ADD CONSTRAINT `fk_sponsors_primary_document`
         FOREIGN KEY (`primary_document_id`) REFERENCES `documents` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE `counterparts`
+    ADD CONSTRAINT `fk_counterparts_evidence_document`
+        FOREIGN KEY (`evidence_document_id`) REFERENCES `documents` (`id`)
         ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- ---------------------------------------------------------------------
@@ -788,7 +885,12 @@ INSERT INTO `permissions` (`name`, `slug`, `description`) VALUES
     ('Arquivar patrocinadores','sponsors.archive',     'Arquivar e restaurar fechamentos'),
     ('Confirmar fechamento',  'sponsors.confirm',      'Confirmar fechamento comercial'),
     ('Alterar status patroc.','sponsors.status',       'Alterar status e pagamento de fechamentos'),
-    ('Ver contrapartidas',    'counterparts.view',     'Reservada para módulo futuro'),
+    ('Ver contrapartidas',    'counterparts.view',     'Visualizar contrapartidas dos patrocinadores'),
+    ('Criar contrapartidas',  'counterparts.create',   'Registrar contrapartidas de patrocinadores'),
+    ('Editar contrapartidas', 'counterparts.edit',     'Editar contrapartidas'),
+    ('Arquivar contrapartidas','counterparts.archive', 'Arquivar e restaurar contrapartidas'),
+    ('Entregar contrapartidas','counterparts.deliver', 'Registrar entrega de contrapartidas'),
+    ('Alterar status contrap.','counterparts.status',  'Alterar status de contrapartidas'),
     ('Ver relatórios',        'reports.view',          'Reservada para módulo futuro')
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `description` = VALUES(`description`);
 
@@ -815,7 +917,9 @@ JOIN `permissions` p ON p.`slug` IN (
     'documents.view', 'documents.create', 'documents.edit',
     'documents.archive', 'documents.download', 'documents.version',
     'sponsors.view', 'sponsors.create', 'sponsors.edit',
-    'sponsors.archive', 'sponsors.confirm', 'sponsors.status'
+    'sponsors.archive', 'sponsors.confirm', 'sponsors.status',
+    'counterparts.view', 'counterparts.create', 'counterparts.edit',
+    'counterparts.archive', 'counterparts.deliver', 'counterparts.status'
 )
 WHERE r.`slug` = 'captacao-comercial'
 ON DUPLICATE KEY UPDATE `role_id` = `role_permissions`.`role_id`;
@@ -825,7 +929,8 @@ INSERT INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.`id`, p.`id`
 FROM `roles` r
 JOIN `permissions` p ON p.`slug` IN (
-    'dashboard.view', 'sponsors.view', 'counterparts.view', 'reports.view',
+    'dashboard.view', 'sponsors.view', 'counterparts.view', 'counterparts.create',
+    'counterparts.edit', 'counterparts.deliver', 'counterparts.status', 'reports.view',
     'proposals.view',
     'documents.view', 'documents.create', 'documents.edit',
     'documents.download', 'documents.version'
@@ -838,7 +943,8 @@ INSERT INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.`id`, p.`id`
 FROM `roles` r
 JOIN `permissions` p ON p.`slug` IN (
-    'dashboard.view', 'sponsors.view', 'counterparts.view', 'reports.view',
+    'dashboard.view', 'sponsors.view', 'counterparts.view', 'counterparts.create',
+    'counterparts.edit', 'counterparts.deliver', 'counterparts.status', 'reports.view',
     'proposals.view',
     'documents.view', 'documents.create', 'documents.edit',
     'documents.download', 'documents.version'

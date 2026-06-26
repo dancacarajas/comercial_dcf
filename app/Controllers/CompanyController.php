@@ -9,6 +9,7 @@ use App\Middlewares\AuthMiddleware;
 use App\Models\ActivityLog;
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\Counterpart;
 use App\Models\Document;
 use App\Models\Opportunity;
 use App\Models\Proposal;
@@ -169,6 +170,15 @@ final class CompanyController extends Controller
             $sponsorSummary = $sponsorModel->summaryByCompany($id);
         }
 
+        $counterparts        = [];
+        $counterpartSummary  = ['total' => 0, 'delivered' => 0, 'partial' => 0, 'overdue' => 0, 'pending' => 0];
+        $counterpartModel    = null;
+        if (can('counterparts.view')) {
+            $counterpartModel   = new Counterpart();
+            $counterparts       = $counterpartModel->findByCompany($id, 6);
+            $counterpartSummary = $counterpartModel->summaryByCompany($id);
+        }
+
         $this->view('companies/show', [
             'title'              => $company['name'] ?? 'Empresa',
             'company'            => $company,
@@ -192,6 +202,9 @@ final class CompanyController extends Controller
             'sponsors'           => $sponsors,
             'sponsorSummary'     => $sponsorSummary,
             'sponsorModel'       => $sponsorModel,
+            'counterparts'       => $counterparts,
+            'counterpartSummary' => $counterpartSummary,
+            'counterpartModel'   => $counterpartModel,
         ]);
     }
 

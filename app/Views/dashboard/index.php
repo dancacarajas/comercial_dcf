@@ -40,6 +40,11 @@ $sponsorsCommitted       = $sponsorsCommitted ?? null;
 $sponsorsConfirmedAmount = $sponsorsConfirmedAmount ?? null;
 $sponsorsAwaiting        = $sponsorsAwaiting ?? null;
 $sponsorsOverdue         = $sponsorsOverdue ?? null;
+$counterpartsTotal       = $counterpartsTotal ?? null;
+$counterpartsPending     = $counterpartsPending ?? null;
+$counterpartsDelivered   = $counterpartsDelivered ?? null;
+$counterpartsPartial     = $counterpartsPartial ?? null;
+$counterpartsOverdue     = $counterpartsOverdue ?? null;
 ?>
 
 <section class="section section-dark">
@@ -201,6 +206,27 @@ $sponsorsOverdue         = $sponsorsOverdue ?? null;
                         <?php if (can('sponsors.create')): ?>
                             &nbsp;·&nbsp;
                             <a href="<?= e(app_url('/sponsors/create')) ?>" class="link-strong"><i data-lucide="plus"></i> Novo fechamento</a>
+                        <?php endif; ?>
+                    </p>
+                </article>
+            <?php endif; ?>
+
+            <?php if ($counterpartsTotal !== null): ?>
+                <article class="card card-accent counterpart-card">
+                    <span class="card-icon"><i data-lucide="list-checks"></i></span>
+                    <h3>Contrapartidas</h3>
+                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $counterpartsTotal ?> <span style="font-size:14px;font-weight:600;">cadastradas</span></p>
+                    <p style="margin-bottom:6px;">
+                        <span class="pill"><?= (int) $counterpartsPending ?> pendente(s)</span>
+                        <span class="pill"><?= (int) $counterpartsDelivered ?> entregue(s)</span>
+                        <span class="pill"><?= (int) $counterpartsPartial ?> parcial(is)</span>
+                        <span class="pill <?= (int) $counterpartsOverdue > 0 ? 'pill-danger' : '' ?>"><?= (int) $counterpartsOverdue ?> atrasada(s)</span>
+                    </p>
+                    <p>
+                        <a href="<?= e(app_url('/counterparts')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar contrapartidas</a>
+                        <?php if (can('counterparts.create')): ?>
+                            &nbsp;·&nbsp;
+                            <a href="<?= e(app_url('/counterparts/create')) ?>" class="link-strong"><i data-lucide="plus"></i> Nova contrapartida</a>
                         <?php endif; ?>
                     </p>
                 </article>

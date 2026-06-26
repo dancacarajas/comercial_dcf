@@ -103,6 +103,14 @@ return function (Router $router): void {
     $router->get('/opportunities/{id}/sponsors/create', 'SponsorController@createForOpportunity', ['AuthMiddleware']);
     $router->get('/proposals/{id}/sponsors/create',     'SponsorController@createForProposal',     ['AuthMiddleware']);
     $router->get('/quotas/{id}/sponsors/create',        'SponsorController@createForQuota',        ['AuthMiddleware']);
+
+    // Rotas contextuais de contrapartidas (Etapa 13)
+    $router->get('/companies/{id}/counterparts/create',     'CounterpartController@createForCompany',     ['AuthMiddleware']);
+    $router->get('/contacts/{id}/counterparts/create',      'CounterpartController@createForContact',      ['AuthMiddleware']);
+    $router->get('/opportunities/{id}/counterparts/create', 'CounterpartController@createForOpportunity', ['AuthMiddleware']);
+    $router->get('/proposals/{id}/counterparts/create',     'CounterpartController@createForProposal',     ['AuthMiddleware']);
+    $router->get('/quotas/{id}/counterparts/create',        'CounterpartController@createForQuota',        ['AuthMiddleware']);
+    $router->get('/sponsors/{id}/counterparts/create',      'CounterpartController@createForSponsor',      ['AuthMiddleware']);
     $router->get('/contacts/{id}',           'ContactController@show',    ['AuthMiddleware']);
     $router->get('/contacts/{id}/edit',      'ContactController@edit',    ['AuthMiddleware']);
     $router->post('/contacts/{id}/update',   'ContactController@update',  ['AuthMiddleware']);
@@ -199,6 +207,19 @@ return function (Router $router): void {
     $router->post('/sponsors/{id}/archive',      'SponsorController@archive',      ['AuthMiddleware']);
     $router->post('/sponsors/{id}/restore',      'SponsorController@restore',      ['AuthMiddleware']);
     $router->get('/sponsors/{id}/documents/create', 'DocumentController@createForSponsor', ['AuthMiddleware']);
+
+    // Contrapartidas dos Patrocinadores (Etapa 13)
+    $router->get('/counterparts',                    'CounterpartController@index',        ['AuthMiddleware']);
+    $router->get('/counterparts/create',             'CounterpartController@create',       ['AuthMiddleware']);
+    $router->post('/counterparts',                   'CounterpartController@store',        ['AuthMiddleware']);
+    $router->get('/counterparts/{id}',               'CounterpartController@show',         ['AuthMiddleware']);
+    $router->get('/counterparts/{id}/edit',          'CounterpartController@edit',         ['AuthMiddleware']);
+    $router->post('/counterparts/{id}/update',       'CounterpartController@update',       ['AuthMiddleware']);
+    $router->post('/counterparts/{id}/status',       'CounterpartController@status',       ['AuthMiddleware']);
+    $router->post('/counterparts/{id}/deliver',      'CounterpartController@deliver',      ['AuthMiddleware']);
+    $router->post('/counterparts/{id}/archive',      'CounterpartController@archive',      ['AuthMiddleware']);
+    $router->post('/counterparts/{id}/restore',      'CounterpartController@restore',      ['AuthMiddleware']);
+    $router->get('/counterparts/{id}/documents/create', 'DocumentController@createForCounterpart', ['AuthMiddleware']);
 
     // Endpoint público de leads (sem AuthMiddleware; CORS para WordPress)
     $router->post('/api/leads/site', 'Api\LeadApiController@site');

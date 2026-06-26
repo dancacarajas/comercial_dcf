@@ -11,6 +11,7 @@ use App\Models\Document;
 use App\Models\Proposal;
 use App\Models\Quota;
 use App\Models\Sponsor;
+use App\Models\Counterpart;
 
 /**
  * Módulo Cotas de Patrocínio (Etapa 7).
@@ -123,6 +124,15 @@ final class QuotaController extends Controller
             $sponsorSummary = $sponsorModel->summaryByQuota((int) $quota['id']);
         }
 
+        $counterparts        = [];
+        $counterpartSummary  = ['total' => 0, 'delivered' => 0, 'partial' => 0, 'overdue' => 0, 'pending' => 0];
+        $counterpartModel    = null;
+        if (can('counterparts.view')) {
+            $counterpartModel   = new Counterpart();
+            $counterparts       = $counterpartModel->findByQuota((int) $quota['id'], 6);
+            $counterpartSummary = $counterpartModel->summaryByQuota((int) $quota['id']);
+        }
+
         $this->view('quotas/show', [
             'title'         => $quota['name'] ?? 'Cota',
             'quota'         => $quota,
@@ -143,6 +153,9 @@ final class QuotaController extends Controller
             'sponsors'        => $sponsors,
             'sponsorSummary'  => $sponsorSummary,
             'sponsorModel'    => $sponsorModel,
+            'counterparts'       => $counterparts,
+            'counterpartSummary' => $counterpartSummary,
+            'counterpartModel'   => $counterpartModel,
         ]);
     }
 

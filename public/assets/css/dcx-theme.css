@@ -1741,6 +1741,35 @@ tr.task-overdue > td:first-child { box-shadow: inset 3px 0 0 #d34a4a; }
 .badge-sponsor-cancelado { background: #fdecec; color: #8a1f1f; border-color: #f3c0c0; }
 .badge-sponsor-suspenso { background: #f1f1ef; color: #555; border-color: #dededb; }
 .badge-sponsor-arquivado { background: #2b2b2b; color: #fff; border-color: #2b2b2b; }
+
+/* Etapa 13 — Contrapartidas */
+.counterpart-card { border: 1px solid #e6e6e1; }
+.counterpart-summary { border: 1px solid #e6e6e1; }
+.counterpart-status, .counterpart-category, .counterpart-priority {
+    display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; border: 1px solid transparent;
+}
+.counterpart-progress { height: 8px; background: #ececea; border-radius: 999px; overflow: hidden; }
+.counterpart-progress span { display: block; height: 100%; background: var(--dcx-yellow); }
+.counterpart-actions { flex-wrap: wrap; gap: 10px; }
+.counterpart-linked-list { width: 100%; }
+.counterpart-alert { border-left: 4px solid var(--dcx-yellow); }
+.counterpart-evidence { background: #fafaf8; border: 1px dashed #ddd; border-radius: 12px; padding: 12px; }
+.priority-baixa { background: #f1f1ef; color: #555; border-color: #dededb; }
+.priority-media { background: #eef3fb; color: #2a4b78; border-color: #cdddf2; }
+.priority-alta { background: #fff3d6; color: #6b5600; border-color: #f0dd9a; }
+.priority-critica { background: #fdecec; color: #8a1f1f; border-color: #f3c0c0; }
+.badge-cp-planejada { background: #eef3fb; color: #2a4b78; border-color: #cdddf2; }
+.badge-cp-em_execucao { background: #fff9e0; color: #5a4800; border-color: #f0dd9a; }
+.badge-cp-aguardando_material { background: #fff3d6; color: #6b5600; border-color: #f0dd9a; }
+.badge-cp-aguardando_aprovacao { background: #fff3d6; color: #6b5600; border-color: #f0dd9a; }
+.badge-cp-entrega_parcial { background: #fff9e0; color: #5a4800; border-color: #f0dd9a; }
+.badge-cp-entregue { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
+.badge-cp-aprovada { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
+.badge-cp-atrasada { background: #fdecec; color: #8a1f1f; border-color: #f3c0c0; }
+.badge-cp-cancelada { background: #fdecec; color: #8a1f1f; border-color: #f3c0c0; }
+.badge-cp-suspensa { background: #f1f1ef; color: #555; border-color: #dededb; }
+.badge-cp-substituida { background: #f1f1ef; color: #555; border-color: #dededb; }
+.badge-cp-arquivada { background: #2b2b2b; color: #fff; border-color: #2b2b2b; }
 .badge-pay-nao_aplicavel { background: #f1f1ef; color: #555; border-color: #dededb; }
 .badge-pay-pendente { background: #fff9e0; color: #5a4800; border-color: #f0dd9a; }
 .badge-pay-parcial { background: #fff3d6; color: #6b5600; border-color: #f0dd9a; }

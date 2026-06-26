@@ -211,6 +211,16 @@ $probMap = htmlspecialchars(json_encode($statusProbabilities, JSON_UNESCAPED_UNI
             ?>
         <?php endif; ?>
 
+        <?php if (can('counterparts.view')): ?>
+            <?php
+            $blockTitle = 'Contrapartidas';
+            $createUrl  = can('counterparts.create') ? app_url('/opportunities/' . $oid . '/counterparts/create') : '';
+            $allUrl     = app_url('/counterparts?opportunity_id=' . $oid);
+            $emptyText  = 'Nenhuma contrapartida vinculada a esta oportunidade ainda.';
+            require dirname(__DIR__) . '/counterparts/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice timeline-placeholder" style="margin-top:20px;">
             <p class="mb-0"><i data-lucide="info"></i> Contratos, assinatura digital e histórico comercial avançado serão vinculados nas próximas etapas.</p>
         </div>

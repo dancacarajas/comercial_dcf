@@ -13,6 +13,7 @@ use App\Models\Document;
 use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Sponsor;
+use App\Models\Counterpart;
 use App\Models\Task;
 use App\Models\User;
 
@@ -184,6 +185,15 @@ final class ContactController extends Controller
             $sponsorSummary = $sponsorModel->summaryByContact($id);
         }
 
+        $counterparts        = [];
+        $counterpartSummary  = ['total' => 0, 'delivered' => 0, 'partial' => 0, 'overdue' => 0, 'pending' => 0];
+        $counterpartModel    = null;
+        if (can('counterparts.view')) {
+            $counterpartModel   = new Counterpart();
+            $counterparts       = $counterpartModel->findByContact($id, 6);
+            $counterpartSummary = $counterpartModel->summaryByContact($id);
+        }
+
         $this->view('contacts/show', [
             'title'              => $contact['name'] ?? 'Contato',
             'contact'            => $contact,
@@ -206,6 +216,9 @@ final class ContactController extends Controller
             'sponsors'           => $sponsors,
             'sponsorSummary'     => $sponsorSummary,
             'sponsorModel'       => $sponsorModel,
+            'counterparts'       => $counterparts,
+            'counterpartSummary' => $counterpartSummary,
+            'counterpartModel'   => $counterpartModel,
         ]);
     }
 

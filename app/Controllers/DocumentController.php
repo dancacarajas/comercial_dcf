@@ -9,6 +9,7 @@ use App\Middlewares\AuthMiddleware;
 use App\Models\ActivityLog;
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\Counterpart;
 use App\Models\Document;
 use App\Models\Lead;
 use App\Models\Opportunity;
@@ -51,6 +52,7 @@ final class DocumentController extends Controller
             'proposals'     => $this->proposalFilterOptions(),
             'leads'         => $this->leadFilterOptions(),
             'sponsors'      => $this->sponsorFilterOptions(),
+            'counterparts'  => $this->counterpartFilterOptions(),
             'users'         => (new User())->activeList(),
             'page'          => $page,
             'pages'         => $pages,
@@ -196,6 +198,32 @@ final class DocumentController extends Controller
         ]), []);
     }
 
+    public function createForCounterpart(array $params): void
+    {
+        AuthMiddleware::requirePermission('documents.create');
+        $id          = (int) ($params['id'] ?? 0);
+        $counterpart = $id > 0 ? (new Counterpart())->findById($id) : null;
+        if ($counterpart === null) {
+            $this->abort(404, 'Contrapartida não encontrada.');
+        }
+        $this->renderForm('documents/create', 'Novo documento', $this->prefillFromQuery([
+            'counterpart_id'      => $id,
+            'sponsor_id'          => (int) $counterpart['sponsor_id'],
+            'company_id'          => $counterpart['company_id'] ? (int) $counterpart['company_id'] : null,
+            'contact_id'          => $counterpart['contact_id'] ? (int) $counterpart['contact_id'] : null,
+            'opportunity_id'      => $counterpart['opportunity_id'] ? (int) $counterpart['opportunity_id'] : null,
+            'proposal_id'         => $counterpart['proposal_id'] ? (int) $counterpart['proposal_id'] : null,
+            'quota_id'            => $counterpart['quota_id'] ? (int) $counterpart['quota_id'] : null,
+            'category'            => 'documento_comercial',
+            'status'              => 'ativo',
+            'access_level'        => 'interno',
+            'version_number'      => 1,
+            'document_date'       => date('Y-m-d'),
+            'responsible_user_id' => $_SESSION['user_id'] ?? null,
+            'use_as_evidence'     => 1,
+        ]), []);
+    }
+
     public function store(): void
     {
         AuthMiddleware::requirePermission('documents.create');
@@ -222,6 +250,16 @@ final class DocumentController extends Controller
         (new ActivityLog())->record('document_created', $_SESSION['user_id'] ?? null, 'document', $id);
         if (!empty($data['sponsor_id'])) {
             (new ActivityLog())->record('sponsor_document_linked', $_SESSION['user_id'] ?? null, 'sponsor', (int) $data['sponsor_id']);
+        }
+        if (!empty($data['counterpart_id'])) {
+            (new ActivityLog())->record('counterpart_document_linked', $_SESSION['user_id'] ?? null, 'counterpart', (int) $data['counterpart_id']);
+            if (!empty($data['use_as_evidence']) && can('counterparts.edit')) {
+                (new Counterpart())->update((int) $data['counterpart_id'], [
+                    'evidence_document_id' => $id,
+                    'updated_by'           => $_SESSION['user_id'] ?? null,
+                ]);
+                (new ActivityLog())->record('counterpart_evidence_linked', $_SESSION['user_id'] ?? null, 'counterpart', (int) $data['counterpart_id']);
+            }
         }
         flash('success', 'Documento cadastrado com sucesso.');
         $this->redirect('/documents/' . $id);
@@ -484,6 +522,7 @@ final class DocumentController extends Controller
             'proposal_id'         => (int) input('proposal_id', 0),
             'lead_id'             => (int) input('lead_id', 0),
             'sponsor_id'          => (int) input('sponsor_id', 0),
+            'counterpart_id'      => (int) input('counterpart_id', 0),
             'category'            => (string) input('category', ''),
             'status'              => (string) input('status', ''),
             'access_level'        => (string) input('access_level', ''),
@@ -506,6 +545,8 @@ final class DocumentController extends Controller
             'proposal_id'         => input('proposal_id') !== null && input('proposal_id') !== '' ? (int) input('proposal_id') : null,
             'lead_id'             => input('lead_id') !== null && input('lead_id') !== '' ? (int) input('lead_id') : null,
             'sponsor_id'          => input('sponsor_id') !== null && input('sponsor_id') !== '' ? (int) input('sponsor_id') : null,
+            'counterpart_id'      => input('counterpart_id') !== null && input('counterpart_id') !== '' ? (int) input('counterpart_id') : null,
+            'use_as_evidence'     => input('use_as_evidence') !== null ? 1 : 0,
             'title'               => clean((string) input('title', '')),
             'description'         => trim((string) input('description', '')) ?: null,
             'category'            => clean((string) input('category', 'documento_comercial')),
@@ -522,7 +563,7 @@ final class DocumentController extends Controller
     /** @param array<string, mixed> $data @return array<string, mixed> */
     private function prefillFromQuery(array $data): array
     {
-        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id'] as $k) {
+        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id'] as $k) {
             $q = input($k);
             if ($q !== null && $q !== '') {
                 $data[$k] = (int) $q;
@@ -587,6 +628,30 @@ final class DocumentController extends Controller
             }
         }
 
+        if (!empty($data['counterpart_id'])) {
+            $cp = (new Counterpart())->findById((int) $data['counterpart_id']);
+            if ($cp !== null) {
+                if (empty($data['sponsor_id']) && !empty($cp['sponsor_id'])) {
+                    $data['sponsor_id'] = (int) $cp['sponsor_id'];
+                }
+                if (empty($data['company_id']) && !empty($cp['company_id'])) {
+                    $data['company_id'] = (int) $cp['company_id'];
+                }
+                if (empty($data['contact_id']) && !empty($cp['contact_id'])) {
+                    $data['contact_id'] = (int) $cp['contact_id'];
+                }
+                if (empty($data['opportunity_id']) && !empty($cp['opportunity_id'])) {
+                    $data['opportunity_id'] = (int) $cp['opportunity_id'];
+                }
+                if (empty($data['proposal_id']) && !empty($cp['proposal_id'])) {
+                    $data['proposal_id'] = (int) $cp['proposal_id'];
+                }
+                if (empty($data['quota_id']) && !empty($cp['quota_id'])) {
+                    $data['quota_id'] = (int) $cp['quota_id'];
+                }
+            }
+        }
+
         if (empty($data['document_date'])) {
             $data['document_date'] = date('Y-m-d');
         }
@@ -645,6 +710,11 @@ final class DocumentController extends Controller
             $errors['sponsor_id'] = 'Patrocinador não encontrado.';
         }
 
+        $counterpartId = (int) ($data['counterpart_id'] ?? 0);
+        if ($counterpartId > 0 && (new Counterpart())->findById($counterpartId) === null) {
+            $errors['counterpart_id'] = 'Contrapartida não encontrada.';
+        }
+
         $respId = (int) ($data['responsible_user_id'] ?? 0);
         if ($respId > 0 && (new User())->findBy('id', $respId) === null) {
             $errors['responsible_user_id'] = 'Responsável não encontrado.';
@@ -675,6 +745,12 @@ final class DocumentController extends Controller
         return (new Document())->filterSponsorOptions();
     }
 
+    /** @return array<int, array<string, mixed>> */
+    private function counterpartFilterOptions(): array
+    {
+        return (new Document())->filterCounterpartOptions();
+    }
+
     /**
      * @param array<string, mixed> $old
      * @param array<string, string> $errors
@@ -701,6 +777,7 @@ final class DocumentController extends Controller
             'proposals'       => $this->proposalFilterOptions(),
             'leads'           => $this->leadFilterOptions(),
             'sponsors'        => $this->sponsorFilterOptions(),
+            'counterparts'    => $this->counterpartFilterOptions(),
             'users'           => (new User())->activeList(),
             'companyContacts' => $companyContacts,
         ]);
@@ -742,7 +819,7 @@ final class DocumentController extends Controller
             }
         }
 
-        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'responsible_user_id'] as $k) {
+        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'responsible_user_id'] as $k) {
             if ((int) ($filters[$k] ?? 0) > 0) {
                 return true;
             }

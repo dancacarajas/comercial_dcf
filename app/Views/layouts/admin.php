@@ -72,6 +72,9 @@ $pageTitle = isset($title) ? ($title . ' — ' . $appName) : $appName;
                     <?php if (can('sponsors.view')): ?>
                         <a href="<?= e(app_url('/sponsors')) ?>"><i data-lucide="badge-dollar-sign"></i> Patrocinadores</a>
                     <?php endif; ?>
+                    <?php if (can('counterparts.view')): ?>
+                        <a href="<?= e(app_url('/counterparts')) ?>"><i data-lucide="list-checks"></i> Contrapartidas</a>
+                    <?php endif; ?>
                     <?php if (can('users.view')): ?>
                         <a href="<?= e(app_url('/users')) ?>"><i data-lucide="users"></i> Usuários</a>
                     <?php endif; ?>

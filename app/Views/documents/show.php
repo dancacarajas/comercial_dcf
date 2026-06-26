@@ -80,6 +80,12 @@ $dash       = static fn ($v): string => ($v === null || $v === '') ? '—' : (st
                             <a href="<?= e(app_url('/sponsors/' . (int) $document['sponsor_id'])) ?>" class="link-strong"><?= e($document['sponsor_name'] ?? '—') ?></a>
                         <?php else: ?>—<?php endif; ?>
                     </dd>
+                    <dt>Contrapartida</dt>
+                    <dd>
+                        <?php if (!empty($document['counterpart_id'])): ?>
+                            <a href="<?= e(app_url('/counterparts/' . (int) $document['counterpart_id'])) ?>" class="link-strong"><?= e($document['counterpart_title'] ?? '—') ?></a>
+                        <?php else: ?>—<?php endif; ?>
+                    </dd>
                     <dt>Responsável</dt>
                     <dd><?= e($dash($document['responsible_name'] ?? '')) ?></dd>
                 </dl>

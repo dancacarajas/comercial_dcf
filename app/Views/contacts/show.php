@@ -228,6 +228,16 @@ $oProbClass = static function (int $p): string {
             ?>
         <?php endif; ?>
 
+        <?php if (can('counterparts.view')): ?>
+            <?php
+            $blockTitle = 'Contrapartidas';
+            $createUrl  = can('counterparts.create') ? app_url('/contacts/' . $cid . '/counterparts/create') : '';
+            $allUrl     = app_url('/counterparts?contact_id=' . $cid);
+            $emptyText  = 'Nenhuma contrapartida vinculada a este contato ainda.';
+            require dirname(__DIR__) . '/counterparts/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice timeline-placeholder" style="margin-top:20px;">
             <p class="mb-0"><i data-lucide="info"></i> Histórico comercial detalhado e relatórios serão vinculados a este contato nas próximas etapas.</p>
         </div>
