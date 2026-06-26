@@ -178,7 +178,7 @@ function dbexec(string $sql, array $params = []): void
 
 function ensureTempValidationUsers(): void
 {
-    $hash = dbq('SELECT password_hash FROM users WHERE id = 1')['password_hash'];
+    $hash = password_hash(PASSWORD, PASSWORD_DEFAULT);
     $users = [
         [ADMIN_EMAIL, 'Validacao Etapa14 Admin', 'administrador-geral'],
         [LEITOR_EMAIL, 'Validacao Etapa14 Leitor', 'leitura-consulta'],
@@ -192,7 +192,7 @@ function ensureTempValidationUsers(): void
             $uid = (int) db()->lastInsertId();
         } else {
             $uid = (int) $row['id'];
-            db()->prepare("UPDATE users SET status='active' WHERE id=?")->execute([$uid]);
+            db()->prepare("UPDATE users SET status='active', password_hash=? WHERE id=?")->execute([$hash, $uid]);
         }
         $roleId = dbq('SELECT id FROM roles WHERE slug = ?', [$roleSlug])['id'] ?? null;
         if ($roleId) {
@@ -212,7 +212,7 @@ function ensureTempValidationUsers(): void
         $uid = (int) db()->lastInsertId();
     } else {
         $uid = (int) $row['id'];
-        db()->prepare("UPDATE users SET status='active' WHERE id=?")->execute([$uid]);
+        db()->prepare("UPDATE users SET status='active', password_hash=? WHERE id=?")->execute([$hash, $uid]);
     }
     if ($semRole) {
         db()->prepare('DELETE FROM user_roles WHERE user_id=?')->execute([$uid]);

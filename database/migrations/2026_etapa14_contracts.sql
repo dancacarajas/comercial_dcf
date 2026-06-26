@@ -184,7 +184,22 @@ JOIN `permissions` p ON p.`slug` IN (
     'contracts.view', 'contracts.create', 'contracts.edit',
     'contracts.archive', 'contracts.status', 'contracts.mark_signed', 'contracts.approve'
 )
-WHERE r.`slug` IN ('administrador-geral', 'captacao-comercial');
+WHERE r.`slug` = 'administrador-geral';
+
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
+SELECT r.`id`, p.`id`
+FROM `roles` r
+JOIN `permissions` p ON p.`slug` IN (
+    'contracts.view', 'contracts.create', 'contracts.edit',
+    'contracts.archive', 'contracts.status', 'contracts.mark_signed'
+)
+WHERE r.`slug` = 'captacao-comercial';
+
+-- Garante que captacao nao herde approve de execucoes anteriores
+DELETE rp FROM `role_permissions` rp
+INNER JOIN `roles` r ON r.`id` = rp.`role_id`
+INNER JOIN `permissions` p ON p.`id` = rp.`permission_id`
+WHERE r.`slug` = 'captacao-comercial' AND p.`slug` = 'contracts.approve';
 
 INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.`id`, p.`id`

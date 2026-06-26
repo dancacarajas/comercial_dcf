@@ -1046,7 +1046,7 @@ JOIN `permissions` p ON p.`slug` IN (
     'counterparts.view', 'counterparts.create', 'counterparts.edit',
     'counterparts.archive', 'counterparts.deliver', 'counterparts.status',
     'contracts.view', 'contracts.create', 'contracts.edit',
-    'contracts.archive', 'contracts.status', 'contracts.mark_signed', 'contracts.approve'
+    'contracts.archive', 'contracts.status', 'contracts.mark_signed'
 )
 WHERE r.`slug` = 'captacao-comercial'
 ON DUPLICATE KEY UPDATE `role_id` = `role_permissions`.`role_id`;
