@@ -1630,3 +1630,38 @@ tr.task-overdue > td:first-child { box-shadow: inset 3px 0 0 #d34a4a; }
 .text-sm { font-size: 13px; }
 .text-muted { color: #666; }
 .field-error { color: #b42318; font-size: 13px; margin: 4px 0 0; }
+
+/* ------------------------------------------------------------------ */
+/* Propostas comerciais (Etapa 10)                                      */
+/* ------------------------------------------------------------------ */
+.badge-proposal {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 800;
+    border: 1px solid #e6e6e1; background: #fff; color: #333;
+}
+.badge-proposal-type { background: #fff9e0; color: #5a4800; border-color: #f0dd9a; }
+.proposal-version {
+    display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px;
+    background: #050505; color: #f7c400; font-size: 11px; font-weight: 800;
+}
+.proposal-card { border: 1px solid #e6e6e1; }
+.proposal-summary { border: 1px solid #e6e6e1; }
+.proposal-linked-list { width: 100%; }
+.proposal-upload .proposal-upload-input { max-width: 100%; }
+.proposal-actions { flex-wrap: wrap; gap: 10px; }
+.proposal-expired-row { background: #fff7f7; }
+.proposal-expired-row > td:first-child { box-shadow: inset 3px 0 0 #d34a4a; }
+.badge-proposal-rascunho              { background: #f1f1ef; color: #555;    border-color: #dededb; }
+.badge-proposal-pronta_para_envio     { background: #eef3fb; color: #2a4b78; border-color: #cdddf2; }
+.badge-proposal-enviada               { background: #fff3d6; color: #6b5600; border-color: #f0dd9a; }
+.badge-proposal-visualizada           { background: #f3eefb; color: #5a3a86; border-color: #ddccf2; }
+.badge-proposal-em_analise            { background: #eef3fb; color: #2a4b78; border-color: #cdddf2; }
+.badge-proposal-ajustes_solicitados   { background: #fff3d6; color: #6b5600; border-color: #f0dd9a; }
+.badge-proposal-aprovada_internamente { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
+.badge-proposal-aguardando_dados_oficiais { background: #eef3fb; color: #2a4b78; border-color: #cdddf2; }
+.badge-proposal-fechada               { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
+.badge-proposal-recusada              { background: #fdecec; color: #8a1f1f; border-color: #f3c0c0; }
+.badge-proposal-expirada              { background: #fdecec; color: #8a1f1f; border-color: #f3c0c0; }
+.badge-proposal-arquivada             { background: #2b2b2b; color: #fff;    border-color: #2b2b2b; }
+.status-quick-form summary { cursor: pointer; list-style: none; }
+.status-quick-form summary::-webkit-details-marker { display: none; }

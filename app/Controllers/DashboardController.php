@@ -9,6 +9,7 @@ use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Opportunity;
 use App\Models\Lead;
+use App\Models\Proposal;
 use App\Models\Quota;
 use App\Models\Task;
 
@@ -87,6 +88,20 @@ final class DashboardController extends Controller
             $leadsDiscarded = $leadModel->countByStatus('descartado');
         }
 
+        $proposalsTotal = null;
+        $proposalsSent = null;
+        $proposalsOpen = null;
+        $proposalsExpired = null;
+        $proposalsOpenValue = null;
+        if (can('proposals.view')) {
+            $proposalModel      = new Proposal();
+            $proposalsTotal     = $proposalModel->count(['show_archived' => 0]);
+            $proposalsSent      = $proposalModel->countSent();
+            $proposalsOpen      = $proposalModel->countOpen();
+            $proposalsExpired   = $proposalModel->countExpired();
+            $proposalsOpenValue = $proposalModel->sumOpenValue();
+        }
+
         $this->view('dashboard/index', [
             'title'              => 'Painel Administrativo',
             'user'               => $this->currentUser(),
@@ -106,6 +121,11 @@ final class DashboardController extends Controller
             'leadsTriagem'       => $leadsTriagem,
             'leadsConverted'     => $leadsConverted,
             'leadsDiscarded'     => $leadsDiscarded,
+            'proposalsTotal'     => $proposalsTotal,
+            'proposalsSent'      => $proposalsSent,
+            'proposalsOpen'      => $proposalsOpen,
+            'proposalsExpired'   => $proposalsExpired,
+            'proposalsOpenValue' => $proposalsOpenValue,
         ], 'layouts/admin');
     }
 }

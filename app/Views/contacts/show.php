@@ -198,6 +198,16 @@ $oProbClass = static function (int $p): string {
             ?>
         <?php endif; ?>
 
+        <?php if (can('proposals.view')): ?>
+            <?php
+            $blockTitle = 'Propostas vinculadas';
+            $createUrl  = app_url('/contacts/' . $cid . '/proposals/create');
+            $allUrl     = app_url('/proposals?contact_id=' . $cid);
+            $emptyText  = 'Nenhuma proposta vinculada a este contato ainda.';
+            require dirname(__DIR__) . '/proposals/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice timeline-placeholder" style="margin-top:20px;">
             <p class="mb-0"><i data-lucide="info"></i> Histórico comercial detalhado e relatórios serão vinculados a este contato nas próximas etapas.</p>
         </div>

@@ -1263,9 +1263,109 @@ chama apenas `https://dancacarajas.com.br/wp-json/dcx-crm/v1/lead`.
 Enviar formulário de teste em cada página de patrocínio e confirmar lead em `/leads` com
 `origin_page` e `source_url` corretos.
 
-> **Não foram criados:** Propostas, Documentos, Patrocinadores, Contrapartidas, Relatórios avançados.
->
-> **Próxima etapa: Propostas (Etapa 10)** — somente após validação desta etapa em produção.
+> **Próxima etapa: Documentos (Etapa 11)** — somente após validação desta etapa em produção.
+
+---
+
+## Etapa 10 — Propostas Comerciais
+
+Módulo para cadastrar, controlar, versionar, acompanhar e consultar propostas de patrocínio
+vinculadas a empresas, contatos, oportunidades e cotas.
+
+**Não foram criados nesta etapa:** Documentos, Patrocinadores, Contrapartidas, relatórios avançados,
+envio real de e-mail, assinatura digital, contrato, comprovantes, área externa do patrocinador,
+geração automática de patrocinador fechado ou upload documental avançado.
+
+### Como rodar a migration da Etapa 10
+
+Instalação existente:
+
+```bash
+mysql -u USUARIO -p BANCO < database/migrations/2026_etapa10_proposals.sql
+```
+
+Docker local:
+
+```powershell
+Get-Content -Raw database/migrations/2026_etapa10_proposals.sql | docker exec -i -e MYSQL_PWD=danca dcc_db mariadb -udanca danca_captacao
+```
+
+A migration é **idempotente** (`CREATE TABLE IF NOT EXISTS`, permissões com `ON DUPLICATE KEY UPDATE`).
+
+### Tabela `proposals`
+
+| Campo | Descrição |
+|-------|-----------|
+| `company_id` * | Empresa (FK CASCADE) |
+| `contact_id`, `opportunity_id`, `quota_id` | Vínculos opcionais |
+| `title` * | Título da proposta |
+| `type` | Tipo controlado (ex.: `proposta_por_cota`) |
+| `proposed_value` | Valor proposto (DECIMAL) |
+| `version_number`, `parent_proposal_id` | Controle de versões |
+| `status` | Status controlado (ex.: `rascunho`, `enviada`) |
+| `created_on`, `sent_at`, `valid_until` | Datas |
+| `responsible_user_id` | Responsável |
+| `pdf_file_path`, `pdf_original_name` | PDF opcional (campo simples, não é o módulo Documentos) |
+| `revision_notes`, `notes` | Textos |
+| `created_by`, `updated_by`, `sent_by` | Auditoria |
+| `archived_at` | Arquivamento lógico (sem DELETE físico) |
+
+Uploads PDF ficam em `storage/uploads/proposals/` (fora de `/public`), servidos via `GET /proposals/{id}/pdf`.
+
+### Permissões adicionadas
+
+| Slug | Uso |
+|------|-----|
+| `proposals.view` | Listar e visualizar (já existia; descrição atualizada) |
+| `proposals.create` | Cadastrar |
+| `proposals.edit` | Editar e mudar status |
+| `proposals.archive` | Arquivar/restaurar |
+| `proposals.send` | Marcar como enviada |
+| `proposals.version` | Criar nova versão |
+
+**Matriz:** Administrador e Captação/Comercial têm todas; Produção, Comunicação e Leitura só `proposals.view`.
+
+### Rotas principais
+
+- `GET /proposals` — listagem com filtros e paginação (15/página)
+- `GET /proposals/create` — cadastro
+- `POST /proposals` — salvar (CSRF obrigatório)
+- `GET /proposals/{id}` — visualização
+- `GET /proposals/{id}/edit` + `POST /proposals/{id}/update` — edição
+- `GET|POST /proposals/{id}/version` — nova versão
+- `POST /proposals/{id}/mark-sent` — registrar envio manual (sem e-mail real)
+- `POST /proposals/{id}/status` — mudança de status
+- `POST /proposals/{id}/archive` / `restore` — arquivamento lógico
+
+**Cadastro contextual:**
+
+- `/companies/{id}/proposals/create`
+- `/contacts/{id}/proposals/create`
+- `/opportunities/{id}/proposals/create`
+- `/quotas/{id}/proposals/create`
+
+Ou query string: `/proposals/create?company_id=…&contact_id=…&opportunity_id=…&quota_id=…`
+
+### Propostas vs. futuro módulo Documentos
+
+Nesta etapa, o PDF é um **campo simples** da proposta (`pdf_file_path`). O módulo **Documentos** (Etapa 11)
+tratará contratos, comprovantes, assinatura digital e gestão avançada de arquivos.
+
+### Checklist de testes (Etapa 10)
+
+- [ ] Migration executada sem erro; permissões `proposals.*` criadas sem duplicidade
+- [ ] `GET /proposals` sem login → 302 `/login`
+- [ ] Sem `proposals.view` → 403; com permissão → 200
+- [ ] Menu **Propostas** visível só com `proposals.view`
+- [ ] CSRF inválido em POST → 419
+- [ ] Validações: empresa, título, valor, status, PDF, contato fora da empresa
+- [ ] CRUD completo, versionamento, mark-sent, status, archive/restore
+- [ ] Filtros, paginação, blocos em empresa/contato/oportunidade/cota
+- [ ] Dashboard com cards de propostas
+- [ ] PDF salvo em `storage/uploads/proposals/` (não em `/public`)
+- [ ] Nenhum módulo Documentos, Patrocinadores, Contrapartidas ou Relatórios avançados criado
+
+> **Próxima etapa: Documentos (Etapa 11)** — após validação de Propostas em produção.
 
 ---
 

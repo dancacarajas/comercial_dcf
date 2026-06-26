@@ -10,6 +10,7 @@ use App\Models\ActivityLog;
 use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Opportunity;
+use App\Models\Proposal;
 use App\Models\Quota;
 use App\Models\Task;
 use App\Models\User;
@@ -158,12 +159,24 @@ final class OpportunityController extends Controller
             $taskSummary = $taskModel->summaryByOpportunity($id);
         }
 
+        $proposals       = [];
+        $proposalSummary = ['total' => 0, 'sent' => 0, 'open' => 0, 'total_value' => 0.0];
+        $proposalModel   = null;
+        if (can('proposals.view')) {
+            $proposalModel   = new Proposal();
+            $proposals       = $proposalModel->findByOpportunity($id, 6);
+            $proposalSummary = $proposalModel->summaryByOpportunity($id);
+        }
+
         $this->view('opportunities/show', array_merge($this->lists($model), [
             'title'       => $opportunity['title'] ?? 'Oportunidade',
             'opportunity' => $opportunity,
             'tasks'       => $tasks,
             'taskSummary' => $taskSummary,
             'taskModel'   => $taskModel,
+            'proposals'       => $proposals,
+            'proposalSummary' => $proposalSummary,
+            'proposalModel'   => $proposalModel,
         ]));
     }
 

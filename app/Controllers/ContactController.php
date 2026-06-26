@@ -10,6 +10,7 @@ use App\Models\ActivityLog;
 use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Opportunity;
+use App\Models\Proposal;
 use App\Models\Task;
 use App\Models\User;
 
@@ -154,6 +155,15 @@ final class ContactController extends Controller
             $taskSummary = $taskModel->summaryByContact($id);
         }
 
+        $proposals       = [];
+        $proposalSummary = ['total' => 0, 'sent' => 0, 'open' => 0, 'total_value' => 0.0];
+        $proposalModel   = null;
+        if (can('proposals.view')) {
+            $proposalModel   = new Proposal();
+            $proposals       = $proposalModel->findByContact($id, 6);
+            $proposalSummary = $proposalModel->summaryByContact($id);
+        }
+
         $this->view('contacts/show', [
             'title'              => $contact['name'] ?? 'Contato',
             'contact'            => $contact,
@@ -167,6 +177,9 @@ final class ContactController extends Controller
             'tasks'              => $tasks,
             'taskSummary'        => $taskSummary,
             'taskModel'          => $taskModel,
+            'proposals'          => $proposals,
+            'proposalSummary'    => $proposalSummary,
+            'proposalModel'      => $proposalModel,
         ]);
     }
 

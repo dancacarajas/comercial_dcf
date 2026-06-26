@@ -82,6 +82,12 @@ return function (Router $router): void {
     $router->get('/companies/{id}/tasks/create',     'TaskController@createForCompany',     ['AuthMiddleware']);
     $router->get('/contacts/{id}/tasks/create',      'TaskController@createForContact',     ['AuthMiddleware']);
     $router->get('/opportunities/{id}/tasks/create', 'TaskController@createForOpportunity', ['AuthMiddleware']);
+
+    // Rotas contextuais de propostas (Etapa 10) — antes de {id} dinâmico de propostas
+    $router->get('/companies/{id}/proposals/create',     'ProposalController@createForCompany',     ['AuthMiddleware']);
+    $router->get('/contacts/{id}/proposals/create',      'ProposalController@createForContact',      ['AuthMiddleware']);
+    $router->get('/opportunities/{id}/proposals/create', 'ProposalController@createForOpportunity', ['AuthMiddleware']);
+    $router->get('/quotas/{id}/proposals/create',        'ProposalController@createForQuota',        ['AuthMiddleware']);
     $router->get('/contacts/{id}',           'ContactController@show',    ['AuthMiddleware']);
     $router->get('/contacts/{id}/edit',      'ContactController@edit',    ['AuthMiddleware']);
     $router->post('/contacts/{id}/update',   'ContactController@update',  ['AuthMiddleware']);
@@ -136,6 +142,21 @@ return function (Router $router): void {
     $router->post('/leads/{id}/restore',        'LeadController@restore',       ['AuthMiddleware']);
     $router->post('/leads/{id}/mark-duplicate','LeadController@markDuplicate', ['AuthMiddleware']);
     $router->post('/leads/{id}/discard',        'LeadController@discard',       ['AuthMiddleware']);
+
+    // Propostas comerciais (Etapa 10) — rotas estáticas antes das dinâmicas {id}
+    $router->get('/proposals',                    'ProposalController@index',        ['AuthMiddleware']);
+    $router->get('/proposals/create',             'ProposalController@create',       ['AuthMiddleware']);
+    $router->post('/proposals',                   'ProposalController@store',        ['AuthMiddleware']);
+    $router->get('/proposals/{id}',               'ProposalController@show',         ['AuthMiddleware']);
+    $router->get('/proposals/{id}/pdf',           'ProposalController@pdf',          ['AuthMiddleware']);
+    $router->get('/proposals/{id}/edit',          'ProposalController@edit',         ['AuthMiddleware']);
+    $router->post('/proposals/{id}/update',       'ProposalController@update',       ['AuthMiddleware']);
+    $router->get('/proposals/{id}/version',       'ProposalController@versionForm',  ['AuthMiddleware']);
+    $router->post('/proposals/{id}/version',      'ProposalController@versionStore', ['AuthMiddleware']);
+    $router->post('/proposals/{id}/mark-sent',    'ProposalController@markSent',     ['AuthMiddleware']);
+    $router->post('/proposals/{id}/status',       'ProposalController@status',       ['AuthMiddleware']);
+    $router->post('/proposals/{id}/archive',      'ProposalController@archive',      ['AuthMiddleware']);
+    $router->post('/proposals/{id}/restore',      'ProposalController@restore',      ['AuthMiddleware']);
 
     // Endpoint público de leads (sem AuthMiddleware; CORS para WordPress)
     $router->post('/api/leads/site', 'Api\LeadApiController@site');

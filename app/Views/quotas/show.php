@@ -141,6 +141,16 @@ $oProbClass = static function (int $p): string {
             </article>
         <?php endif; ?>
 
+        <?php if (can('proposals.view')): ?>
+            <?php
+            $blockTitle = 'Propostas vinculadas à cota';
+            $createUrl  = app_url('/quotas/' . $qid . '/proposals/create');
+            $allUrl     = app_url('/proposals?quota_id=' . $qid);
+            $emptyText  = 'Nenhuma proposta vinculada a esta cota ainda.';
+            require dirname(__DIR__) . '/proposals/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice" style="margin-top:18px;">
             <p class="mb-0"><i data-lucide="info"></i> Patrocinadores fechados serão gerados em etapa futura. Nesta etapa, a cota apenas se vincula às oportunidades.</p>
         </div>

@@ -253,6 +253,16 @@ $regimeLabel   = $taxRegimes[(string) ($company['tax_regime_guess'] ?? '')] ?? (
             ?>
         <?php endif; ?>
 
+        <?php if (can('proposals.view')): ?>
+            <?php
+            $blockTitle = 'Propostas da empresa';
+            $createUrl  = app_url('/companies/' . $cid . '/proposals/create');
+            $allUrl     = app_url('/proposals?company_id=' . $cid);
+            $emptyText  = 'Nenhuma proposta cadastrada para esta empresa ainda.';
+            require dirname(__DIR__) . '/proposals/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice" style="margin-top:20px;">
             <p class="mb-0"><i data-lucide="info"></i> Histórico comercial detalhado e relatórios serão vinculados a esta empresa nas próximas etapas.</p>
         </div>

@@ -25,6 +25,11 @@ $leadsNew           = $leadsNew ?? null;
 $leadsTriagem       = $leadsTriagem ?? null;
 $leadsConverted     = $leadsConverted ?? null;
 $leadsDiscarded     = $leadsDiscarded ?? null;
+$proposalsTotal     = $proposalsTotal ?? null;
+$proposalsSent      = $proposalsSent ?? null;
+$proposalsOpen      = $proposalsOpen ?? null;
+$proposalsExpired   = $proposalsExpired ?? null;
+$proposalsOpenValue = $proposalsOpenValue ?? null;
 ?>
 
 <section class="section section-dark">
@@ -128,6 +133,27 @@ $leadsDiscarded     = $leadsDiscarded ?? null;
                 </article>
             <?php endif; ?>
 
+            <?php if ($proposalsTotal !== null): ?>
+                <article class="card card-accent">
+                    <span class="card-icon"><i data-lucide="file-text"></i></span>
+                    <h3>Propostas comerciais</h3>
+                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $proposalsTotal ?> <span style="font-size:14px;font-weight:600;">cadastradas</span></p>
+                    <p style="margin-bottom:6px;">
+                        <span class="pill"><?= (int) $proposalsSent ?> enviada(s)</span>
+                        <span class="pill"><?= (int) $proposalsOpen ?> em aberto</span>
+                        <span class="pill <?= (int) $proposalsExpired > 0 ? 'pill-danger' : '' ?>"><?= (int) $proposalsExpired ?> vencida(s)</span>
+                    </p>
+                    <p class="money-value" style="margin-bottom:6px;">Em aberto: <?= e(money_br($proposalsOpenValue, 'R$ 0,00')) ?></p>
+                    <p>
+                        <a href="<?= e(app_url('/proposals')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar propostas</a>
+                        <?php if (can('proposals.create')): ?>
+                            &nbsp;·&nbsp;
+                            <a href="<?= e(app_url('/proposals/create')) ?>" class="link-strong"><i data-lucide="plus"></i> Nova proposta</a>
+                        <?php endif; ?>
+                    </p>
+                </article>
+            <?php endif; ?>
+
             <article class="card card-accent">
                 <span class="card-icon"><i data-lucide="id-card"></i></span>
                 <h3>Usuário autenticado</h3>
@@ -165,15 +191,15 @@ $leadsDiscarded     = $leadsDiscarded ?? null;
             <article class="card card-accent">
                 <span class="card-icon"><i data-lucide="arrow-right-circle"></i></span>
                 <h3>Próxima etapa</h3>
-                <p>Empresas, Contatos, Oportunidades, Cotas, Tarefas e Leads ativos. A próxima etapa abre <strong>Propostas</strong>.</p>
+                <p>Empresas, Contatos, Oportunidades, Cotas, Tarefas, Leads e Propostas ativos. A próxima etapa abre o módulo <strong>Documentos</strong>.</p>
             </article>
         </div>
 
         <div class="notice">
-            <h3 class="h3-card flex items-center gap-12"><i data-lucide="info"></i> Módulos ativos: Empresas, Contatos, Oportunidades, Cotas, Tarefas e Leads</h3>
+            <h3 class="h3-card flex items-center gap-12"><i data-lucide="info"></i> Módulos ativos: Empresas, Contatos, Oportunidades, Cotas, Tarefas, Leads e Propostas</h3>
             <p>
-                Além do controle de acesso, os módulos comerciais e o recebimento de leads do site
-                WordPress já estão disponíveis. Propostas, documentos e relatórios ainda não foram criados.
+                Além do controle de acesso, os módulos comerciais, propostas e o recebimento de leads do site
+                WordPress já estão disponíveis. Documentos e relatórios avançados ainda não foram criados.
             </p>
         </div>
     </div>

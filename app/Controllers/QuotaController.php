@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Middlewares\AuthMiddleware;
 use App\Models\ActivityLog;
+use App\Models\Proposal;
 use App\Models\Quota;
 
 /**
@@ -93,6 +94,15 @@ final class QuotaController extends Controller
             $linked        = $model->linkedOpportunities((int) $quota['id'], 10);
         }
 
+        $proposals       = [];
+        $proposalSummary = ['total' => 0, 'sent' => 0, 'open' => 0, 'total_value' => 0.0];
+        $proposalModel   = null;
+        if (can('proposals.view')) {
+            $proposalModel   = new Proposal();
+            $proposals       = $proposalModel->findByQuota((int) $quota['id'], 6);
+            $proposalSummary = $proposalModel->summaryByQuota((int) $quota['id']);
+        }
+
         $this->view('quotas/show', [
             'title'         => $quota['name'] ?? 'Cota',
             'quota'         => $quota,
@@ -104,6 +114,9 @@ final class QuotaController extends Controller
             'linked'        => $linked,
             'canSeeOpps'    => can('opportunities.view'),
             'oppStatusLabels' => (new \App\Models\Opportunity())->getStatusLabels(),
+            'proposals'       => $proposals,
+            'proposalSummary' => $proposalSummary,
+            'proposalModel'   => $proposalModel,
         ]);
     }
 

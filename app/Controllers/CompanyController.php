@@ -10,6 +10,7 @@ use App\Models\ActivityLog;
 use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Opportunity;
+use App\Models\Proposal;
 use App\Models\Task;
 use App\Models\User;
 
@@ -139,6 +140,15 @@ final class CompanyController extends Controller
             $taskSummary = $taskModel->summaryByCompany($id);
         }
 
+        $proposals        = [];
+        $proposalSummary  = ['total' => 0, 'sent' => 0, 'open' => 0, 'total_value' => 0.0];
+        $proposalModel    = null;
+        if (can('proposals.view')) {
+            $proposalModel   = new Proposal();
+            $proposals       = $proposalModel->findByCompany($id, 6);
+            $proposalSummary = $proposalModel->summaryByCompany($id);
+        }
+
         $this->view('companies/show', [
             'title'              => $company['name'] ?? 'Empresa',
             'company'            => $company,
@@ -153,6 +163,9 @@ final class CompanyController extends Controller
             'tasks'              => $tasks,
             'taskSummary'        => $taskSummary,
             'taskModel'          => $taskModel,
+            'proposals'          => $proposals,
+            'proposalSummary'    => $proposalSummary,
+            'proposalModel'      => $proposalModel,
         ]);
     }
 
