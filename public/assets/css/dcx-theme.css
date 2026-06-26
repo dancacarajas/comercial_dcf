@@ -1770,6 +1770,40 @@ tr.task-overdue > td:first-child { box-shadow: inset 3px 0 0 #d34a4a; }
 .badge-cp-suspensa { background: #f1f1ef; color: #555; border-color: #dededb; }
 .badge-cp-substituida { background: #f1f1ef; color: #555; border-color: #dededb; }
 .badge-cp-arquivada { background: #2b2b2b; color: #fff; border-color: #2b2b2b; }
+
+/* Etapa 14 — Contratos */
+.contract-card { border: 1px solid #e6e6e1; }
+.contract-summary { border: 1px solid #e6e6e1; }
+.contract-status, .contract-type, .contract-signature-status {
+    display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; border: 1px solid transparent;
+}
+.contract-value { font-weight: 700; }
+.contract-actions { flex-wrap: wrap; gap: 10px; }
+.contract-linked-list { width: 100%; }
+.contract-alert { border-left: 4px solid var(--dcx-yellow); }
+.contract-doc-links { display: flex; flex-wrap: wrap; gap: 14px; }
+.contract-expired-row { background: #fff9f9; }
+.badge-ct-minuta { background: #eef3fb; color: #2a4b78; border-color: #cdddf2; }
+.badge-ct-em_elaboracao { background: #eef3fb; color: #2a4b78; border-color: #cdddf2; }
+.badge-ct-em_revisao { background: #fff3d6; color: #6b5600; border-color: #f0dd9a; }
+.badge-ct-aprovado_internamente { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
+.badge-ct-enviado_para_assinatura { background: #fff9e0; color: #5a4800; border-color: #f0dd9a; }
+.badge-ct-aguardando_assinatura { background: #fff3d6; color: #6b5600; border-color: #f0dd9a; }
+.badge-ct-assinado { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
+.badge-ct-vigente { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
+.badge-ct-encerrado { background: #f1f1ef; color: #555; border-color: #dededb; }
+.badge-ct-cancelado { background: #fdecec; color: #8a1f1f; border-color: #f3c0c0; }
+.badge-ct-suspenso { background: #f1f1ef; color: #555; border-color: #dededb; }
+.badge-ct-substituido { background: #f1f1ef; color: #555; border-color: #dededb; }
+.badge-ct-arquivado { background: #2b2b2b; color: #fff; border-color: #2b2b2b; }
+.badge-sig-nao_enviado { background: #f1f1ef; color: #555; border-color: #dededb; }
+.badge-sig-enviado_manual { background: #fff9e0; color: #5a4800; border-color: #f0dd9a; }
+.badge-sig-aguardando_assinatura { background: #fff3d6; color: #6b5600; border-color: #f0dd9a; }
+.badge-sig-parcialmente_assinado { background: #fff9e0; color: #5a4800; border-color: #f0dd9a; }
+.badge-sig-assinado { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
+.badge-sig-recusado { background: #fdecec; color: #8a1f1f; border-color: #f3c0c0; }
+.badge-sig-cancelado { background: #2b2b2b; color: #fff; border-color: #2b2b2b; }
+.badge-sig-nao_aplicavel { background: #f1f1ef; color: #555; border-color: #dededb; }
 .badge-pay-nao_aplicavel { background: #f1f1ef; color: #555; border-color: #dededb; }
 .badge-pay-pendente { background: #fff9e0; color: #5a4800; border-color: #f0dd9a; }
 .badge-pay-parcial { background: #fff3d6; color: #6b5600; border-color: #f0dd9a; }

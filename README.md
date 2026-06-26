@@ -1612,6 +1612,75 @@ Resultado esperado: **64 PASS / 0 FAIL** (ambiente Docker `http://localhost:8080
 
 ---
 
+## Etapa 14 — Contratos / Instrumentos de Formalização
+
+Módulo interno para registrar e acompanhar documentos formais vinculados a fechamentos comerciais: minutas, termos, contratos, vigência, valor formalizado, status jurídico/comercial e assinatura manual (sem assinatura digital automática).
+
+**Fora do escopo desta etapa:** assinatura digital automática, portal externo, financeiro detalhado (parcelas/boletos/NF), relatórios avançados, automação de e-mail/WhatsApp, integrações externas.
+
+### Migration
+
+```bash
+Get-Content -Raw database/migrations/2026_etapa14_contracts.sql | docker exec -i dcc_db mariadb -udanca -pdanca danca_captacao
+```
+
+Cria:
+
+- Tabela `contracts` (vínculos com patrocinador, empresa, contato, oportunidade, proposta, cota, documentos minuta/final/assinado)
+- Coluna `documents.contract_id` (integração contextual com Documentos)
+- Permissões `contracts.view|create|edit|archive|status|mark_signed|approve` e matriz por perfil
+
+### Permissões
+
+| Perfil | contracts.* |
+|--------|-------------|
+| Administrador Geral | todas (7) |
+| Captação / Comercial | view, create, edit, archive, status, mark_signed |
+| Produção / Coordenação | view |
+| Comunicação | view |
+| Leitura / Consulta | view |
+
+### Listas controladas
+
+- **Tipos:** `termo_patrocinio`, `contrato_patrocinio`, `termo_apoio`, `termo_permuta`, `termo_cooperacao`, `carta_intencao`, `instrumento_formalizacao`, `aditivo`, `distrato`, `outro`
+- **Mecanismos:** `lei_rouanet`, `recurso_direto`, `recurso_proprio`, `permuta_bens_servicos`, `apoio_institucional`, `misto`, `nao_definido`, `outro`
+- **Status:** `minuta`, `em_elaboracao`, `em_revisao`, `aprovado_internamente`, `enviado_para_assinatura`, `aguardando_assinatura`, `assinado`, `vigente`, `encerrado`, `cancelado`, `suspenso`, `substituido`, `arquivado`
+- **Revisão:** `nao_revisado`, `em_revisao`, `ajustes_solicitados`, `aprovado_comercial`, `aprovado_juridico`, `aprovado_final`, `reprovado`, `nao_aplicavel`
+- **Assinatura manual:** `nao_enviado`, `enviado_manual`, `aguardando_assinatura`, `parcialmente_assinado`, `assinado`, `recusado`, `cancelado`, `nao_aplicavel`
+
+### Rotas principais
+
+- `GET /contracts` — listagem (15/página, filtros comerciais)
+- `GET|POST /contracts/create|store`
+- `GET /contracts/{id}` — detalhes + bloco de documentos
+- `GET|POST /contracts/{id}/edit|update`
+- `POST /contracts/{id}/approve` — aprovação interna
+- `POST /contracts/{id}/mark-signed` — registro de assinatura manual
+- `POST /contracts/{id}/status` — mudança de status/revisão/assinatura
+- `POST /contracts/{id}/archive|restore`
+- Rotas contextuais: `/sponsors|companies|contacts|opportunities|proposals|quotas/{id}/contracts/create`
+- `GET /contracts/{id}/documents/create` — novo documento vinculado
+
+### Validação local
+
+```bash
+docker exec dcc_app php /var/www/html/scripts/validate_etapa14.php
+```
+
+Resultado esperado: **63 PASS / 0 FAIL** (Docker `http://localhost:8080`).
+
+### Checklist de testes (Etapa 14)
+
+- [ ] Migration executada; tabela `contracts` e `documents.contract_id` criados
+- [ ] Permissões `contracts.*` (7) sem duplicidade; matriz por perfil correta
+- [ ] Auth, CSRF, validações, CRUD, aprovação, assinatura manual, status vigente/encerrado, arquivar/restaurar
+- [ ] Filtros, paginação, blocos contextuais, dashboard, vínculo com documentos (minuta/final/assinado)
+- [ ] **NÃO** criados: Assinatura Digital automática, Portal Externo, Financeiro detalhado, Relatórios Avançados, automações externas
+
+> **Deploy em produção:** somente após validação local completa e aprovação explícita.
+
+---
+
 ## Segurança implementada nesta etapa
 
 - Apenas `/public` acessível pela web; `app/`, `config/`, `routes/`, `storage/` bloqueados via `.htaccess`.

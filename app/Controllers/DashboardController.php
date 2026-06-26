@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\Contract;
 use App\Models\Counterpart;
 use App\Models\Document;
 use App\Models\Opportunity;
@@ -147,6 +148,22 @@ final class DashboardController extends Controller
             $counterpartsOverdue   = $counterpartModel->countOverdue();
         }
 
+        $contractsTotal = null;
+        $contractsSigned = null;
+        $contractsAwaiting = null;
+        $contractsVigente = null;
+        $contractsExpired = null;
+        $contractsFormalized = null;
+        if (can('contracts.view')) {
+            $contractModel       = new Contract();
+            $contractsTotal      = $contractModel->countActive();
+            $contractsSigned     = $contractModel->countSigned();
+            $contractsAwaiting   = $contractModel->countAwaitingSignature();
+            $contractsVigente    = $contractModel->countVigente();
+            $contractsExpired    = $contractModel->countExpired();
+            $contractsFormalized = $contractModel->sumFormalized();
+        }
+
         $this->view('dashboard/index', [
             'title'              => 'Painel Administrativo',
             'user'               => $this->currentUser(),
@@ -186,6 +203,12 @@ final class DashboardController extends Controller
             'counterpartsDelivered'   => $counterpartsDelivered,
             'counterpartsPartial'     => $counterpartsPartial,
             'counterpartsOverdue'     => $counterpartsOverdue,
+            'contractsTotal'          => $contractsTotal,
+            'contractsSigned'         => $contractsSigned,
+            'contractsAwaiting'       => $contractsAwaiting,
+            'contractsVigente'        => $contractsVigente,
+            'contractsExpired'        => $contractsExpired,
+            'contractsFormalized'     => $contractsFormalized,
         ], 'layouts/admin');
     }
 }

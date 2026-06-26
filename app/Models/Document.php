@@ -82,7 +82,7 @@ final class Document extends Model
 
     /** @var list<string> */
     private const FILLABLE = [
-        'company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id',
+        'company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id',
         'title', 'description', 'category', 'status', 'access_level',
         'file_path', 'original_name', 'stored_name', 'extension', 'mime_type', 'size_bytes', 'checksum_sha256',
         'version_number', 'parent_document_id', 'document_date', 'valid_until',
@@ -90,7 +90,7 @@ final class Document extends Model
     ];
 
     private const LIST_COLUMNS = '
-        d.`id`, d.`company_id`, d.`contact_id`, d.`opportunity_id`, d.`quota_id`, d.`proposal_id`, d.`lead_id`, d.`sponsor_id`, d.`counterpart_id`,
+        d.`id`, d.`company_id`, d.`contact_id`, d.`opportunity_id`, d.`quota_id`, d.`proposal_id`, d.`lead_id`, d.`sponsor_id`, d.`counterpart_id`, d.`contract_id`,
         d.`title`, d.`description`, d.`category`, d.`status`, d.`access_level`,
         d.`original_name`, d.`extension`, d.`mime_type`, d.`size_bytes`, d.`checksum_sha256`,
         d.`version_number`, d.`parent_document_id`, d.`document_date`, d.`valid_until`,
@@ -104,6 +104,7 @@ final class Document extends Model
         l.`name` AS lead_name,
         sp.`sponsor_display_name` AS sponsor_name,
         cp.`title` AS counterpart_title,
+        ct2.`title` AS contract_title,
         ru.`name` AS responsible_name,
         cb.`name` AS created_by_name,
         ub.`name` AS updated_by_name,
@@ -340,7 +341,7 @@ final class Document extends Model
             $params['q'] = '%' . $q . '%';
         }
 
-        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'responsible_user_id'] as $fk) {
+        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id', 'responsible_user_id'] as $fk) {
             $v = (int) ($filters[$fk] ?? 0);
             if ($v > 0) {
                 $conditions[] = 'd.`' . $fk . '` = :' . $fk;
@@ -390,6 +391,7 @@ final class Document extends Model
                  LEFT JOIN `leads` l ON l.`id` = d.`lead_id`
                  LEFT JOIN `sponsors` sp ON sp.`id` = d.`sponsor_id`
                  LEFT JOIN `counterparts` cp ON cp.`id` = d.`counterpart_id`
+                 LEFT JOIN `contracts` ct2 ON ct2.`id` = d.`contract_id`
                  LEFT JOIN `users` ru ON ru.`id` = d.`responsible_user_id`
                  LEFT JOIN `users` cb ON cb.`id` = d.`created_by`
                  LEFT JOIN `users` ub ON ub.`id` = d.`updated_by`
@@ -512,6 +514,19 @@ final class Document extends Model
                LEFT JOIN `sponsors` sp ON sp.`id` = cp.`sponsor_id`
               WHERE cp.`archived_at` IS NULL
               ORDER BY cp.`title` ASC
+              LIMIT 300'
+        )->fetchAll();
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function filterContractOptions(): array
+    {
+        return $this->query(
+            'SELECT ct.`id`, CONCAT(ct.`title`, " — ", COALESCE(sp.`sponsor_display_name`, "")) AS label
+               FROM `contracts` ct
+               LEFT JOIN `sponsors` sp ON sp.`id` = ct.`sponsor_id`
+              WHERE ct.`archived_at` IS NULL
+              ORDER BY ct.`title` ASC
               LIMIT 300'
         )->fetchAll();
     }
@@ -669,6 +684,23 @@ final class Document extends Model
     }
 
     /** @return array<int, array<string, mixed>> */
+    public function findByContract(int|string $contractId, int $limit = 10): array
+    {
+        return $this->findByFk('contract_id', $contractId, $limit);
+    }
+
+    public function countByContract(int|string $contractId): int
+    {
+        return $this->countByFk('contract_id', $contractId);
+    }
+
+    /** @return array{total:int,active:int,expired:int,expiring_soon:int} */
+    public function summaryByContract(int|string $contractId): array
+    {
+        return $this->summaryByFk('contract_id', $contractId);
+    }
+
+    /** @return array<int, array<string, mixed>> */
     public function filterOptionsByCompany(int $companyId): array
     {
         if ($companyId <= 0) {
@@ -762,6 +794,9 @@ final class Document extends Model
             'quota_id'            => $base['quota_id'],
             'proposal_id'         => $base['proposal_id'],
             'lead_id'             => $base['lead_id'],
+            'sponsor_id'          => $base['sponsor_id'],
+            'counterpart_id'      => $base['counterpart_id'],
+            'contract_id'         => $base['contract_id'],
             'title'               => $base['title'],
             'description'         => $base['description'],
             'category'            => $base['category'],
@@ -852,7 +887,7 @@ final class Document extends Model
     /** @return array<int, array<string, mixed>> */
     private function findByFk(string $column, int|string $value, int $limit): array
     {
-        if (!in_array($column, ['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id'], true)) {
+        if (!in_array($column, ['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id'], true)) {
             return [];
         }
 
@@ -871,7 +906,7 @@ final class Document extends Model
 
     private function countByFk(string $column, int|string $value): int
     {
-        if (!in_array($column, ['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id'], true)) {
+        if (!in_array($column, ['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id'], true)) {
             return 0;
         }
 
@@ -886,7 +921,7 @@ final class Document extends Model
     /** @return array{total:int,active:int,expired:int,expiring_soon:int} */
     private function summaryByFk(string $column, int|string $value): array
     {
-        if (!in_array($column, ['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id'], true)) {
+        if (!in_array($column, ['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id'], true)) {
             return ['total' => 0, 'active' => 0, 'expired' => 0, 'expiring_soon' => 0];
         }
 
@@ -935,7 +970,7 @@ final class Document extends Model
             }
         }
 
-        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id',
+        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id',
             'version_number', 'parent_document_id', 'responsible_user_id', 'created_by', 'updated_by', 'size_bytes'] as $intCol) {
             if (array_key_exists($intCol, $row)) {
                 $row[$intCol] = $row[$intCol] !== null && $row[$intCol] !== '' ? (int) $row[$intCol] : null;

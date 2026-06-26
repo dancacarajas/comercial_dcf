@@ -14,6 +14,7 @@ use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Quota;
 use App\Models\Sponsor;
+use App\Models\Contract;
 use App\Models\Counterpart;
 use App\Models\Task;
 use App\Models\User;
@@ -198,6 +199,15 @@ final class OpportunityController extends Controller
             $counterpartSummary = $counterpartModel->summaryByOpportunity($id);
         }
 
+        $contracts       = [];
+        $contractSummary = ['total' => 0, 'signed' => 0, 'awaiting_signature' => 0, 'vigente' => 0, 'expired' => 0, 'formalized_total' => 0.0];
+        $contractModel   = null;
+        if (can('contracts.view')) {
+            $contractModel   = new Contract();
+            $contracts       = $contractModel->findByOpportunity($id, 6);
+            $contractSummary = $contractModel->summaryByOpportunity($id);
+        }
+
         $this->view('opportunities/show', array_merge($this->lists($model), [
             'title'       => $opportunity['title'] ?? 'Oportunidade',
             'opportunity' => $opportunity,
@@ -216,6 +226,9 @@ final class OpportunityController extends Controller
             'counterparts'       => $counterparts,
             'counterpartSummary' => $counterpartSummary,
             'counterpartModel'   => $counterpartModel,
+            'contracts'          => $contracts,
+            'contractSummary'    => $contractSummary,
+            'contractModel'      => $contractModel,
         ]));
     }
 

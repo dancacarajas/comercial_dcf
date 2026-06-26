@@ -111,6 +111,15 @@ return function (Router $router): void {
     $router->get('/proposals/{id}/counterparts/create',     'CounterpartController@createForProposal',     ['AuthMiddleware']);
     $router->get('/quotas/{id}/counterparts/create',        'CounterpartController@createForQuota',        ['AuthMiddleware']);
     $router->get('/sponsors/{id}/counterparts/create',      'CounterpartController@createForSponsor',      ['AuthMiddleware']);
+
+    // Rotas contextuais de contratos (Etapa 14)
+    $router->get('/companies/{id}/contracts/create',     'ContractController@createForCompany',     ['AuthMiddleware']);
+    $router->get('/contacts/{id}/contracts/create',      'ContractController@createForContact',      ['AuthMiddleware']);
+    $router->get('/opportunities/{id}/contracts/create', 'ContractController@createForOpportunity', ['AuthMiddleware']);
+    $router->get('/proposals/{id}/contracts/create',     'ContractController@createForProposal',     ['AuthMiddleware']);
+    $router->get('/quotas/{id}/contracts/create',        'ContractController@createForQuota',        ['AuthMiddleware']);
+    $router->get('/sponsors/{id}/contracts/create',      'ContractController@createForSponsor',      ['AuthMiddleware']);
+
     $router->get('/contacts/{id}',           'ContactController@show',    ['AuthMiddleware']);
     $router->get('/contacts/{id}/edit',      'ContactController@edit',    ['AuthMiddleware']);
     $router->post('/contacts/{id}/update',   'ContactController@update',  ['AuthMiddleware']);
@@ -220,6 +229,20 @@ return function (Router $router): void {
     $router->post('/counterparts/{id}/archive',      'CounterpartController@archive',      ['AuthMiddleware']);
     $router->post('/counterparts/{id}/restore',      'CounterpartController@restore',      ['AuthMiddleware']);
     $router->get('/counterparts/{id}/documents/create', 'DocumentController@createForCounterpart', ['AuthMiddleware']);
+
+    // Contratos / Instrumentos de Formalização (Etapa 14)
+    $router->get('/contracts',                    'ContractController@index',        ['AuthMiddleware']);
+    $router->get('/contracts/create',             'ContractController@create',       ['AuthMiddleware']);
+    $router->post('/contracts',                   'ContractController@store',        ['AuthMiddleware']);
+    $router->get('/contracts/{id}',               'ContractController@show',         ['AuthMiddleware']);
+    $router->get('/contracts/{id}/edit',          'ContractController@edit',         ['AuthMiddleware']);
+    $router->post('/contracts/{id}/update',       'ContractController@update',       ['AuthMiddleware']);
+    $router->post('/contracts/{id}/status',       'ContractController@status',       ['AuthMiddleware']);
+    $router->post('/contracts/{id}/approve',      'ContractController@approve',      ['AuthMiddleware']);
+    $router->post('/contracts/{id}/mark-signed',  'ContractController@markSigned',   ['AuthMiddleware']);
+    $router->post('/contracts/{id}/archive',      'ContractController@archive',      ['AuthMiddleware']);
+    $router->post('/contracts/{id}/restore',      'ContractController@restore',      ['AuthMiddleware']);
+    $router->get('/contracts/{id}/documents/create', 'DocumentController@createForContract', ['AuthMiddleware']);
 
     // Endpoint público de leads (sem AuthMiddleware; CORS para WordPress)
     $router->post('/api/leads/site', 'Api\LeadApiController@site');

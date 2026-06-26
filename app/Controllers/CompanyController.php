@@ -9,6 +9,7 @@ use App\Middlewares\AuthMiddleware;
 use App\Models\ActivityLog;
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\Contract;
 use App\Models\Counterpart;
 use App\Models\Document;
 use App\Models\Opportunity;
@@ -179,6 +180,15 @@ final class CompanyController extends Controller
             $counterpartSummary = $counterpartModel->summaryByCompany($id);
         }
 
+        $contracts       = [];
+        $contractSummary = ['total' => 0, 'signed' => 0, 'awaiting_signature' => 0, 'vigente' => 0, 'expired' => 0, 'formalized_total' => 0.0];
+        $contractModel   = null;
+        if (can('contracts.view')) {
+            $contractModel   = new Contract();
+            $contracts       = $contractModel->findByCompany($id, 6);
+            $contractSummary = $contractModel->summaryByCompany($id);
+        }
+
         $this->view('companies/show', [
             'title'              => $company['name'] ?? 'Empresa',
             'company'            => $company,
@@ -205,6 +215,9 @@ final class CompanyController extends Controller
             'counterparts'       => $counterparts,
             'counterpartSummary' => $counterpartSummary,
             'counterpartModel'   => $counterpartModel,
+            'contracts'          => $contracts,
+            'contractSummary'    => $contractSummary,
+            'contractModel'      => $contractModel,
         ]);
     }
 

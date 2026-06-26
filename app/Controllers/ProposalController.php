@@ -14,6 +14,7 @@ use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Quota;
 use App\Models\Sponsor;
+use App\Models\Contract;
 use App\Models\Counterpart;
 use App\Models\User;
 
@@ -200,6 +201,15 @@ final class ProposalController extends Controller
             $counterpartSummary = $counterpartModel->summaryByProposal($pid);
         }
 
+        $contracts       = [];
+        $contractSummary = ['total' => 0, 'signed' => 0, 'awaiting_signature' => 0, 'vigente' => 0, 'expired' => 0, 'formalized_total' => 0.0];
+        $contractModel   = null;
+        if (can('contracts.view')) {
+            $contractModel   = new Contract();
+            $contracts       = $contractModel->findByProposal($pid, 6);
+            $contractSummary = $contractModel->summaryByProposal($pid);
+        }
+
         $this->view('proposals/show', [
             'title'    => $proposal['title'] ?? 'Proposta',
             'proposal' => $proposal,
@@ -215,6 +225,9 @@ final class ProposalController extends Controller
             'counterparts'       => $counterparts,
             'counterpartSummary' => $counterpartSummary,
             'counterpartModel'   => $counterpartModel,
+            'contracts'          => $contracts,
+            'contractSummary'    => $contractSummary,
+            'contractModel'      => $contractModel,
         ]);
     }
 

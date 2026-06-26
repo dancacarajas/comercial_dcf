@@ -118,6 +118,32 @@ $err = static function (string $k) use ($errors): string {
                 </label>
             </div>
         <?php endif; ?>
+        <div>
+            <label for="contract_id">Contrato</label>
+            <select id="contract_id" name="contract_id">
+                <option value="">— Opcional —</option>
+                <?php foreach (($contracts ?? []) as $ct): ?>
+                    <option value="<?= (int) $ct['id'] ?>" <?= (int) $val('contract_id') === (int) $ct['id'] ? 'selected' : '' ?>><?= e($ct['label'] ?? '') ?></option>
+                <?php endforeach; ?>
+            </select>
+            <?= $err('contract_id') ?>
+        </div>
+        <?php if (!empty($val('contract_id')) && can('contracts.edit')): ?>
+            <div class="form-grid-full contract-doc-links">
+                <label class="checkbox-inline">
+                    <input type="checkbox" name="use_as_draft" value="1" <?= !empty($val('use_as_draft')) ? 'checked' : '' ?>>
+                    Usar como minuta do contrato
+                </label>
+                <label class="checkbox-inline">
+                    <input type="checkbox" name="use_as_final" value="1" <?= !empty($val('use_as_final')) ? 'checked' : '' ?>>
+                    Usar como versão final do contrato
+                </label>
+                <label class="checkbox-inline">
+                    <input type="checkbox" name="use_as_signed" value="1" <?= !empty($val('use_as_signed')) ? 'checked' : '' ?>>
+                    Usar como documento assinado do contrato
+                </label>
+            </div>
+        <?php endif; ?>
     </div>
 
     <h3 class="h3-card form-section-title"><i data-lucide="file-stack"></i> Dados do documento</h3>

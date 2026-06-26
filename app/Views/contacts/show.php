@@ -238,6 +238,16 @@ $oProbClass = static function (int $p): string {
             ?>
         <?php endif; ?>
 
+        <?php if (can('contracts.view')): ?>
+            <?php
+            $blockTitle = 'Contratos';
+            $createUrl  = can('contracts.create') ? app_url('/contacts/' . $cid . '/contracts/create') : '';
+            $allUrl     = app_url('/contracts?contact_id=' . $cid);
+            $emptyText  = 'Nenhum contrato vinculado a este contato ainda.';
+            require dirname(__DIR__) . '/contracts/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice timeline-placeholder" style="margin-top:20px;">
             <p class="mb-0"><i data-lucide="info"></i> Histórico comercial detalhado e relatórios serão vinculados a este contato nas próximas etapas.</p>
         </div>

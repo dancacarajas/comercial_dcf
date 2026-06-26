@@ -181,6 +181,16 @@ $oProbClass = static function (int $p): string {
             ?>
         <?php endif; ?>
 
+        <?php if (can('contracts.view')): ?>
+            <?php
+            $blockTitle = 'Contratos';
+            $createUrl  = can('contracts.create') ? app_url('/quotas/' . $qid . '/contracts/create') : '';
+            $allUrl     = app_url('/contracts?quota_id=' . $qid);
+            $emptyText  = 'Nenhum contrato vinculado a esta cota ainda.';
+            require dirname(__DIR__) . '/contracts/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice" style="margin-top:18px;">
             <p class="mb-0"><i data-lucide="info"></i> Contratos, assinatura digital e portal do patrocinador serão tratados em etapas futuras.</p>
         </div>

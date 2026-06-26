@@ -45,6 +45,12 @@ $counterpartsPending     = $counterpartsPending ?? null;
 $counterpartsDelivered   = $counterpartsDelivered ?? null;
 $counterpartsPartial     = $counterpartsPartial ?? null;
 $counterpartsOverdue     = $counterpartsOverdue ?? null;
+$contractsTotal          = $contractsTotal ?? null;
+$contractsSigned         = $contractsSigned ?? null;
+$contractsAwaiting       = $contractsAwaiting ?? null;
+$contractsVigente        = $contractsVigente ?? null;
+$contractsExpired        = $contractsExpired ?? null;
+$contractsFormalized     = $contractsFormalized ?? null;
 ?>
 
 <section class="section section-dark">
@@ -227,6 +233,28 @@ $counterpartsOverdue     = $counterpartsOverdue ?? null;
                         <?php if (can('counterparts.create')): ?>
                             &nbsp;·&nbsp;
                             <a href="<?= e(app_url('/counterparts/create')) ?>" class="link-strong"><i data-lucide="plus"></i> Nova contrapartida</a>
+                        <?php endif; ?>
+                    </p>
+                </article>
+            <?php endif; ?>
+
+            <?php if ($contractsTotal !== null): ?>
+                <article class="card card-accent contract-card">
+                    <span class="card-icon"><i data-lucide="file-signature"></i></span>
+                    <h3>Contratos</h3>
+                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $contractsTotal ?> <span style="font-size:14px;font-weight:600;">cadastrados</span></p>
+                    <p style="margin-bottom:6px;">
+                        <span class="pill"><?= (int) $contractsSigned ?> assinado(s)</span>
+                        <span class="pill"><?= (int) $contractsAwaiting ?> aguardando assinatura</span>
+                        <span class="pill"><?= (int) $contractsVigente ?> vigente(s)</span>
+                        <span class="pill <?= (int) $contractsExpired > 0 ? 'pill-danger' : '' ?>"><?= (int) $contractsExpired ?> vencido(s)</span>
+                    </p>
+                    <p class="money-value" style="margin-bottom:6px;">Formalizado: <?= e(money_br($contractsFormalized, 'R$ 0,00')) ?></p>
+                    <p>
+                        <a href="<?= e(app_url('/contracts')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar contratos</a>
+                        <?php if (can('contracts.create')): ?>
+                            &nbsp;·&nbsp;
+                            <a href="<?= e(app_url('/contracts/create')) ?>" class="link-strong"><i data-lucide="plus"></i> Novo contrato</a>
                         <?php endif; ?>
                     </p>
                 </article>

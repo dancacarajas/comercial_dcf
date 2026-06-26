@@ -639,6 +639,110 @@ CREATE TABLE IF NOT EXISTS `counterparts` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------------------
+-- Tabela: contracts (Etapa 14 — Contratos / Instrumentos de Formalização)
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `contracts` (
+    `id`                              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `sponsor_id`                      BIGINT UNSIGNED NOT NULL,
+    `company_id`                      BIGINT UNSIGNED NULL DEFAULT NULL,
+    `contact_id`                      BIGINT UNSIGNED NULL DEFAULT NULL,
+    `opportunity_id`                  BIGINT UNSIGNED NULL DEFAULT NULL,
+    `proposal_id`                     BIGINT UNSIGNED NULL DEFAULT NULL,
+    `quota_id`                        BIGINT UNSIGNED NULL DEFAULT NULL,
+    `draft_document_id`               BIGINT UNSIGNED NULL DEFAULT NULL,
+    `final_document_id`               BIGINT UNSIGNED NULL DEFAULT NULL,
+    `signed_document_id`              BIGINT UNSIGNED NULL DEFAULT NULL,
+    `contract_number`                 VARCHAR(80)     NULL DEFAULT NULL,
+    `title`                           VARCHAR(180)    NOT NULL,
+    `contract_type`                   VARCHAR(80)     NOT NULL DEFAULT 'termo_patrocinio',
+    `formalized_value`                DECIMAL(12,2)   NULL DEFAULT NULL,
+    `funding_mechanism`               VARCHAR(80)     NOT NULL DEFAULT 'nao_definido',
+    `status`                          VARCHAR(60)     NOT NULL DEFAULT 'minuta',
+    `review_status`                   VARCHAR(60)     NOT NULL DEFAULT 'nao_revisado',
+    `signature_status`                VARCHAR(60)     NOT NULL DEFAULT 'nao_enviado',
+    `start_date`                      DATE            NULL DEFAULT NULL,
+    `end_date`                        DATE            NULL DEFAULT NULL,
+    `sent_for_signature_at`           DATETIME        NULL DEFAULT NULL,
+    `signed_at`                       DATETIME        NULL DEFAULT NULL,
+    `effective_at`                    DATE            NULL DEFAULT NULL,
+    `ended_at`                        DATE            NULL DEFAULT NULL,
+    `sponsor_signatory_name`          VARCHAR(180)    NULL DEFAULT NULL,
+    `sponsor_signatory_email`         VARCHAR(180)    NULL DEFAULT NULL,
+    `sponsor_signatory_position`      VARCHAR(120)    NULL DEFAULT NULL,
+    `sponsor_signatory_document`      VARCHAR(80)     NULL DEFAULT NULL,
+    `organization_signatory_name`     VARCHAR(180)    NULL DEFAULT NULL,
+    `organization_signatory_email`    VARCHAR(180)    NULL DEFAULT NULL,
+    `organization_signatory_position` VARCHAR(120)    NULL DEFAULT NULL,
+    `approval_notes`                  TEXT            NULL DEFAULT NULL,
+    `signature_notes`                 TEXT            NULL DEFAULT NULL,
+    `legal_notes`                     TEXT            NULL DEFAULT NULL,
+    `notes`                           TEXT            NULL DEFAULT NULL,
+    `internal_notes`                  TEXT            NULL DEFAULT NULL,
+    `responsible_user_id`             BIGINT UNSIGNED NULL DEFAULT NULL,
+    `approved_by`                     BIGINT UNSIGNED NULL DEFAULT NULL,
+    `signed_registered_by`          BIGINT UNSIGNED NULL DEFAULT NULL,
+    `created_by`                      BIGINT UNSIGNED NULL DEFAULT NULL,
+    `updated_by`                      BIGINT UNSIGNED NULL DEFAULT NULL,
+    `created_at`                      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`                      DATETIME        NULL DEFAULT NULL,
+    `approved_at`                     DATETIME        NULL DEFAULT NULL,
+    `archived_at`                     DATETIME        NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_contracts_sponsor`            (`sponsor_id`),
+    KEY `idx_contracts_company`            (`company_id`),
+    KEY `idx_contracts_contact`            (`contact_id`),
+    KEY `idx_contracts_opportunity`        (`opportunity_id`),
+    KEY `idx_contracts_proposal`           (`proposal_id`),
+    KEY `idx_contracts_quota`              (`quota_id`),
+    KEY `idx_contracts_draft_document`     (`draft_document_id`),
+    KEY `idx_contracts_final_document`     (`final_document_id`),
+    KEY `idx_contracts_signed_document`    (`signed_document_id`),
+    KEY `idx_contracts_contract_number`    (`contract_number`),
+    KEY `idx_contracts_type`               (`contract_type`),
+    KEY `idx_contracts_status`             (`status`),
+    KEY `idx_contracts_review_status`      (`review_status`),
+    KEY `idx_contracts_signature_status`   (`signature_status`),
+    KEY `idx_contracts_start_date`         (`start_date`),
+    KEY `idx_contracts_end_date`           (`end_date`),
+    KEY `idx_contracts_signed_at`          (`signed_at`),
+    KEY `idx_contracts_responsible`        (`responsible_user_id`),
+    KEY `idx_contracts_archived_at`        (`archived_at`),
+    CONSTRAINT `fk_contracts_sponsor`
+        FOREIGN KEY (`sponsor_id`) REFERENCES `sponsors` (`id`)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT `fk_contracts_company`
+        FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_contracts_contact`
+        FOREIGN KEY (`contact_id`) REFERENCES `contacts` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_contracts_opportunity`
+        FOREIGN KEY (`opportunity_id`) REFERENCES `opportunities` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_contracts_proposal`
+        FOREIGN KEY (`proposal_id`) REFERENCES `proposals` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_contracts_quota`
+        FOREIGN KEY (`quota_id`) REFERENCES `quotas` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_contracts_responsible`
+        FOREIGN KEY (`responsible_user_id`) REFERENCES `users` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_contracts_approved_by`
+        FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_contracts_signed_registered_by`
+        FOREIGN KEY (`signed_registered_by`) REFERENCES `users` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_contracts_created_by`
+        FOREIGN KEY (`created_by`) REFERENCES `users` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_contracts_updated_by`
+        FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------
 -- Tabela: documents (Etapa 11 — Documentos e Arquivos)
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `documents` (
@@ -651,6 +755,7 @@ CREATE TABLE IF NOT EXISTS `documents` (
     `lead_id`              BIGINT UNSIGNED NULL DEFAULT NULL,
     `sponsor_id`           BIGINT UNSIGNED NULL DEFAULT NULL,
     `counterpart_id`       BIGINT UNSIGNED NULL DEFAULT NULL,
+    `contract_id`          BIGINT UNSIGNED NULL DEFAULT NULL,
     `title`                VARCHAR(180)    NOT NULL,
     `description`          TEXT            NULL DEFAULT NULL,
     `category`             VARCHAR(80)     NOT NULL DEFAULT 'documento_comercial',
@@ -683,6 +788,7 @@ CREATE TABLE IF NOT EXISTS `documents` (
     KEY `idx_documents_lead`         (`lead_id`),
     KEY `idx_documents_sponsor`      (`sponsor_id`),
     KEY `idx_documents_counterpart`  (`counterpart_id`),
+    KEY `idx_documents_contract`     (`contract_id`),
     KEY `idx_documents_category`     (`category`),
     KEY `idx_documents_status`       (`status`),
     KEY `idx_documents_access_level` (`access_level`),
@@ -715,6 +821,9 @@ CREATE TABLE IF NOT EXISTS `documents` (
     CONSTRAINT `fk_documents_counterpart`
         FOREIGN KEY (`counterpart_id`) REFERENCES `counterparts` (`id`)
         ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT `fk_documents_contract`
+        FOREIGN KEY (`contract_id`) REFERENCES `contracts` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT `fk_documents_parent`
         FOREIGN KEY (`parent_document_id`) REFERENCES `documents` (`id`)
         ON DELETE SET NULL ON UPDATE CASCADE,
@@ -737,6 +846,21 @@ ALTER TABLE `sponsors`
 ALTER TABLE `counterparts`
     ADD CONSTRAINT `fk_counterparts_evidence_document`
         FOREIGN KEY (`evidence_document_id`) REFERENCES `documents` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE `contracts`
+    ADD CONSTRAINT `fk_contracts_draft_document`
+        FOREIGN KEY (`draft_document_id`) REFERENCES `documents` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE `contracts`
+    ADD CONSTRAINT `fk_contracts_final_document`
+        FOREIGN KEY (`final_document_id`) REFERENCES `documents` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE `contracts`
+    ADD CONSTRAINT `fk_contracts_signed_document`
+        FOREIGN KEY (`signed_document_id`) REFERENCES `documents` (`id`)
         ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- ---------------------------------------------------------------------
@@ -891,6 +1015,13 @@ INSERT INTO `permissions` (`name`, `slug`, `description`) VALUES
     ('Arquivar contrapartidas','counterparts.archive', 'Arquivar e restaurar contrapartidas'),
     ('Entregar contrapartidas','counterparts.deliver', 'Registrar entrega de contrapartidas'),
     ('Alterar status contrap.','counterparts.status',  'Alterar status de contrapartidas'),
+    ('Ver contratos',              'contracts.view',        'Visualizar contratos e instrumentos de formalização'),
+    ('Criar contratos',            'contracts.create',      'Registrar contratos e instrumentos'),
+    ('Editar contratos',           'contracts.edit',        'Editar contratos e instrumentos'),
+    ('Arquivar contratos',         'contracts.archive',     'Arquivar e restaurar contratos'),
+    ('Alterar status contrato',    'contracts.status',      'Alterar status de contratos'),
+    ('Marcar contrato assinado',   'contracts.mark_signed', 'Registrar assinatura manual de contratos'),
+    ('Aprovar contratos',          'contracts.approve',     'Aprovar contratos internamente'),
     ('Ver relatórios',        'reports.view',          'Reservada para módulo futuro')
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `description` = VALUES(`description`);
 
@@ -919,7 +1050,9 @@ JOIN `permissions` p ON p.`slug` IN (
     'sponsors.view', 'sponsors.create', 'sponsors.edit',
     'sponsors.archive', 'sponsors.confirm', 'sponsors.status',
     'counterparts.view', 'counterparts.create', 'counterparts.edit',
-    'counterparts.archive', 'counterparts.deliver', 'counterparts.status'
+    'counterparts.archive', 'counterparts.deliver', 'counterparts.status',
+    'contracts.view', 'contracts.create', 'contracts.edit',
+    'contracts.archive', 'contracts.status', 'contracts.mark_signed', 'contracts.approve'
 )
 WHERE r.`slug` = 'captacao-comercial'
 ON DUPLICATE KEY UPDATE `role_id` = `role_permissions`.`role_id`;
@@ -930,7 +1063,8 @@ SELECT r.`id`, p.`id`
 FROM `roles` r
 JOIN `permissions` p ON p.`slug` IN (
     'dashboard.view', 'sponsors.view', 'counterparts.view', 'counterparts.create',
-    'counterparts.edit', 'counterparts.deliver', 'counterparts.status', 'reports.view',
+    'counterparts.edit', 'counterparts.deliver', 'counterparts.status',
+    'contracts.view', 'reports.view',
     'proposals.view',
     'documents.view', 'documents.create', 'documents.edit',
     'documents.download', 'documents.version'
@@ -944,7 +1078,8 @@ SELECT r.`id`, p.`id`
 FROM `roles` r
 JOIN `permissions` p ON p.`slug` IN (
     'dashboard.view', 'sponsors.view', 'counterparts.view', 'counterparts.create',
-    'counterparts.edit', 'counterparts.deliver', 'counterparts.status', 'reports.view',
+    'counterparts.edit', 'counterparts.deliver', 'counterparts.status',
+    'contracts.view', 'reports.view',
     'proposals.view',
     'documents.view', 'documents.create', 'documents.edit',
     'documents.download', 'documents.version'
@@ -959,7 +1094,8 @@ FROM `roles` r
 JOIN `permissions` p ON p.`slug` IN (
     'dashboard.view', 'companies.view', 'contacts.view', 'opportunities.view',
     'quotas.view', 'tasks.view', 'leads.view', 'proposals.view',
-    'documents.view', 'documents.download', 'sponsors.view', 'counterparts.view', 'reports.view'
+    'documents.view', 'documents.download', 'sponsors.view', 'counterparts.view',
+    'contracts.view', 'reports.view'
 )
 WHERE r.`slug` = 'leitura-consulta'
 ON DUPLICATE KEY UPDATE `role_id` = `role_permissions`.`role_id`;
@@ -969,6 +1105,13 @@ INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.`id`, p.`id`
 FROM `roles` r
 INNER JOIN `permissions` p ON p.`slug` = 'counterparts.view'
+WHERE r.`slug` = 'leitura-consulta';
+
+-- Garantia idempotente (Etapa 14): Leitura / Consulta com contracts.view
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
+SELECT r.`id`, p.`id`
+FROM `roles` r
+INNER JOIN `permissions` p ON p.`slug` = 'contracts.view'
 WHERE r.`slug` = 'leitura-consulta';
 
 -- Configuracoes iniciais do sistema

@@ -75,6 +75,9 @@ $pageTitle = isset($title) ? ($title . ' — ' . $appName) : $appName;
                     <?php if (can('counterparts.view')): ?>
                         <a href="<?= e(app_url('/counterparts')) ?>"><i data-lucide="list-checks"></i> Contrapartidas</a>
                     <?php endif; ?>
+                    <?php if (can('contracts.view')): ?>
+                        <a href="<?= e(app_url('/contracts')) ?>"><i data-lucide="file-signature"></i> Contratos</a>
+                    <?php endif; ?>
                     <?php if (can('users.view')): ?>
                         <a href="<?= e(app_url('/users')) ?>"><i data-lucide="users"></i> Usuários</a>
                     <?php endif; ?>

@@ -139,6 +139,16 @@ $dash       = static fn ($v): string => ($v === null || $v === '') ? '—' : (st
             ?>
         <?php endif; ?>
 
+        <?php if (can('contracts.view')): ?>
+            <?php
+            $blockTitle = 'Contratos';
+            $createUrl  = can('contracts.create') ? app_url('/proposals/' . $pid . '/contracts/create') : '';
+            $allUrl     = app_url('/contracts?proposal_id=' . $pid);
+            $emptyText  = 'Nenhum contrato vinculado a esta proposta ainda.';
+            require dirname(__DIR__) . '/contracts/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <article class="card meta-audit" style="margin-top:18px;">
             <dl class="meta-list meta-list-inline">
                 <dt>Criado por</dt><dd><?= e($dash($proposal['created_by_name'] ?? '')) ?></dd>

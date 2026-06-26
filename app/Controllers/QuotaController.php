@@ -11,6 +11,7 @@ use App\Models\Document;
 use App\Models\Proposal;
 use App\Models\Quota;
 use App\Models\Sponsor;
+use App\Models\Contract;
 use App\Models\Counterpart;
 
 /**
@@ -133,6 +134,15 @@ final class QuotaController extends Controller
             $counterpartSummary = $counterpartModel->summaryByQuota((int) $quota['id']);
         }
 
+        $contracts       = [];
+        $contractSummary = ['total' => 0, 'signed' => 0, 'awaiting_signature' => 0, 'vigente' => 0, 'expired' => 0, 'formalized_total' => 0.0];
+        $contractModel   = null;
+        if (can('contracts.view')) {
+            $contractModel   = new Contract();
+            $contracts       = $contractModel->findByQuota((int) $quota['id'], 6);
+            $contractSummary = $contractModel->summaryByQuota((int) $quota['id']);
+        }
+
         $this->view('quotas/show', [
             'title'         => $quota['name'] ?? 'Cota',
             'quota'         => $quota,
@@ -156,6 +166,9 @@ final class QuotaController extends Controller
             'counterparts'       => $counterparts,
             'counterpartSummary' => $counterpartSummary,
             'counterpartModel'   => $counterpartModel,
+            'contracts'          => $contracts,
+            'contractSummary'    => $contractSummary,
+            'contractModel'      => $contractModel,
         ]);
     }
 
