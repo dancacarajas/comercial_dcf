@@ -1,0 +1,46 @@
+# =====================================================================
+# public/.htaccess
+# Roteia todas as requisicoes para index.php (front controller) e
+# aplica cabecalhos de seguranca. Esta e a unica pasta exposta na web.
+# =====================================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Se o app estiver em um subdiretorio, ajuste a RewriteBase.
+    # RewriteBase /
+
+    # Nao reescreve arquivos/diretorios que existem fisicamente
+    # (assets: css, js, imagens, etc.)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Todo o resto vai para o front controller
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Impede listagem de diretorios
+Options -Indexes
+
+# Bloqueia acesso a arquivos ocultos (.env, .git, etc.) caso caiam aqui
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Cabecalhos de seguranca basicos
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set X-XSS-Protection "1; mode=block"
+</IfModule>
+
+# Define index.php como arquivo padrao
+DirectoryIndex index.php

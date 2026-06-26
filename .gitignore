@@ -1,0 +1,23 @@
+# Ambiente / credenciais
+.env
+
+# Logs e arquivos gerados
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/uploads/*
+!/storage/uploads/.htaccess
+/storage/exports/*
+!/storage/exports/.gitkeep
+/storage/backups/*
+!/storage/backups/.gitkeep
+/storage/installed.lock
+/storage/ratelimit/*
+!/storage/ratelimit/.gitkeep
+
+# Sistema operacional / editores
+.DS_Store
+Thumbs.db
+*.log
+
+# Dependencias (caso futuramente use composer)
+/vendor/

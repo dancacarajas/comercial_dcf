@@ -1,0 +1,32 @@
+# =====================================================================
+# .htaccess raiz do projeto
+#
+# Cenario Hostinger compartilhada: muitas vezes o projeto inteiro e
+# enviado para dentro de public_html. O ideal e apontar o Document Root
+# do dominio para a subpasta /public. Caso isso NAO seja possivel, este
+# arquivo redireciona todas as requisicoes para dentro de /public,
+# mantendo app/, config/, routes/ e storage/ inacessiveis pela web.
+# =====================================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Nao reescrever requisicoes que ja apontam para /public
+    RewriteCond %{REQUEST_URI} !^/public/
+
+    # Encaminha tudo para a pasta public
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Bloqueia o acesso direto a arquivos sensiveis na raiz
+<FilesMatch "(^\.|composer\.(json|lock)|\.md$|\.sql$|\.env)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Allow,Deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+Options -Indexes
