@@ -191,6 +191,16 @@ $oProbClass = static function (int $p): string {
             ?>
         <?php endif; ?>
 
+        <?php if (can('financials.view')): ?>
+            <?php
+            $blockTitle = 'Financeiro';
+            $createUrl  = can('financials.create') ? app_url('/quotas/' . $qid . '/financials/create') : '';
+            $allUrl     = app_url('/financials?quota_id=' . $qid);
+            $emptyText  = 'Nenhum lançamento financeiro vinculado a esta cota ainda.';
+            require dirname(__DIR__) . '/financials/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice" style="margin-top:18px;">
             <p class="mb-0"><i data-lucide="info"></i> Contratos, assinatura digital e portal do patrocinador serão tratados em etapas futuras.</p>
         </div>

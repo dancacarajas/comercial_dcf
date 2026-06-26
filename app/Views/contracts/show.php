@@ -40,7 +40,7 @@ $dash = static fn ($v): string => ($v === null || $v === '') ? '—' : (string) 
         </div>
 
         <div class="notice notice-info contract-alert" style="margin-bottom:18px;">
-            <p class="mb-0"><i data-lucide="info"></i> Assinatura digital integrada, portal externo do patrocinador, financeiro detalhado e relatórios avançados serão tratados em etapas futuras.</p>
+            <p class="mb-0"><i data-lucide="info"></i> Assinatura digital integrada, portal externo do patrocinador e relatórios avançados serão tratados em etapas futuras.</p>
         </div>
 
         <div class="detail-grid">
@@ -119,6 +119,16 @@ $dash = static fn ($v): string => ($v === null || $v === '') ? '—' : (string) 
             $allUrl = app_url('/documents') . '?sponsor_id=' . $sid;
             $emptyText = 'Nenhum documento vinculado ao patrocinador deste contrato.';
             require __DIR__ . '/../documents/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
+        <?php if (can('financials.view')): ?>
+            <?php
+            $blockTitle = 'Financeiro';
+            $createUrl = can('financials.create') ? app_url('/contracts/' . $cid . '/financials/create') : '';
+            $allUrl = app_url('/financials?contract_id=' . $cid);
+            $emptyText = 'Nenhum lançamento financeiro vinculado a este contrato.';
+            require __DIR__ . '/../financials/_summary_block.php';
             ?>
         <?php endif; ?>
 

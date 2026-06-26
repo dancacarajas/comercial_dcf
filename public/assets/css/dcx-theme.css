@@ -1810,3 +1810,28 @@ tr.task-overdue > td:first-child { box-shadow: inset 3px 0 0 #d34a4a; }
 .badge-pay-recebido { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
 .badge-pay-em_atraso { background: #fdecec; color: #8a1f1f; border-color: #f3c0c0; }
 .badge-pay-cancelado { background: #2b2b2b; color: #fff; border-color: #2b2b2b; }
+
+/* Etapa 15 — Financeiro */
+.financial-card { border: 1px solid #e6e6e1; }
+.financial-summary { border: 1px solid #e6e6e1; }
+.financial-status, .financial-type {
+    display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; border: 1px solid transparent;
+}
+.financial-value { font-weight: 700; }
+.financial-received { font-weight: 700; color: #1f6b3a; }
+.financial-balance { font-weight: 700; }
+.financial-actions { flex-wrap: wrap; gap: 10px; }
+.financial-linked-list { width: 100%; }
+.financial-alert { border-left: 4px solid var(--dcx-yellow); }
+.financial-doc-links { display: flex; flex-wrap: wrap; gap: 14px; }
+.financial-overdue { background: #fff9f9; }
+.badge-fin-previsto { background: #eef3fb; color: #2a4b78; border-color: #cdddf2; }
+.badge-fin-aguardando_pagamento { background: #fff9e0; color: #5a4800; border-color: #f0dd9a; }
+.badge-fin-em_atraso { background: #fdecec; color: #8a1f1f; border-color: #f3c0c0; }
+.badge-fin-recebido_parcial { background: #fff3d6; color: #6b5600; border-color: #f0dd9a; }
+.badge-fin-recebido { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
+.badge-fin-conciliado { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
+.badge-fin-cancelado { background: #fdecec; color: #8a1f1f; border-color: #f3c0c0; }
+.badge-fin-suspenso { background: #f1f1ef; color: #555; border-color: #dededb; }
+.badge-fin-inadimplente { background: #fdecec; color: #8a1f1f; border-color: #f3c0c0; }
+.badge-fin-arquivado { background: #2b2b2b; color: #fff; border-color: #2b2b2b; }

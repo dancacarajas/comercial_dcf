@@ -120,6 +120,15 @@ return function (Router $router): void {
     $router->get('/quotas/{id}/contracts/create',        'ContractController@createForQuota',        ['AuthMiddleware']);
     $router->get('/sponsors/{id}/contracts/create',      'ContractController@createForSponsor',      ['AuthMiddleware']);
 
+    // Rotas contextuais de financeiro (Etapa 15)
+    $router->get('/companies/{id}/financials/create',     'FinancialController@createForCompany',     ['AuthMiddleware']);
+    $router->get('/contacts/{id}/financials/create',      'FinancialController@createForContact',      ['AuthMiddleware']);
+    $router->get('/opportunities/{id}/financials/create', 'FinancialController@createForOpportunity', ['AuthMiddleware']);
+    $router->get('/proposals/{id}/financials/create',     'FinancialController@createForProposal',     ['AuthMiddleware']);
+    $router->get('/quotas/{id}/financials/create',        'FinancialController@createForQuota',        ['AuthMiddleware']);
+    $router->get('/sponsors/{id}/financials/create',      'FinancialController@createForSponsor',      ['AuthMiddleware']);
+    $router->get('/contracts/{id}/financials/create',     'FinancialController@createForContract',     ['AuthMiddleware']);
+
     $router->get('/contacts/{id}',           'ContactController@show',    ['AuthMiddleware']);
     $router->get('/contacts/{id}/edit',      'ContactController@edit',    ['AuthMiddleware']);
     $router->post('/contacts/{id}/update',   'ContactController@update',  ['AuthMiddleware']);
@@ -243,6 +252,20 @@ return function (Router $router): void {
     $router->post('/contracts/{id}/archive',      'ContractController@archive',      ['AuthMiddleware']);
     $router->post('/contracts/{id}/restore',      'ContractController@restore',      ['AuthMiddleware']);
     $router->get('/contracts/{id}/documents/create', 'DocumentController@createForContract', ['AuthMiddleware']);
+
+    // Financeiro detalhado (Etapa 15)
+    $router->get('/financials',                    'FinancialController@index',        ['AuthMiddleware']);
+    $router->get('/financials/create',             'FinancialController@create',       ['AuthMiddleware']);
+    $router->post('/financials',                   'FinancialController@store',        ['AuthMiddleware']);
+    $router->get('/financials/{id}',               'FinancialController@show',         ['AuthMiddleware']);
+    $router->get('/financials/{id}/edit',          'FinancialController@edit',         ['AuthMiddleware']);
+    $router->post('/financials/{id}/update',       'FinancialController@update',       ['AuthMiddleware']);
+    $router->post('/financials/{id}/status',       'FinancialController@status',       ['AuthMiddleware']);
+    $router->post('/financials/{id}/confirm',      'FinancialController@confirm',      ['AuthMiddleware']);
+    $router->post('/financials/{id}/reconcile',    'FinancialController@reconcile',    ['AuthMiddleware']);
+    $router->post('/financials/{id}/archive',      'FinancialController@archive',      ['AuthMiddleware']);
+    $router->post('/financials/{id}/restore',      'FinancialController@restore',      ['AuthMiddleware']);
+    $router->get('/financials/{id}/documents/create', 'DocumentController@createForFinancialEntry', ['AuthMiddleware']);
 
     // Endpoint público de leads (sem AuthMiddleware; CORS para WordPress)
     $router->post('/api/leads/site', 'Api\LeadApiController@site');

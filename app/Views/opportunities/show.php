@@ -231,6 +231,16 @@ $probMap = htmlspecialchars(json_encode($statusProbabilities, JSON_UNESCAPED_UNI
             ?>
         <?php endif; ?>
 
+        <?php if (can('financials.view')): ?>
+            <?php
+            $blockTitle = 'Financeiro';
+            $createUrl  = can('financials.create') ? app_url('/opportunities/' . $oid . '/financials/create') : '';
+            $allUrl     = app_url('/financials?opportunity_id=' . $oid);
+            $emptyText  = 'Nenhum lançamento financeiro vinculado a esta oportunidade ainda.';
+            require dirname(__DIR__) . '/financials/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice timeline-placeholder" style="margin-top:20px;">
             <p class="mb-0"><i data-lucide="info"></i> Contratos, assinatura digital e histórico comercial avançado serão vinculados nas próximas etapas.</p>
         </div>

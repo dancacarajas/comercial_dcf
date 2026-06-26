@@ -33,6 +33,7 @@ $baseQuery = array_filter([
     'sponsor_id' => (int) ($filters['sponsor_id'] ?? 0) ?: '',
     'counterpart_id' => (int) ($filters['counterpart_id'] ?? 0) ?: '',
     'contract_id' => (int) ($filters['contract_id'] ?? 0) ?: '',
+    'financial_entry_id' => (int) ($filters['financial_entry_id'] ?? 0) ?: '',
     'category' => $f('category'), 'status' => $f('status'), 'access_level' => $f('access_level'),
     'responsible_user_id' => (int) ($filters['responsible_user_id'] ?? 0) ?: '',
     'expired' => !empty($filters['expired']) ? 1 : '',
@@ -106,6 +107,10 @@ $createUrl = app_url('/documents/create');
                 <div><label for="fcontract">Contrato</label>
                     <select id="fcontract" name="contract_id"><option value="">Todos</option>
                     <?php foreach ($contracts as $ct): ?><option value="<?= (int) $ct['id'] ?>" <?= (int)($filters['contract_id']??0)===(int)$ct['id']?'selected':'' ?>><?= e($ct['label']??'') ?></option><?php endforeach; ?>
+                    </select></div>
+                <div><label for="ffinancial">Lançamento financeiro</label>
+                    <select id="ffinancial" name="financial_entry_id"><option value="">Todos</option>
+                    <?php foreach (($financials ?? []) as $fe): ?><option value="<?= (int) $fe['id'] ?>" <?= (int)($filters['financial_entry_id']??0)===(int)$fe['id']?'selected':'' ?>><?= e($fe['label']??'') ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fcat">Categoria</label>
                     <select id="fcat" name="category"><option value="">Todas</option>

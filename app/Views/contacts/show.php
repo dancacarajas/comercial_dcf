@@ -248,6 +248,16 @@ $oProbClass = static function (int $p): string {
             ?>
         <?php endif; ?>
 
+        <?php if (can('financials.view')): ?>
+            <?php
+            $blockTitle = 'Financeiro';
+            $createUrl  = can('financials.create') ? app_url('/contacts/' . $cid . '/financials/create') : '';
+            $allUrl     = app_url('/financials?contact_id=' . $cid);
+            $emptyText  = 'Nenhum lançamento financeiro vinculado a este contato ainda.';
+            require dirname(__DIR__) . '/financials/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice timeline-placeholder" style="margin-top:20px;">
             <p class="mb-0"><i data-lucide="info"></i> Histórico comercial detalhado e relatórios serão vinculados a este contato nas próximas etapas.</p>
         </div>

@@ -12,6 +12,7 @@ use App\Models\Contact;
 use App\Models\Contract;
 use App\Models\Counterpart;
 use App\Models\Document;
+use App\Models\FinancialEntry;
 use App\Models\Lead;
 use App\Models\Opportunity;
 use App\Models\Proposal;
@@ -55,6 +56,7 @@ final class DocumentController extends Controller
             'sponsors'      => $this->sponsorFilterOptions(),
             'counterparts'  => $this->counterpartFilterOptions(),
             'contracts'     => $this->contractFilterOptions(),
+            'financials'    => $this->financialFilterOptions(),
             'users'         => (new User())->activeList(),
             'page'          => $page,
             'pages'         => $pages,
@@ -252,6 +254,32 @@ final class DocumentController extends Controller
         ]), []);
     }
 
+    public function createForFinancialEntry(array $params): void
+    {
+        AuthMiddleware::requirePermission('documents.create');
+        $id    = (int) ($params['id'] ?? 0);
+        $entry = $id > 0 ? (new FinancialEntry())->findById($id) : null;
+        if ($entry === null) {
+            $this->abort(404, 'Lançamento financeiro não encontrado.');
+        }
+        $this->renderForm('documents/create', 'Novo documento', $this->prefillFromQuery([
+            'financial_entry_id'  => $id,
+            'sponsor_id'          => $entry['sponsor_id'] ? (int) $entry['sponsor_id'] : null,
+            'contract_id'         => $entry['contract_id'] ? (int) $entry['contract_id'] : null,
+            'company_id'          => $entry['company_id'] ? (int) $entry['company_id'] : null,
+            'contact_id'          => $entry['contact_id'] ? (int) $entry['contact_id'] : null,
+            'opportunity_id'      => $entry['opportunity_id'] ? (int) $entry['opportunity_id'] : null,
+            'proposal_id'         => $entry['proposal_id'] ? (int) $entry['proposal_id'] : null,
+            'quota_id'            => $entry['quota_id'] ? (int) $entry['quota_id'] : null,
+            'category'            => 'comprovante_envio',
+            'status'              => 'ativo',
+            'access_level'        => 'interno',
+            'version_number'      => 1,
+            'document_date'       => date('Y-m-d'),
+            'responsible_user_id' => $_SESSION['user_id'] ?? null,
+        ]), []);
+    }
+
     public function store(): void
     {
         AuthMiddleware::requirePermission('documents.create');
@@ -290,6 +318,7 @@ final class DocumentController extends Controller
             }
         }
         $this->linkDocumentToContract($data, $id);
+        $this->linkDocumentToFinancial($data, $id);
         flash('success', 'Documento cadastrado com sucesso.');
         $this->redirect('/documents/' . $id);
     }
@@ -397,6 +426,7 @@ final class DocumentController extends Controller
             (new ActivityLog())->record('document_status_changed', $_SESSION['user_id'] ?? null, 'document', $id);
         }
         $this->linkDocumentToContract($data, $id);
+        $this->linkDocumentToFinancial($data, $id);
 
         flash('success', 'Documento atualizado com sucesso.');
         $this->redirect('/documents/' . $id);
@@ -554,6 +584,7 @@ final class DocumentController extends Controller
             'sponsor_id'          => (int) input('sponsor_id', 0),
             'counterpart_id'      => (int) input('counterpart_id', 0),
             'contract_id'         => (int) input('contract_id', 0),
+            'financial_entry_id'  => (int) input('financial_entry_id', 0),
             'category'            => (string) input('category', ''),
             'status'              => (string) input('status', ''),
             'access_level'        => (string) input('access_level', ''),
@@ -578,10 +609,14 @@ final class DocumentController extends Controller
             'sponsor_id'          => input('sponsor_id') !== null && input('sponsor_id') !== '' ? (int) input('sponsor_id') : null,
             'counterpart_id'      => input('counterpart_id') !== null && input('counterpart_id') !== '' ? (int) input('counterpart_id') : null,
             'contract_id'         => input('contract_id') !== null && input('contract_id') !== '' ? (int) input('contract_id') : null,
+            'financial_entry_id'  => input('financial_entry_id') !== null && input('financial_entry_id') !== '' ? (int) input('financial_entry_id') : null,
             'use_as_evidence'     => input('use_as_evidence') !== null ? 1 : 0,
             'use_as_draft'        => input('use_as_draft') !== null ? 1 : 0,
             'use_as_final'        => input('use_as_final') !== null ? 1 : 0,
             'use_as_signed'       => input('use_as_signed') !== null ? 1 : 0,
+            'use_as_proof'        => input('use_as_proof') !== null ? 1 : 0,
+            'use_as_receipt'      => input('use_as_receipt') !== null ? 1 : 0,
+            'use_as_fiscal'       => input('use_as_fiscal') !== null ? 1 : 0,
             'title'               => clean((string) input('title', '')),
             'description'         => trim((string) input('description', '')) ?: null,
             'category'            => clean((string) input('category', 'documento_comercial')),
@@ -598,7 +633,7 @@ final class DocumentController extends Controller
     /** @param array<string, mixed> $data @return array<string, mixed> */
     private function prefillFromQuery(array $data): array
     {
-        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id'] as $k) {
+        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id', 'financial_entry_id'] as $k) {
             $q = input($k);
             if ($q !== null && $q !== '') {
                 $data[$k] = (int) $q;
@@ -711,6 +746,33 @@ final class DocumentController extends Controller
             }
         }
 
+        if (!empty($data['financial_entry_id'])) {
+            $fe = (new FinancialEntry())->findById((int) $data['financial_entry_id']);
+            if ($fe !== null) {
+                if (empty($data['sponsor_id']) && !empty($fe['sponsor_id'])) {
+                    $data['sponsor_id'] = (int) $fe['sponsor_id'];
+                }
+                if (empty($data['contract_id']) && !empty($fe['contract_id'])) {
+                    $data['contract_id'] = (int) $fe['contract_id'];
+                }
+                if (empty($data['company_id']) && !empty($fe['company_id'])) {
+                    $data['company_id'] = (int) $fe['company_id'];
+                }
+                if (empty($data['contact_id']) && !empty($fe['contact_id'])) {
+                    $data['contact_id'] = (int) $fe['contact_id'];
+                }
+                if (empty($data['opportunity_id']) && !empty($fe['opportunity_id'])) {
+                    $data['opportunity_id'] = (int) $fe['opportunity_id'];
+                }
+                if (empty($data['proposal_id']) && !empty($fe['proposal_id'])) {
+                    $data['proposal_id'] = (int) $fe['proposal_id'];
+                }
+                if (empty($data['quota_id']) && !empty($fe['quota_id'])) {
+                    $data['quota_id'] = (int) $fe['quota_id'];
+                }
+            }
+        }
+
         if (empty($data['document_date'])) {
             $data['document_date'] = date('Y-m-d');
         }
@@ -779,6 +841,11 @@ final class DocumentController extends Controller
             $errors['contract_id'] = 'Contrato não encontrado.';
         }
 
+        $financialEntryId = (int) ($data['financial_entry_id'] ?? 0);
+        if ($financialEntryId > 0 && (new FinancialEntry())->findById($financialEntryId) === null) {
+            $errors['financial_entry_id'] = 'Lançamento financeiro não encontrado.';
+        }
+
         $respId = (int) ($data['responsible_user_id'] ?? 0);
         if ($respId > 0 && (new User())->findBy('id', $respId) === null) {
             $errors['responsible_user_id'] = 'Responsável não encontrado.';
@@ -819,6 +886,12 @@ final class DocumentController extends Controller
     private function contractFilterOptions(): array
     {
         return (new Document())->filterContractOptions();
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function financialFilterOptions(): array
+    {
+        return (new Document())->filterFinancialEntryOptions();
     }
 
     /** @param array<string, mixed> $data */
@@ -863,6 +936,49 @@ final class DocumentController extends Controller
         }
     }
 
+    /** @param array<string, mixed> $data */
+    private function linkDocumentToFinancial(array $data, int|string $documentId): void
+    {
+        $financialEntryId = (int) ($data['financial_entry_id'] ?? 0);
+        if ($financialEntryId <= 0) {
+            return;
+        }
+
+        (new ActivityLog())->record('financial_document_linked', $_SESSION['user_id'] ?? null, 'financial_entry', $financialEntryId);
+
+        if (!can('financials.edit')) {
+            return;
+        }
+
+        $patch = ['updated_by' => $_SESSION['user_id'] ?? null];
+        if (!empty($data['use_as_proof'])) {
+            $patch['proof_document_id'] = (int) $documentId;
+        }
+        if (!empty($data['use_as_receipt'])) {
+            $patch['receipt_document_id'] = (int) $documentId;
+        }
+        if (!empty($data['use_as_fiscal'])) {
+            $patch['fiscal_document_id']     = (int) $documentId;
+            $patch['fiscal_document_status'] = 'anexado';
+        }
+
+        if (count($patch) <= 1) {
+            return;
+        }
+
+        (new FinancialEntry())->update($financialEntryId, $patch);
+
+        if (!empty($data['use_as_proof'])) {
+            (new ActivityLog())->record('financial_proof_document_linked', $_SESSION['user_id'] ?? null, 'financial_entry', $financialEntryId);
+        }
+        if (!empty($data['use_as_receipt'])) {
+            (new ActivityLog())->record('financial_receipt_document_linked', $_SESSION['user_id'] ?? null, 'financial_entry', $financialEntryId);
+        }
+        if (!empty($data['use_as_fiscal'])) {
+            (new ActivityLog())->record('financial_fiscal_document_linked', $_SESSION['user_id'] ?? null, 'financial_entry', $financialEntryId);
+        }
+    }
+
     /**
      * @param array<string, mixed> $old
      * @param array<string, string> $errors
@@ -891,6 +1007,7 @@ final class DocumentController extends Controller
             'sponsors'        => $this->sponsorFilterOptions(),
             'counterparts'    => $this->counterpartFilterOptions(),
             'contracts'       => $this->contractFilterOptions(),
+            'financials'      => $this->financialFilterOptions(),
             'users'           => (new User())->activeList(),
             'companyContacts' => $companyContacts,
         ]);
@@ -932,7 +1049,7 @@ final class DocumentController extends Controller
             }
         }
 
-        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id', 'responsible_user_id'] as $k) {
+        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id', 'financial_entry_id', 'responsible_user_id'] as $k) {
             if ((int) ($filters[$k] ?? 0) > 0) {
                 return true;
             }

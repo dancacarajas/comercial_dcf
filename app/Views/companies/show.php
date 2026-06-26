@@ -303,6 +303,16 @@ $regimeLabel   = $taxRegimes[(string) ($company['tax_regime_guess'] ?? '')] ?? (
             ?>
         <?php endif; ?>
 
+        <?php if (can('financials.view')): ?>
+            <?php
+            $blockTitle = 'Financeiro';
+            $createUrl  = can('financials.create') ? app_url('/companies/' . $cid . '/financials/create') : '';
+            $allUrl     = app_url('/financials?company_id=' . $cid);
+            $emptyText  = 'Nenhum lançamento financeiro registrado para esta empresa ainda.';
+            require dirname(__DIR__) . '/financials/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice" style="margin-top:20px;">
             <p class="mb-0"><i data-lucide="info"></i> Histórico comercial detalhado e relatórios serão vinculados a esta empresa nas próximas etapas.</p>
         </div>

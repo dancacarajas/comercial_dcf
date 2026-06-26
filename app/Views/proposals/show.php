@@ -149,6 +149,16 @@ $dash       = static fn ($v): string => ($v === null || $v === '') ? '—' : (st
             ?>
         <?php endif; ?>
 
+        <?php if (can('financials.view')): ?>
+            <?php
+            $blockTitle = 'Financeiro';
+            $createUrl  = can('financials.create') ? app_url('/proposals/' . $pid . '/financials/create') : '';
+            $allUrl     = app_url('/financials?proposal_id=' . $pid);
+            $emptyText  = 'Nenhum lançamento financeiro vinculado a esta proposta ainda.';
+            require dirname(__DIR__) . '/financials/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <article class="card meta-audit" style="margin-top:18px;">
             <dl class="meta-list meta-list-inline">
                 <dt>Criado por</dt><dd><?= e($dash($proposal['created_by_name'] ?? '')) ?></dd>

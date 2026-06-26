@@ -10,6 +10,7 @@ use App\Models\ActivityLog;
 use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Document;
+use App\Models\FinancialEntry;
 use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Quota;
@@ -208,6 +209,15 @@ final class OpportunityController extends Controller
             $contractSummary = $contractModel->summaryByOpportunity($id);
         }
 
+        $financials       = [];
+        $financialSummary = ['total' => 0, 'planned_total' => 0.0, 'received_total' => 0.0, 'remaining_total' => 0.0, 'received' => 0, 'partial' => 0, 'overdue' => 0, 'pending' => 0, 'reconciled' => 0];
+        $financialModel   = null;
+        if (can('financials.view')) {
+            $financialModel   = new FinancialEntry();
+            $financials       = $financialModel->findByOpportunity($id, 6);
+            $financialSummary = $financialModel->summaryByOpportunity($id);
+        }
+
         $this->view('opportunities/show', array_merge($this->lists($model), [
             'title'       => $opportunity['title'] ?? 'Oportunidade',
             'opportunity' => $opportunity,
@@ -229,6 +239,9 @@ final class OpportunityController extends Controller
             'contracts'          => $contracts,
             'contractSummary'    => $contractSummary,
             'contractModel'      => $contractModel,
+            'financials'         => $financials,
+            'financialSummary'   => $financialSummary,
+            'financialModel'     => $financialModel,
         ]));
     }
 

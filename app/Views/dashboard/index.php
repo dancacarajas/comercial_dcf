@@ -51,6 +51,13 @@ $contractsAwaiting       = $contractsAwaiting ?? null;
 $contractsVigente        = $contractsVigente ?? null;
 $contractsExpired        = $contractsExpired ?? null;
 $contractsFormalized     = $contractsFormalized ?? null;
+$financialsTotal         = $financialsTotal ?? null;
+$financialsPlanned       = $financialsPlanned ?? null;
+$financialsReceived      = $financialsReceived ?? null;
+$financialsRemaining     = $financialsRemaining ?? null;
+$financialsPartial       = $financialsPartial ?? null;
+$financialsOverdue       = $financialsOverdue ?? null;
+$financialsReconciled    = $financialsReconciled ?? null;
 ?>
 
 <section class="section section-dark">
@@ -260,6 +267,31 @@ $contractsFormalized     = $contractsFormalized ?? null;
                 </article>
             <?php endif; ?>
 
+            <?php if ($financialsTotal !== null): ?>
+                <article class="card card-accent financial-card">
+                    <span class="card-icon"><i data-lucide="wallet"></i></span>
+                    <h3>Financeiro</h3>
+                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $financialsTotal ?> <span style="font-size:14px;font-weight:600;">cadastrados</span></p>
+                    <p style="margin-bottom:6px;">
+                        <span class="pill financial-value money-value">Previsto: <?= e(money_br($financialsPlanned, 'R$ 0,00')) ?></span>
+                        <span class="pill financial-received money-value">Recebido: <?= e(money_br($financialsReceived, 'R$ 0,00')) ?></span>
+                        <span class="pill financial-balance money-value">Saldo: <?= e(money_br($financialsRemaining, 'R$ 0,00')) ?></span>
+                    </p>
+                    <p style="margin-bottom:6px;">
+                        <span class="pill"><?= (int) $financialsPartial ?> parcial(is)</span>
+                        <span class="pill <?= (int) $financialsOverdue > 0 ? 'pill-danger' : '' ?>"><?= (int) $financialsOverdue ?> atraso</span>
+                        <span class="pill"><?= (int) $financialsReconciled ?> conciliado(s)</span>
+                    </p>
+                    <p>
+                        <a href="<?= e(app_url('/financials')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar financeiro</a>
+                        <?php if (can('financials.create')): ?>
+                            &nbsp;·&nbsp;
+                            <a href="<?= e(app_url('/financials/create')) ?>" class="link-strong"><i data-lucide="plus"></i> Novo lançamento</a>
+                        <?php endif; ?>
+                    </p>
+                </article>
+            <?php endif; ?>
+
             <article class="card card-accent">
                 <span class="card-icon"><i data-lucide="id-card"></i></span>
                 <h3>Usuário autenticado</h3>
@@ -305,7 +337,7 @@ $contractsFormalized     = $contractsFormalized ?? null;
             <h3 class="h3-card flex items-center gap-12"><i data-lucide="info"></i> Módulos ativos: Empresas, Contatos, Oportunidades, Cotas, Tarefas, Leads, Propostas, Documentos e Patrocinadores</h3>
             <p>
                 O CRM comercial registra fechamentos de patrocínio com vínculos a empresa, proposta, cota e documentos.
-                Contrapartidas, contratos, financeiro detalhado e relatórios avançados ainda não foram criados.
+                Assinatura digital integrada, portal externo, relatórios avançados e automações externas ainda não foram criados.
             </p>
         </div>
     </div>

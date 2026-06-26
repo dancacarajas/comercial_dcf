@@ -10,6 +10,7 @@ use App\Models\ActivityLog;
 use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Document;
+use App\Models\FinancialEntry;
 use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Sponsor;
@@ -204,6 +205,15 @@ final class ContactController extends Controller
             $contractSummary = $contractModel->summaryByContact($id);
         }
 
+        $financials       = [];
+        $financialSummary = ['total' => 0, 'planned_total' => 0.0, 'received_total' => 0.0, 'remaining_total' => 0.0, 'received' => 0, 'partial' => 0, 'overdue' => 0, 'pending' => 0, 'reconciled' => 0];
+        $financialModel   = null;
+        if (can('financials.view')) {
+            $financialModel   = new FinancialEntry();
+            $financials       = $financialModel->findByContact($id, 6);
+            $financialSummary = $financialModel->summaryByContact($id);
+        }
+
         $this->view('contacts/show', [
             'title'              => $contact['name'] ?? 'Contato',
             'contact'            => $contact,
@@ -232,6 +242,9 @@ final class ContactController extends Controller
             'contracts'          => $contracts,
             'contractSummary'    => $contractSummary,
             'contractModel'      => $contractModel,
+            'financials'         => $financials,
+            'financialSummary'   => $financialSummary,
+            'financialModel'     => $financialModel,
         ]);
     }
 

@@ -144,6 +144,32 @@ $err = static function (string $k) use ($errors): string {
                 </label>
             </div>
         <?php endif; ?>
+        <div>
+            <label for="financial_entry_id">Lançamento financeiro</label>
+            <select id="financial_entry_id" name="financial_entry_id">
+                <option value="">— Opcional —</option>
+                <?php foreach (($financials ?? []) as $fe): ?>
+                    <option value="<?= (int) $fe['id'] ?>" <?= (int) $val('financial_entry_id') === (int) $fe['id'] ? 'selected' : '' ?>><?= e($fe['label'] ?? '') ?></option>
+                <?php endforeach; ?>
+            </select>
+            <?= $err('financial_entry_id') ?>
+        </div>
+        <?php if (!empty($val('financial_entry_id')) && can('financials.edit')): ?>
+            <div class="form-grid-full financial-doc-links">
+                <label class="checkbox-inline">
+                    <input type="checkbox" name="use_as_proof" value="1" <?= !empty($val('use_as_proof')) ? 'checked' : '' ?>>
+                    Usar como comprovante de pagamento
+                </label>
+                <label class="checkbox-inline">
+                    <input type="checkbox" name="use_as_receipt" value="1" <?= !empty($val('use_as_receipt')) ? 'checked' : '' ?>>
+                    Usar como recibo
+                </label>
+                <label class="checkbox-inline">
+                    <input type="checkbox" name="use_as_fiscal" value="1" <?= !empty($val('use_as_fiscal')) ? 'checked' : '' ?>>
+                    Usar como documento fiscal
+                </label>
+            </div>
+        <?php endif; ?>
     </div>
 
     <h3 class="h3-card form-section-title"><i data-lucide="file-stack"></i> Dados do documento</h3>

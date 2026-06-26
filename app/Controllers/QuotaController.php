@@ -8,6 +8,7 @@ use App\Core\Controller;
 use App\Middlewares\AuthMiddleware;
 use App\Models\ActivityLog;
 use App\Models\Document;
+use App\Models\FinancialEntry;
 use App\Models\Proposal;
 use App\Models\Quota;
 use App\Models\Sponsor;
@@ -143,6 +144,15 @@ final class QuotaController extends Controller
             $contractSummary = $contractModel->summaryByQuota((int) $quota['id']);
         }
 
+        $financials       = [];
+        $financialSummary = ['total' => 0, 'planned_total' => 0.0, 'received_total' => 0.0, 'remaining_total' => 0.0, 'received' => 0, 'partial' => 0, 'overdue' => 0, 'pending' => 0, 'reconciled' => 0];
+        $financialModel   = null;
+        if (can('financials.view')) {
+            $financialModel   = new FinancialEntry();
+            $financials       = $financialModel->findByQuota((int) $quota['id'], 6);
+            $financialSummary = $financialModel->summaryByQuota((int) $quota['id']);
+        }
+
         $this->view('quotas/show', [
             'title'         => $quota['name'] ?? 'Cota',
             'quota'         => $quota,
@@ -169,6 +179,9 @@ final class QuotaController extends Controller
             'contracts'          => $contracts,
             'contractSummary'    => $contractSummary,
             'contractModel'      => $contractModel,
+            'financials'         => $financials,
+            'financialSummary'   => $financialSummary,
+            'financialModel'     => $financialModel,
         ]);
     }
 

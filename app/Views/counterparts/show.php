@@ -34,7 +34,7 @@ $dash = static fn ($v): string => ($v === null || $v === '') ? '—' : (string) 
         </div>
 
         <div class="notice notice-info counterpart-alert" style="margin-bottom:18px;">
-            <p class="mb-0"><i data-lucide="info"></i> Contratos, assinatura digital, portal externo, financeiro detalhado e relatórios avançados serão tratados em etapas futuras.</p>
+            <p class="mb-0"><i data-lucide="info"></i> Assinatura digital, portal externo e relatórios avançados serão tratados em etapas futuras.</p>
         </div>
 
         <div class="detail-grid">

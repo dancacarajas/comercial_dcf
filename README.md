@@ -1681,6 +1681,75 @@ Resultado esperado: **63 PASS / 0 FAIL** (Docker `http://localhost:8080`).
 
 ---
 
+## Etapa 15 — Financeiro Detalhado / Parcelas / Comprovantes
+
+Módulo interno para registrar e acompanhar lançamentos financeiros vinculados a fechamentos comerciais: parcelas, valores previstos/recebidos, saldo, confirmação manual de recebimento, conciliação manual, status fiscal do documento e vínculo com comprovantes/recibos/documentos fiscais (sem emissão automática de NF ou boleto).
+
+**Fora do escopo desta etapa:** emissão automática de boleto, nota fiscal automática, integrações bancárias, portal externo, relatórios financeiros avançados (`/finance/reports`), automações de cobrança/e-mail/WhatsApp e assinatura digital.
+
+### Migration
+
+```bash
+Get-Content -Raw database/migrations/2026_etapa15_financials.sql | docker exec -i dcc_db mariadb -udanca -pdanca danca_captacao
+```
+
+Cria:
+
+- Tabela `financial_entries` (vínculos com patrocinador, contrato, empresa, contato, oportunidade, proposta, cota e documentos comprovante/recibo/fiscal)
+- Coluna `documents.financial_entry_id` (integração contextual com Documentos)
+- Permissões `financials.view|create|edit|archive|status|confirm|reconcile` e matriz por perfil
+
+### Permissões
+
+| Perfil | financials.* |
+|--------|--------------|
+| Administrador Geral | todas (7) |
+| Captação / Comercial | view, create, edit, status, confirm |
+| Produção / Coordenação | view |
+| Comunicação | view |
+| Leitura / Consulta | view |
+
+### Listas controladas
+
+- **Tipos:** `parcela_patrocinio`, `aporte_unico`, `patrocinio_incentivado`, `patrocinio_direto`, `permuta_valorizada`, `apoio_financeiro`, `complemento`, `ajuste`, `desconto`, `cancelamento`, `outro`
+- **Mecanismos:** `lei_rouanet`, `recurso_direto`, `recurso_proprio`, `permuta_bens_servicos`, `apoio_institucional`, `misto`, `nao_definido`, `outro`
+- **Formas de pagamento:** `transferencia`, `pix`, `deposito`, `boleto_externo`, `cheque`, `dinheiro`, `permuta`, `compensacao`, `nao_definido`, `outro`
+- **Status financeiro:** `previsto`, `aguardando_pagamento`, `em_atraso`, `recebido_parcial`, `recebido`, `conciliado`, `cancelado`, `suspenso`, `inadimplente`, `arquivado`
+- **Status fiscal:** `nao_aplicavel`, `pendente`, `solicitado`, `recebido`, `anexado`, `cancelado`
+
+### Rotas principais
+
+- `GET /financials` — listagem (15/página, filtros comerciais e financeiros)
+- `GET|POST /financials/create|store`
+- `GET /financials/{id}` — detalhes + bloco de documentos
+- `GET|POST /financials/{id}/edit|update`
+- `POST /financials/{id}/confirm` — confirmação manual de recebimento (parcial ou total)
+- `POST /financials/{id}/reconcile` — conciliação manual
+- `POST /financials/{id}/status` — mudança de status/fiscal
+- `POST /financials/{id}/archive|restore`
+- Rotas contextuais: `/sponsors|companies|contacts|opportunities|proposals|quotas|contracts/{id}/financials/create`
+- `GET /financials/{id}/documents/create` — novo documento vinculado (com opções `use_as_proof`, `use_as_receipt`, `use_as_fiscal`)
+
+### Validação local
+
+```bash
+docker exec dcc_app php /var/www/html/scripts/validate_etapa15.php
+```
+
+Resultado esperado: **68 PASS / 0 FAIL** (Docker `http://localhost`).
+
+### Checklist de testes (Etapa 15 — seção 30)
+
+- [ ] Migration executada; tabela `financial_entries` e `documents.financial_entry_id` criados
+- [ ] Permissões `financials.*` (7) sem duplicidade; matriz por perfil correta
+- [ ] Auth, CSRF, validações, CRUD, confirmação parcial/total, conciliação, status cancelado, arquivar/restaurar
+- [ ] Filtros, paginação, blocos contextuais (patrocinadores/contratos), dashboard, vínculo com documentos (comprovante/recibo/fiscal)
+- [ ] **NÃO** criados: boleto automático, NF automática, integrações bancárias, portal externo, relatórios avançados, automações externas
+
+> **Deploy em produção:** somente após validação local completa e aprovação explícita.
+
+---
+
 ## Segurança implementada nesta etapa
 
 - Apenas `/public` acessível pela web; `app/`, `config/`, `routes/`, `storage/` bloqueados via `.htaccess`.

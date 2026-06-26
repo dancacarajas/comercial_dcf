@@ -10,6 +10,7 @@ use App\Models\Contact;
 use App\Models\Contract;
 use App\Models\Counterpart;
 use App\Models\Document;
+use App\Models\FinancialEntry;
 use App\Models\Opportunity;
 use App\Models\Lead;
 use App\Models\Proposal;
@@ -164,6 +165,24 @@ final class DashboardController extends Controller
             $contractsFormalized = $contractModel->sumFormalized();
         }
 
+        $financialsTotal = null;
+        $financialsPlanned = null;
+        $financialsReceived = null;
+        $financialsRemaining = null;
+        $financialsPartial = null;
+        $financialsOverdue = null;
+        $financialsReconciled = null;
+        if (can('financials.view')) {
+            $financialModel        = new FinancialEntry();
+            $financialsTotal       = $financialModel->countActive();
+            $financialsPlanned     = $financialModel->sumPlanned();
+            $financialsReceived    = $financialModel->sumReceived();
+            $financialsRemaining   = $financialModel->sumRemaining();
+            $financialsPartial     = $financialModel->countPartial();
+            $financialsOverdue     = $financialModel->countOverdue();
+            $financialsReconciled  = $financialModel->countReconciled();
+        }
+
         $this->view('dashboard/index', [
             'title'              => 'Painel Administrativo',
             'user'               => $this->currentUser(),
@@ -209,6 +228,13 @@ final class DashboardController extends Controller
             'contractsVigente'        => $contractsVigente,
             'contractsExpired'        => $contractsExpired,
             'contractsFormalized'     => $contractsFormalized,
+            'financialsTotal'         => $financialsTotal,
+            'financialsPlanned'       => $financialsPlanned,
+            'financialsReceived'      => $financialsReceived,
+            'financialsRemaining'     => $financialsRemaining,
+            'financialsPartial'       => $financialsPartial,
+            'financialsOverdue'       => $financialsOverdue,
+            'financialsReconciled'    => $financialsReconciled,
         ], 'layouts/admin');
     }
 }
