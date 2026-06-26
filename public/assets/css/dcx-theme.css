@@ -1716,3 +1716,34 @@ tr.task-overdue > td:first-child { box-shadow: inset 3px 0 0 #d34a4a; }
 .badge-access-publico_comercial { background: #fff9e0; color: #5a4800; border-color: #f0dd9a; }
 .badge-access-restrito          { background: #fff3d6; color: #6b5600; border-color: #f0dd9a; }
 .badge-access-confidencial      { background: #fdecec; color: #8a1f1f; border-color: #f3c0c0; }
+
+/* Patrocinadores / Fechamentos (Etapa 12) */
+.sponsor-card { border: 1px solid #e6e6e1; }
+.sponsor-summary { border: 1px solid #e6e6e1; }
+.sponsor-linked-list { width: 100%; }
+.sponsor-actions { flex-wrap: wrap; gap: 10px; }
+.sponsor-value { font-weight: 800; color: var(--dcx-black); }
+.sponsor-type {
+    display: inline-block; padding: 4px 10px; border-radius: 999px;
+    font-size: 12px; font-weight: 700; background: #fff9e0; color: #5a4800; border: 1px solid #f0dd9a;
+}
+.sponsor-status, .sponsor-payment-status {
+    display: inline-block; padding: 4px 10px; border-radius: 999px;
+    font-size: 12px; font-weight: 700; border: 1px solid #dededb;
+}
+.sponsor-alert { border-left: 4px solid var(--dcx-yellow); }
+.badge-sponsor-fechamento_registrado { background: #eef3fb; color: #2a4b78; border-color: #cdddf2; }
+.badge-sponsor-aguardando_documentos { background: #fff3d6; color: #6b5600; border-color: #f0dd9a; }
+.badge-sponsor-aguardando_assinatura { background: #fff3d6; color: #6b5600; border-color: #f0dd9a; }
+.badge-sponsor-aguardando_aporte { background: #fff9e0; color: #5a4800; border-color: #f0dd9a; }
+.badge-sponsor-confirmado { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
+.badge-sponsor-anunciado { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
+.badge-sponsor-cancelado { background: #fdecec; color: #8a1f1f; border-color: #f3c0c0; }
+.badge-sponsor-suspenso { background: #f1f1ef; color: #555; border-color: #dededb; }
+.badge-sponsor-arquivado { background: #2b2b2b; color: #fff; border-color: #2b2b2b; }
+.badge-pay-nao_aplicavel { background: #f1f1ef; color: #555; border-color: #dededb; }
+.badge-pay-pendente { background: #fff9e0; color: #5a4800; border-color: #f0dd9a; }
+.badge-pay-parcial { background: #fff3d6; color: #6b5600; border-color: #f0dd9a; }
+.badge-pay-recebido { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
+.badge-pay-em_atraso { background: #fdecec; color: #8a1f1f; border-color: #f3c0c0; }
+.badge-pay-cancelado { background: #2b2b2b; color: #fff; border-color: #2b2b2b; }

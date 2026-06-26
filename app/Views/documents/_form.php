@@ -10,6 +10,7 @@ $opportunities   = $opportunities ?? [];
 $quotas          = $quotas ?? [];
 $proposals       = $proposals ?? [];
 $leads           = $leads ?? [];
+$sponsors        = $sponsors ?? [];
 $users           = $users ?? [];
 $categories      = $categories ?? [];
 $statuses        = $statuses ?? [];
@@ -88,6 +89,16 @@ $err = static function (string $k) use ($errors): string {
                 <?php endforeach; ?>
             </select>
             <?= $err('lead_id') ?>
+        </div>
+        <div>
+            <label for="sponsor_id">Patrocinador</label>
+            <select id="sponsor_id" name="sponsor_id">
+                <option value="">— Opcional —</option>
+                <?php foreach ($sponsors as $sp): ?>
+                    <option value="<?= (int) $sp['id'] ?>" <?= (int) $val('sponsor_id') === (int) $sp['id'] ? 'selected' : '' ?>><?= e($sp['label'] ?? '') ?></option>
+                <?php endforeach; ?>
+            </select>
+            <?= $err('sponsor_id') ?>
         </div>
     </div>
 

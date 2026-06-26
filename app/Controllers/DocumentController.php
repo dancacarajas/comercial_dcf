@@ -14,6 +14,7 @@ use App\Models\Lead;
 use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Quota;
+use App\Models\Sponsor;
 use App\Models\User;
 
 /**
@@ -49,6 +50,7 @@ final class DocumentController extends Controller
             'quotas'        => (new Quota())->activeOptions(),
             'proposals'     => $this->proposalFilterOptions(),
             'leads'         => $this->leadFilterOptions(),
+            'sponsors'      => $this->sponsorFilterOptions(),
             'users'         => (new User())->activeList(),
             'page'          => $page,
             'pages'         => $pages,
@@ -170,6 +172,30 @@ final class DocumentController extends Controller
         ]), []);
     }
 
+    public function createForSponsor(array $params): void
+    {
+        AuthMiddleware::requirePermission('documents.create');
+        $id      = (int) ($params['id'] ?? 0);
+        $sponsor = $id > 0 ? (new Sponsor())->findById($id) : null;
+        if ($sponsor === null) {
+            $this->abort(404, 'Patrocinador não encontrado.');
+        }
+        $this->renderForm('documents/create', 'Novo documento', $this->prefillFromQuery([
+            'sponsor_id'      => $id,
+            'company_id'      => (int) $sponsor['company_id'],
+            'contact_id'      => $sponsor['contact_id'] ? (int) $sponsor['contact_id'] : null,
+            'opportunity_id'  => $sponsor['opportunity_id'] ? (int) $sponsor['opportunity_id'] : null,
+            'proposal_id'     => $sponsor['proposal_id'] ? (int) $sponsor['proposal_id'] : null,
+            'quota_id'        => $sponsor['quota_id'] ? (int) $sponsor['quota_id'] : null,
+            'category'        => 'documento_comercial',
+            'status'          => 'ativo',
+            'access_level'    => 'interno',
+            'version_number'  => 1,
+            'document_date'   => date('Y-m-d'),
+            'responsible_user_id' => $_SESSION['user_id'] ?? null,
+        ]), []);
+    }
+
     public function store(): void
     {
         AuthMiddleware::requirePermission('documents.create');
@@ -194,6 +220,9 @@ final class DocumentController extends Controller
         $id = $model->insertWithFile($data, $_FILES['document_file']);
 
         (new ActivityLog())->record('document_created', $_SESSION['user_id'] ?? null, 'document', $id);
+        if (!empty($data['sponsor_id'])) {
+            (new ActivityLog())->record('sponsor_document_linked', $_SESSION['user_id'] ?? null, 'sponsor', (int) $data['sponsor_id']);
+        }
         flash('success', 'Documento cadastrado com sucesso.');
         $this->redirect('/documents/' . $id);
     }
@@ -454,6 +483,7 @@ final class DocumentController extends Controller
             'quota_id'            => (int) input('quota_id', 0),
             'proposal_id'         => (int) input('proposal_id', 0),
             'lead_id'             => (int) input('lead_id', 0),
+            'sponsor_id'          => (int) input('sponsor_id', 0),
             'category'            => (string) input('category', ''),
             'status'              => (string) input('status', ''),
             'access_level'        => (string) input('access_level', ''),
@@ -475,6 +505,7 @@ final class DocumentController extends Controller
             'quota_id'            => input('quota_id') !== null && input('quota_id') !== '' ? (int) input('quota_id') : null,
             'proposal_id'         => input('proposal_id') !== null && input('proposal_id') !== '' ? (int) input('proposal_id') : null,
             'lead_id'             => input('lead_id') !== null && input('lead_id') !== '' ? (int) input('lead_id') : null,
+            'sponsor_id'          => input('sponsor_id') !== null && input('sponsor_id') !== '' ? (int) input('sponsor_id') : null,
             'title'               => clean((string) input('title', '')),
             'description'         => trim((string) input('description', '')) ?: null,
             'category'            => clean((string) input('category', 'documento_comercial')),
@@ -491,7 +522,7 @@ final class DocumentController extends Controller
     /** @param array<string, mixed> $data @return array<string, mixed> */
     private function prefillFromQuery(array $data): array
     {
-        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id'] as $k) {
+        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id'] as $k) {
             $q = input($k);
             if ($q !== null && $q !== '') {
                 $data[$k] = (int) $q;
@@ -531,6 +562,27 @@ final class DocumentController extends Controller
                 }
                 if (empty($data['quota_id']) && !empty($opp['quota_id'])) {
                     $data['quota_id'] = (int) $opp['quota_id'];
+                }
+            }
+        }
+
+        if (!empty($data['sponsor_id'])) {
+            $sp = (new Sponsor())->findById((int) $data['sponsor_id']);
+            if ($sp !== null) {
+                if (empty($data['company_id'])) {
+                    $data['company_id'] = (int) $sp['company_id'];
+                }
+                if (empty($data['contact_id']) && !empty($sp['contact_id'])) {
+                    $data['contact_id'] = (int) $sp['contact_id'];
+                }
+                if (empty($data['opportunity_id']) && !empty($sp['opportunity_id'])) {
+                    $data['opportunity_id'] = (int) $sp['opportunity_id'];
+                }
+                if (empty($data['proposal_id']) && !empty($sp['proposal_id'])) {
+                    $data['proposal_id'] = (int) $sp['proposal_id'];
+                }
+                if (empty($data['quota_id']) && !empty($sp['quota_id'])) {
+                    $data['quota_id'] = (int) $sp['quota_id'];
                 }
             }
         }
@@ -588,6 +640,11 @@ final class DocumentController extends Controller
             $errors['lead_id'] = 'Lead não encontrado.';
         }
 
+        $sponsorId = (int) ($data['sponsor_id'] ?? 0);
+        if ($sponsorId > 0 && (new Sponsor())->findById($sponsorId) === null) {
+            $errors['sponsor_id'] = 'Patrocinador não encontrado.';
+        }
+
         $respId = (int) ($data['responsible_user_id'] ?? 0);
         if ($respId > 0 && (new User())->findBy('id', $respId) === null) {
             $errors['responsible_user_id'] = 'Responsável não encontrado.';
@@ -610,6 +667,12 @@ final class DocumentController extends Controller
     private function leadFilterOptions(): array
     {
         return (new Document())->filterLeadOptions();
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function sponsorFilterOptions(): array
+    {
+        return (new Document())->filterSponsorOptions();
     }
 
     /**
@@ -637,6 +700,7 @@ final class DocumentController extends Controller
             'quotas'          => (new Quota())->activeOptions(),
             'proposals'       => $this->proposalFilterOptions(),
             'leads'           => $this->leadFilterOptions(),
+            'sponsors'        => $this->sponsorFilterOptions(),
             'users'           => (new User())->activeList(),
             'companyContacts' => $companyContacts,
         ]);
@@ -678,7 +742,7 @@ final class DocumentController extends Controller
             }
         }
 
-        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'responsible_user_id'] as $k) {
+        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'responsible_user_id'] as $k) {
             if ((int) ($filters[$k] ?? 0) > 0) {
                 return true;
             }

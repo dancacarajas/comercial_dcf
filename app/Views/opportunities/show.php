@@ -201,6 +201,16 @@ $probMap = htmlspecialchars(json_encode($statusProbabilities, JSON_UNESCAPED_UNI
             ?>
         <?php endif; ?>
 
+        <?php if (can('sponsors.view')): ?>
+            <?php
+            $blockTitle = 'Patrocinadores / Fechamentos';
+            $createUrl  = app_url('/opportunities/' . $oid . '/sponsors/create');
+            $allUrl     = app_url('/sponsors?opportunity_id=' . $oid);
+            $emptyText  = 'Nenhum fechamento comercial vinculado a esta oportunidade ainda.';
+            require dirname(__DIR__) . '/sponsors/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice timeline-placeholder" style="margin-top:20px;">
             <p class="mb-0"><i data-lucide="info"></i> Contratos, assinatura digital e histórico comercial avançado serão vinculados nas próximas etapas.</p>
         </div>

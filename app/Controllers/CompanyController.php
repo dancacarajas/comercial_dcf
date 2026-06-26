@@ -12,6 +12,7 @@ use App\Models\Contact;
 use App\Models\Document;
 use App\Models\Opportunity;
 use App\Models\Proposal;
+use App\Models\Sponsor;
 use App\Models\Task;
 use App\Models\User;
 
@@ -159,6 +160,15 @@ final class CompanyController extends Controller
             $documentSummary = $documentModel->summaryByCompany($id);
         }
 
+        $sponsors       = [];
+        $sponsorSummary = ['total' => 0, 'confirmed' => 0, 'committed' => 0.0, 'confirmed_amount' => 0.0];
+        $sponsorModel   = null;
+        if (can('sponsors.view')) {
+            $sponsorModel   = new Sponsor();
+            $sponsors       = $sponsorModel->findByCompany($id, 6);
+            $sponsorSummary = $sponsorModel->summaryByCompany($id);
+        }
+
         $this->view('companies/show', [
             'title'              => $company['name'] ?? 'Empresa',
             'company'            => $company,
@@ -179,6 +189,9 @@ final class CompanyController extends Controller
             'documents'          => $documents,
             'documentSummary'    => $documentSummary,
             'documentModel'      => $documentModel,
+            'sponsors'           => $sponsors,
+            'sponsorSummary'     => $sponsorSummary,
+            'sponsorModel'       => $sponsorModel,
         ]);
     }
 

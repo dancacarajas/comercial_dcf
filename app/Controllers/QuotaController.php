@@ -10,6 +10,7 @@ use App\Models\ActivityLog;
 use App\Models\Document;
 use App\Models\Proposal;
 use App\Models\Quota;
+use App\Models\Sponsor;
 
 /**
  * Módulo Cotas de Patrocínio (Etapa 7).
@@ -113,6 +114,15 @@ final class QuotaController extends Controller
             $documentSummary = $documentModel->summaryByQuota((int) $quota['id']);
         }
 
+        $sponsors       = [];
+        $sponsorSummary = ['total' => 0, 'confirmed' => 0, 'committed' => 0.0, 'confirmed_amount' => 0.0];
+        $sponsorModel   = null;
+        if (can('sponsors.view')) {
+            $sponsorModel   = new Sponsor();
+            $sponsors       = $sponsorModel->findByQuota((int) $quota['id'], 6);
+            $sponsorSummary = $sponsorModel->summaryByQuota((int) $quota['id']);
+        }
+
         $this->view('quotas/show', [
             'title'         => $quota['name'] ?? 'Cota',
             'quota'         => $quota,
@@ -130,6 +140,9 @@ final class QuotaController extends Controller
             'documents'       => $documents,
             'documentSummary' => $documentSummary,
             'documentModel'   => $documentModel,
+            'sponsors'        => $sponsors,
+            'sponsorSummary'  => $sponsorSummary,
+            'sponsorModel'    => $sponsorModel,
         ]);
     }
 

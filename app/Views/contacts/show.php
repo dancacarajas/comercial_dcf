@@ -218,6 +218,16 @@ $oProbClass = static function (int $p): string {
             ?>
         <?php endif; ?>
 
+        <?php if (can('sponsors.view')): ?>
+            <?php
+            $blockTitle = 'Patrocinadores / Fechamentos';
+            $createUrl  = app_url('/contacts/' . $cid . '/sponsors/create');
+            $allUrl     = app_url('/sponsors?contact_id=' . $cid);
+            $emptyText  = 'Nenhum fechamento comercial vinculado a este contato ainda.';
+            require dirname(__DIR__) . '/sponsors/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice timeline-placeholder" style="margin-top:20px;">
             <p class="mb-0"><i data-lucide="info"></i> Histórico comercial detalhado e relatórios serão vinculados a este contato nas próximas etapas.</p>
         </div>

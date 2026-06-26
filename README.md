@@ -1437,7 +1437,91 @@ Rotas contextuais: `/companies|contacts|opportunities|quotas|proposals|leads/{id
 - [ ] Filtros, paginação, blocos contextuais, dashboard
 - [ ] **NÃO** criados: Patrocinadores, Contrapartidas, Contratos, Assinatura Digital, Portal Externo, Relatórios avançados
 
-> **Próxima etapa após validação:** Patrocinadores e Contrapartidas (etapas futuras).
+> **Próxima etapa após validação:** Patrocinadores / Fechamentos Comerciais (Etapa 12).
+
+---
+
+## Etapa 12 — Patrocinadores / Fechamentos Comerciais
+
+Módulo para registrar empresas, pessoas físicas ou instituições que fecharam patrocínio, apoio, permuta ou compromisso comercial com o Dança Carajás Festival — vinculando empresa, contato, oportunidade, proposta, cota, documentos, valores e status de fechamento/pagamento.
+
+**NÃO incluídos nesta etapa:** Contrapartidas, Contratos, Assinatura Digital, Portal Externo do patrocinador, Financeiro detalhado (parcelas/boletos/NF), Relatórios avançados, automação de e-mail/WhatsApp, integrações externas.
+
+### Como rodar a migration da Etapa 12
+
+```bash
+mysql -u USUARIO -p BANCO < database/migrations/2026_etapa12_sponsors.sql
+```
+
+Docker local:
+
+```powershell
+Get-Content -Raw database/migrations/2026_etapa12_sponsors.sql | docker exec -i -e MYSQL_PWD=danca dcc_db mariadb -udanca danca_captacao
+```
+
+### Tabela `sponsors`
+
+Campos principais: vínculos (`company_id` obrigatório; `contact_id`, `opportunity_id`, `proposal_id`, `quota_id`, `primary_document_id` opcionais), identificação (`sponsor_display_name`, `project_year`, `festival_edition`), classificação (`sponsorship_type`, `funding_mechanism`, `status`, `payment_status`), valores (`committed_amount`, `confirmed_amount`, permuta), datas (`closed_at`, `confirmed_at`, `expected_payment_date`, `received_at`), incentivo (`pronac_number`, `incentive_law`), snapshot de cota, auditoria e `archived_at`.
+
+### Alteração em `documents`
+
+Coluna opcional `sponsor_id` (FK → `sponsors.id` ON DELETE SET NULL) para vincular documentos a fechamentos comerciais.
+
+### Permissões
+
+| Slug | Descrição |
+|------|-----------|
+| `sponsors.view` | Listar e visualizar fechamentos |
+| `sponsors.create` | Registrar fechamentos |
+| `sponsors.edit` | Editar fechamentos |
+| `sponsors.archive` | Arquivar/restaurar |
+| `sponsors.confirm` | Confirmar fechamento |
+| `sponsors.status` | Alterar status e pagamento |
+
+**Matriz:** Administrador e Captação têm todas; Produção, Comunicação e Leitura têm apenas `sponsors.view`.
+
+### Listas controladas
+
+- **Tipos:** patrocinio_direto, patrocinio_incentivado, apoio_institucional, permuta, bens_servicos, midia, pessoa_fisica, misto, outro
+- **Mecanismo:** lei_rouanet, recurso_direto, recurso_proprio, permuta_bens_servicos, apoio_institucional, misto, nao_definido, outro
+- **Status fechamento:** fechamento_registrado, aguardando_documentos, aguardando_assinatura, aguardando_aporte, confirmado, anunciado, cancelado, suspenso, arquivado
+- **Status pagamento:** nao_aplicavel, pendente, parcial, recebido, em_atraso, cancelado
+
+### Fluxo de criação
+
+- Direto em `/sponsors/create` ou contextual a partir de empresa, contato, oportunidade, proposta ou cota
+- Preenchimento automático a partir de proposta/oportunidade/cota (sem efeitos colaterais)
+- Checkbox opcional para fechar oportunidade/proposta vinculada (desmarcado por padrão)
+- Snapshot de cota ao informar `quota_id`
+- Confirmação via `POST /sponsors/{id}/confirm` (preenche `confirmed_at`, `confirmed_by`, `confirmed_amount` quando aplicável)
+
+### Rotas
+
+- `GET /sponsors` — listagem (15/página, filtros, ordenação comercial)
+- `GET|POST /sponsors/create|store` — cadastro
+- `GET /sponsors/{id}` — detalhes + bloco de documentos
+- `GET|POST /sponsors/{id}/edit|update` — edição
+- `POST /sponsors/{id}/confirm|status|archive|restore`
+- Contextuais: `/companies|contacts|opportunities|proposals|quotas/{id}/sponsors/create`
+- Documentos: `/sponsors/{id}/documents/create` e `/documents/create?sponsor_id={id}`
+
+### Integrações contextuais
+
+Blocos em empresa, contato, oportunidade, proposta e cota; link patrocinador em `/documents/{id}`; cards no dashboard.
+
+### Checklist de testes (Etapa 12)
+
+- [ ] Migration executada; tabela `sponsors` e `documents.sponsor_id` criados
+- [ ] Permissões `sponsors.*` sem duplicidade; matriz por perfil correta
+- [ ] `GET /sponsors` sem login → 302; sem `sponsors.view` → 403; com permissão → 200
+- [ ] Menu **Patrocinadores** só com `sponsors.view`
+- [ ] CSRF em POST; validações de empresa, vínculos, status, valores e datas
+- [ ] CRUD completo; confirmar; mudar status/pagamento; arquivar/restaurar
+- [ ] Filtros, paginação, snapshot de cota, blocos contextuais, dashboard
+- [ ] Documento vinculado via `sponsor_id`; bloco documentos em `/sponsors/{id}`
+- [ ] **NÃO** criados: Contrapartidas, Contratos, Assinatura Digital, Portal Externo, Financeiro detalhado, Relatórios avançados
+
+> **Próxima etapa após validação:** Contrapartidas e módulos complementares (etapas futuras).
 
 ---
 

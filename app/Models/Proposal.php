@@ -574,7 +574,7 @@ final class Proposal extends Model
     /** @return array<int, array<string, mixed>> */
     public function filterLinkOptions(string $table, string $labelCol): array
     {
-        if (!in_array($table, ['contacts', 'opportunities'], true)) {
+        if (!in_array($table, ['contacts', 'opportunities', 'proposals'], true)) {
             return [];
         }
 

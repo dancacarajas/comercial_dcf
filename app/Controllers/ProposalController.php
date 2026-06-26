@@ -13,6 +13,7 @@ use App\Models\Document;
 use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Quota;
+use App\Models\Sponsor;
 use App\Models\User;
 
 /**
@@ -180,6 +181,15 @@ final class ProposalController extends Controller
             $documentSummary = $documentModel->summaryByProposal($pid);
         }
 
+        $sponsors       = [];
+        $sponsorSummary = ['total' => 0, 'confirmed' => 0, 'committed' => 0.0, 'confirmed_amount' => 0.0];
+        $sponsorModel   = null;
+        if (can('sponsors.view')) {
+            $sponsorModel   = new Sponsor();
+            $sponsors       = $sponsorModel->findByProposal($pid, 6);
+            $sponsorSummary = $sponsorModel->summaryByProposal($pid);
+        }
+
         $this->view('proposals/show', [
             'title'    => $proposal['title'] ?? 'Proposta',
             'proposal' => $proposal,
@@ -189,6 +199,9 @@ final class ProposalController extends Controller
             'documents'       => $documents,
             'documentSummary' => $documentSummary,
             'documentModel'   => $documentModel,
+            'sponsors'        => $sponsors,
+            'sponsorSummary'  => $sponsorSummary,
+            'sponsorModel'    => $sponsorModel,
         ]);
     }
 

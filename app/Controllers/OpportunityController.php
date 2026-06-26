@@ -13,6 +13,7 @@ use App\Models\Document;
 use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Quota;
+use App\Models\Sponsor;
 use App\Models\Task;
 use App\Models\User;
 
@@ -178,6 +179,15 @@ final class OpportunityController extends Controller
             $documentSummary = $documentModel->summaryByOpportunity($id);
         }
 
+        $sponsors       = [];
+        $sponsorSummary = ['total' => 0, 'confirmed' => 0, 'committed' => 0.0, 'confirmed_amount' => 0.0];
+        $sponsorModel   = null;
+        if (can('sponsors.view')) {
+            $sponsorModel   = new Sponsor();
+            $sponsors       = $sponsorModel->findByOpportunity($id, 6);
+            $sponsorSummary = $sponsorModel->summaryByOpportunity($id);
+        }
+
         $this->view('opportunities/show', array_merge($this->lists($model), [
             'title'       => $opportunity['title'] ?? 'Oportunidade',
             'opportunity' => $opportunity,
@@ -190,6 +200,9 @@ final class OpportunityController extends Controller
             'documents'       => $documents,
             'documentSummary' => $documentSummary,
             'documentModel'   => $documentModel,
+            'sponsors'        => $sponsors,
+            'sponsorSummary'  => $sponsorSummary,
+            'sponsorModel'    => $sponsorModel,
         ]));
     }
 

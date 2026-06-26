@@ -119,6 +119,16 @@ $dash       = static fn ($v): string => ($v === null || $v === '') ? '—' : (st
             ?>
         <?php endif; ?>
 
+        <?php if (can('sponsors.view')): ?>
+            <?php
+            $blockTitle = 'Patrocinadores / Fechamentos';
+            $createUrl  = app_url('/proposals/' . $pid . '/sponsors/create');
+            $allUrl     = app_url('/sponsors?proposal_id=' . $pid);
+            $emptyText  = 'Nenhum fechamento comercial vinculado a esta proposta ainda.';
+            require dirname(__DIR__) . '/sponsors/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <article class="card meta-audit" style="margin-top:18px;">
             <dl class="meta-list meta-list-inline">
                 <dt>Criado por</dt><dd><?= e($dash($proposal['created_by_name'] ?? '')) ?></dd>

@@ -96,6 +96,13 @@ return function (Router $router): void {
     $router->get('/quotas/{id}/documents/create',        'DocumentController@createForQuota',        ['AuthMiddleware']);
     $router->get('/proposals/{id}/documents/create',     'DocumentController@createForProposal',     ['AuthMiddleware']);
     $router->get('/leads/{id}/documents/create',         'DocumentController@createForLead',         ['AuthMiddleware']);
+
+    // Rotas contextuais de patrocinadores (Etapa 12)
+    $router->get('/companies/{id}/sponsors/create',     'SponsorController@createForCompany',     ['AuthMiddleware']);
+    $router->get('/contacts/{id}/sponsors/create',      'SponsorController@createForContact',      ['AuthMiddleware']);
+    $router->get('/opportunities/{id}/sponsors/create', 'SponsorController@createForOpportunity', ['AuthMiddleware']);
+    $router->get('/proposals/{id}/sponsors/create',     'SponsorController@createForProposal',     ['AuthMiddleware']);
+    $router->get('/quotas/{id}/sponsors/create',        'SponsorController@createForQuota',        ['AuthMiddleware']);
     $router->get('/contacts/{id}',           'ContactController@show',    ['AuthMiddleware']);
     $router->get('/contacts/{id}/edit',      'ContactController@edit',    ['AuthMiddleware']);
     $router->post('/contacts/{id}/update',   'ContactController@update',  ['AuthMiddleware']);
@@ -179,6 +186,19 @@ return function (Router $router): void {
     $router->post('/documents/{id}/status',       'DocumentController@status',       ['AuthMiddleware']);
     $router->post('/documents/{id}/archive',      'DocumentController@archive',      ['AuthMiddleware']);
     $router->post('/documents/{id}/restore',      'DocumentController@restore',      ['AuthMiddleware']);
+
+    // Patrocinadores / Fechamentos (Etapa 12)
+    $router->get('/sponsors',                    'SponsorController@index',        ['AuthMiddleware']);
+    $router->get('/sponsors/create',             'SponsorController@create',       ['AuthMiddleware']);
+    $router->post('/sponsors',                   'SponsorController@store',        ['AuthMiddleware']);
+    $router->get('/sponsors/{id}',               'SponsorController@show',         ['AuthMiddleware']);
+    $router->get('/sponsors/{id}/edit',          'SponsorController@edit',         ['AuthMiddleware']);
+    $router->post('/sponsors/{id}/update',       'SponsorController@update',       ['AuthMiddleware']);
+    $router->post('/sponsors/{id}/confirm',      'SponsorController@confirm',      ['AuthMiddleware']);
+    $router->post('/sponsors/{id}/status',       'SponsorController@status',       ['AuthMiddleware']);
+    $router->post('/sponsors/{id}/archive',      'SponsorController@archive',      ['AuthMiddleware']);
+    $router->post('/sponsors/{id}/restore',      'SponsorController@restore',      ['AuthMiddleware']);
+    $router->get('/sponsors/{id}/documents/create', 'DocumentController@createForSponsor', ['AuthMiddleware']);
 
     // Endpoint público de leads (sem AuthMiddleware; CORS para WordPress)
     $router->post('/api/leads/site', 'Api\LeadApiController@site');

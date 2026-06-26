@@ -11,6 +11,7 @@ $opportunities = $opportunities ?? [];
 $quotas       = $quotas ?? [];
 $proposals    = $proposals ?? [];
 $leads        = $leads ?? [];
+$sponsors     = $sponsors ?? [];
 $users        = $users ?? [];
 $page         = (int) ($page ?? 1);
 $pages        = (int) ($pages ?? 1);
@@ -27,6 +28,7 @@ $baseQuery = array_filter([
     'quota_id' => (int) ($filters['quota_id'] ?? 0) ?: '',
     'proposal_id' => (int) ($filters['proposal_id'] ?? 0) ?: '',
     'lead_id' => (int) ($filters['lead_id'] ?? 0) ?: '',
+    'sponsor_id' => (int) ($filters['sponsor_id'] ?? 0) ?: '',
     'category' => $f('category'), 'status' => $f('status'), 'access_level' => $f('access_level'),
     'responsible_user_id' => (int) ($filters['responsible_user_id'] ?? 0) ?: '',
     'expired' => !empty($filters['expired']) ? 1 : '',
@@ -88,6 +90,10 @@ $createUrl = app_url('/documents/create');
                 <div><label for="flead">Lead</label>
                     <select id="flead" name="lead_id"><option value="">Todos</option>
                     <?php foreach ($leads as $ld): ?><option value="<?= (int) $ld['id'] ?>" <?= (int)($filters['lead_id']??0)===(int)$ld['id']?'selected':'' ?>><?= e($ld['label']??'') ?></option><?php endforeach; ?>
+                    </select></div>
+                <div><label for="fsponsor">Patrocinador</label>
+                    <select id="fsponsor" name="sponsor_id"><option value="">Todos</option>
+                    <?php foreach ($sponsors as $sp): ?><option value="<?= (int) $sp['id'] ?>" <?= (int)($filters['sponsor_id']??0)===(int)$sp['id']?'selected':'' ?>><?= e($sp['label']??'') ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fcat">Categoria</label>
                     <select id="fcat" name="category"><option value="">Todas</option>

@@ -12,6 +12,7 @@ use App\Models\Opportunity;
 use App\Models\Lead;
 use App\Models\Proposal;
 use App\Models\Quota;
+use App\Models\Sponsor;
 use App\Models\Task;
 
 /**
@@ -115,6 +116,22 @@ final class DashboardController extends Controller
             $documentsExpired  = $documentModel->countExpired();
         }
 
+        $sponsorsTotal = null;
+        $sponsorsConfirmed = null;
+        $sponsorsCommitted = null;
+        $sponsorsConfirmedAmount = null;
+        $sponsorsAwaiting = null;
+        $sponsorsOverdue = null;
+        if (can('sponsors.view')) {
+            $sponsorModel            = new Sponsor();
+            $sponsorsTotal           = $sponsorModel->countActive();
+            $sponsorsConfirmed       = $sponsorModel->countConfirmed();
+            $sponsorsCommitted       = $sponsorModel->sumCommitted();
+            $sponsorsConfirmedAmount = $sponsorModel->sumConfirmed();
+            $sponsorsAwaiting        = $sponsorModel->countAwaitingContribution();
+            $sponsorsOverdue         = $sponsorModel->countOverdue();
+        }
+
         $this->view('dashboard/index', [
             'title'              => 'Painel Administrativo',
             'user'               => $this->currentUser(),
@@ -143,6 +160,12 @@ final class DashboardController extends Controller
             'documentsActive'    => $documentsActive,
             'documentsExpiring'  => $documentsExpiring,
             'documentsExpired'   => $documentsExpired,
+            'sponsorsTotal'           => $sponsorsTotal,
+            'sponsorsConfirmed'       => $sponsorsConfirmed,
+            'sponsorsCommitted'       => $sponsorsCommitted,
+            'sponsorsConfirmedAmount' => $sponsorsConfirmedAmount,
+            'sponsorsAwaiting'        => $sponsorsAwaiting,
+            'sponsorsOverdue'         => $sponsorsOverdue,
         ], 'layouts/admin');
     }
 }

@@ -34,6 +34,12 @@ $documentsTotal     = $documentsTotal ?? null;
 $documentsActive    = $documentsActive ?? null;
 $documentsExpiring  = $documentsExpiring ?? null;
 $documentsExpired   = $documentsExpired ?? null;
+$sponsorsTotal           = $sponsorsTotal ?? null;
+$sponsorsConfirmed       = $sponsorsConfirmed ?? null;
+$sponsorsCommitted       = $sponsorsCommitted ?? null;
+$sponsorsConfirmedAmount = $sponsorsConfirmedAmount ?? null;
+$sponsorsAwaiting        = $sponsorsAwaiting ?? null;
+$sponsorsOverdue         = $sponsorsOverdue ?? null;
 ?>
 
 <section class="section section-dark">
@@ -178,6 +184,28 @@ $documentsExpired   = $documentsExpired ?? null;
                 </article>
             <?php endif; ?>
 
+            <?php if ($sponsorsTotal !== null): ?>
+                <article class="card card-accent sponsor-card">
+                    <span class="card-icon"><i data-lucide="badge-dollar-sign"></i></span>
+                    <h3>Patrocinadores / Fechamentos</h3>
+                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $sponsorsTotal ?> <span style="font-size:14px;font-weight:600;">cadastrados</span></p>
+                    <p style="margin-bottom:6px;">
+                        <span class="pill"><?= (int) $sponsorsConfirmed ?> confirmado(s)</span>
+                        <span class="pill"><?= (int) $sponsorsAwaiting ?> aguardando aporte</span>
+                        <span class="pill <?= (int) $sponsorsOverdue > 0 ? 'pill-danger' : '' ?>"><?= (int) $sponsorsOverdue ?> em atraso</span>
+                    </p>
+                    <p class="money-value" style="margin-bottom:4px;">Comprometido: <?= e(money_br($sponsorsCommitted, 'R$ 0,00')) ?></p>
+                    <p class="money-value" style="margin-bottom:6px;">Confirmado: <?= e(money_br($sponsorsConfirmedAmount, 'R$ 0,00')) ?></p>
+                    <p>
+                        <a href="<?= e(app_url('/sponsors')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar patrocinadores</a>
+                        <?php if (can('sponsors.create')): ?>
+                            &nbsp;·&nbsp;
+                            <a href="<?= e(app_url('/sponsors/create')) ?>" class="link-strong"><i data-lucide="plus"></i> Novo fechamento</a>
+                        <?php endif; ?>
+                    </p>
+                </article>
+            <?php endif; ?>
+
             <article class="card card-accent">
                 <span class="card-icon"><i data-lucide="id-card"></i></span>
                 <h3>Usuário autenticado</h3>
@@ -215,15 +243,15 @@ $documentsExpired   = $documentsExpired ?? null;
             <article class="card card-accent">
                 <span class="card-icon"><i data-lucide="arrow-right-circle"></i></span>
                 <h3>Próxima etapa</h3>
-                <p>Empresas, Contatos, Oportunidades, Cotas, Tarefas, Leads e Propostas ativos. A próxima etapa abre o módulo <strong>Documentos</strong>.</p>
+                <p>Patrocinadores / Fechamentos Comerciais ativos. Contrapartidas, contratos, assinatura digital e portal externo continuam para etapas futuras.</p>
             </article>
         </div>
 
         <div class="notice">
-            <h3 class="h3-card flex items-center gap-12"><i data-lucide="info"></i> Módulos ativos: Empresas, Contatos, Oportunidades, Cotas, Tarefas, Leads e Propostas</h3>
+            <h3 class="h3-card flex items-center gap-12"><i data-lucide="info"></i> Módulos ativos: Empresas, Contatos, Oportunidades, Cotas, Tarefas, Leads, Propostas, Documentos e Patrocinadores</h3>
             <p>
-                Além do controle de acesso, os módulos comerciais, propostas e o recebimento de leads do site
-                WordPress já estão disponíveis. Documentos e relatórios avançados ainda não foram criados.
+                O CRM comercial registra fechamentos de patrocínio com vínculos a empresa, proposta, cota e documentos.
+                Contrapartidas, contratos, financeiro detalhado e relatórios avançados ainda não foram criados.
             </p>
         </div>
     </div>

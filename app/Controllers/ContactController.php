@@ -12,6 +12,7 @@ use App\Models\Contact;
 use App\Models\Document;
 use App\Models\Opportunity;
 use App\Models\Proposal;
+use App\Models\Sponsor;
 use App\Models\Task;
 use App\Models\User;
 
@@ -174,6 +175,15 @@ final class ContactController extends Controller
             $documentSummary = $documentModel->summaryByContact($id);
         }
 
+        $sponsors       = [];
+        $sponsorSummary = ['total' => 0, 'confirmed' => 0, 'committed' => 0.0, 'confirmed_amount' => 0.0];
+        $sponsorModel   = null;
+        if (can('sponsors.view')) {
+            $sponsorModel   = new Sponsor();
+            $sponsors       = $sponsorModel->findByContact($id, 6);
+            $sponsorSummary = $sponsorModel->summaryByContact($id);
+        }
+
         $this->view('contacts/show', [
             'title'              => $contact['name'] ?? 'Contato',
             'contact'            => $contact,
@@ -193,6 +203,9 @@ final class ContactController extends Controller
             'documents'          => $documents,
             'documentSummary'    => $documentSummary,
             'documentModel'      => $documentModel,
+            'sponsors'           => $sponsors,
+            'sponsorSummary'     => $sponsorSummary,
+            'sponsorModel'       => $sponsorModel,
         ]);
     }
 

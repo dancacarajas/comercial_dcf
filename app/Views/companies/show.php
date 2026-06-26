@@ -273,6 +273,16 @@ $regimeLabel   = $taxRegimes[(string) ($company['tax_regime_guess'] ?? '')] ?? (
             ?>
         <?php endif; ?>
 
+        <?php if (can('sponsors.view')): ?>
+            <?php
+            $blockTitle = 'Patrocinadores / Fechamentos';
+            $createUrl  = app_url('/companies/' . $cid . '/sponsors/create');
+            $allUrl     = app_url('/sponsors?company_id=' . $cid);
+            $emptyText  = 'Nenhum fechamento comercial registrado para esta empresa ainda.';
+            require dirname(__DIR__) . '/sponsors/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice" style="margin-top:20px;">
             <p class="mb-0"><i data-lucide="info"></i> Histórico comercial detalhado e relatórios serão vinculados a esta empresa nas próximas etapas.</p>
         </div>

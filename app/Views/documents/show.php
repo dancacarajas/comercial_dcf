@@ -74,6 +74,12 @@ $dash       = static fn ($v): string => ($v === null || $v === '') ? '—' : (st
                             <a href="<?= e(app_url('/leads/' . (int) $document['lead_id'])) ?>" class="link-strong"><?= e($document['lead_name'] ?? '—') ?></a>
                         <?php else: ?>—<?php endif; ?>
                     </dd>
+                    <dt>Patrocinador</dt>
+                    <dd>
+                        <?php if (!empty($document['sponsor_id'])): ?>
+                            <a href="<?= e(app_url('/sponsors/' . (int) $document['sponsor_id'])) ?>" class="link-strong"><?= e($document['sponsor_name'] ?? '—') ?></a>
+                        <?php else: ?>—<?php endif; ?>
+                    </dd>
                     <dt>Responsável</dt>
                     <dd><?= e($dash($document['responsible_name'] ?? '')) ?></dd>
                 </dl>

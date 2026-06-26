@@ -161,8 +161,18 @@ $oProbClass = static function (int $p): string {
             ?>
         <?php endif; ?>
 
+        <?php if (can('sponsors.view')): ?>
+            <?php
+            $blockTitle = 'Patrocinadores / Fechamentos';
+            $createUrl  = app_url('/quotas/' . $qid . '/sponsors/create');
+            $allUrl     = app_url('/sponsors?quota_id=' . $qid);
+            $emptyText  = 'Nenhum fechamento comercial vinculado a esta cota ainda.';
+            require dirname(__DIR__) . '/sponsors/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice" style="margin-top:18px;">
-            <p class="mb-0"><i data-lucide="info"></i> Patrocinadores fechados serão gerados em etapa futura. Nesta etapa, a cota apenas se vincula às oportunidades.</p>
+            <p class="mb-0"><i data-lucide="info"></i> Contrapartidas, contratos e portal do patrocinador serão tratados em etapas futuras.</p>
         </div>
 
         <article class="card meta-audit" style="margin-top:18px;">
