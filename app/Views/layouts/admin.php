@@ -9,6 +9,18 @@
 $appConfig = require dirname(__DIR__, 3) . '/config/app.php';
 $appName   = $appConfig['name'] ?? 'Dança Carajás Captação';
 $pageTitle = isset($title) ? ($title . ' — ' . $appName) : $appName;
+
+$navPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+$navPath = rtrim($navPath, '/') ?: '/';
+
+$navIsActive = static function (string $base) use ($navPath): bool {
+    $base = rtrim($base, '/') ?: '/';
+    if ($base === '/dashboard') {
+        return $navPath === '/dashboard' || $navPath === '/';
+    }
+
+    return $navPath === $base || str_starts_with($navPath, $base . '/');
+};
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -34,82 +46,211 @@ $pageTitle = isset($title) ? ($title . ' — ' . $appName) : $appName;
 </head>
 <body>
 
-    <header class="dcx-topbar">
-        <div class="container topbar-inner">
-            <a class="dcx-brand" href="/">
-                <span class="brand-icon" aria-hidden="true"><i data-lucide="sparkles"></i></span>
-                <?= e($appName) ?>
-            </a>
+    <header class="dcx-admin-header dcx-topbar">
+        <div class="container dcx-admin-header__grid topbar-inner">
+            <?php if (!empty($_SESSION['user_id'])): ?>
+                <a class="dcx-admin-brand dcx-brand" href="<?= e(app_url('/dashboard')) ?>">
+                    <span class="dcx-admin-brand__mark brand-icon" aria-hidden="true">
+                        <i data-lucide="sparkles"></i>
+                    </span>
+                    <span class="dcx-admin-brand__text">
+                        <strong>Dança Carajás</strong>
+                        <small>Captação</small>
+                    </span>
+                </a>
 
-            <button class="dcx-nav-toggle" type="button"
-                    data-nav-toggle aria-expanded="false" aria-label="Abrir menu">
-                <i data-lucide="menu"></i>
-            </button>
+                <button class="dcx-nav-toggle" type="button"
+                        data-nav-toggle aria-expanded="false" aria-label="Abrir menu">
+                    <i data-lucide="menu"></i>
+                </button>
 
-            <nav data-nav aria-label="Navegação principal">
-                <?php if (!empty($_SESSION['user_id'])): ?>
-                    <a href="<?= e(app_url('/dashboard')) ?>"><i data-lucide="layout-dashboard"></i> Painel</a>
-                    <?php if (can('companies.view')): ?>
-                        <a href="<?= e(app_url('/companies')) ?>"><i data-lucide="building-2"></i> Empresas</a>
-                    <?php endif; ?>
-                    <?php if (can('contacts.view')): ?>
-                        <a href="<?= e(app_url('/contacts')) ?>"><i data-lucide="contact"></i> Contatos</a>
-                    <?php endif; ?>
-                    <?php if (can('opportunities.view')): ?>
-                        <a href="<?= e(app_url('/opportunities')) ?>"><i data-lucide="handshake"></i> Oportunidades</a>
-                    <?php endif; ?>
-                    <?php if (can('quotas.view')): ?>
-                        <a href="<?= e(app_url('/quotas')) ?>"><i data-lucide="ticket"></i> Cotas</a>
-                    <?php endif; ?>
-                    <?php if (can('tasks.view')): ?>
-                        <a href="<?= e(app_url('/tasks')) ?>"><i data-lucide="list-checks"></i> Tarefas</a>
-                    <?php endif; ?>
-                    <?php if (can('leads.view')): ?>
-                        <a href="<?= e(app_url('/leads')) ?>"><i data-lucide="inbox"></i> Leads</a>
-                    <?php endif; ?>
-                    <?php if (can('proposals.view')): ?>
-                        <a href="<?= e(app_url('/proposals')) ?>"><i data-lucide="file-text"></i> Propostas</a>
-                    <?php endif; ?>
-                    <?php if (can('documents.view')): ?>
-                        <a href="<?= e(app_url('/documents')) ?>"><i data-lucide="folder"></i> Documentos</a>
-                    <?php endif; ?>
-                    <?php if (can('sponsors.view')): ?>
-                        <a href="<?= e(app_url('/sponsors')) ?>"><i data-lucide="badge-dollar-sign"></i> Patrocinadores</a>
-                    <?php endif; ?>
-                    <?php if (can('counterparts.view')): ?>
-                        <a href="<?= e(app_url('/counterparts')) ?>"><i data-lucide="list-checks"></i> Contrapartidas</a>
-                    <?php endif; ?>
-                    <?php if (can('contracts.view')): ?>
-                        <a href="<?= e(app_url('/contracts')) ?>"><i data-lucide="file-signature"></i> Contratos</a>
-                    <?php endif; ?>
-                    <?php if (can('financials.view')): ?>
-                        <a href="<?= e(app_url('/financials')) ?>"><i data-lucide="wallet"></i> Financeiro</a>
-                    <?php endif; ?>
-                    <?php if (can('dossiers.view')): ?>
-                        <a href="<?= e(app_url('/sponsor-dossiers')) ?>"><i data-lucide="folder-check"></i> Dossiês</a>
-                    <?php endif; ?>
-                    <?php if (can('reports.view')): ?>
-                        <a href="<?= e(app_url('/reports')) ?>"><i data-lucide="chart-no-axes-combined"></i> Relatórios</a>
-                    <?php endif; ?>
-                    <?php if (can('users.view')): ?>
-                        <a href="<?= e(app_url('/users')) ?>"><i data-lucide="users"></i> Usuários</a>
-                    <?php endif; ?>
-                    <?php if (can('roles.view')): ?>
-                        <a href="<?= e(app_url('/roles')) ?>"><i data-lucide="shield"></i> Perfis</a>
-                    <?php endif; ?>
-                    <?php if (can('permissions.view')): ?>
-                        <a href="<?= e(app_url('/permissions')) ?>"><i data-lucide="key-round"></i> Permissões</a>
-                    <?php endif; ?>
-                    <span class="dcx-user"><i data-lucide="user"></i> <?= e($_SESSION['user_name'] ?? 'Usuário') ?></span>
+                <div class="dcx-admin-user">
+                    <span class="dcx-admin-user__name dcx-user">
+                        <i data-lucide="user" aria-hidden="true"></i>
+                        <span><?= e($_SESSION['user_name'] ?? 'Usuário') ?></span>
+                        <i data-lucide="chevron-down" class="dcx-admin-user__chevron" aria-hidden="true"></i>
+                    </span>
                     <form method="post" action="<?= e(app_url('/logout')) ?>" class="dcx-logout-form">
                         <?= csrf_field() ?>
-                        <button type="submit" class="dcx-logout"><i data-lucide="log-out"></i> Sair</button>
+                        <button type="submit" class="dcx-admin-logout dcx-logout" aria-label="Sair do sistema">
+                            <i data-lucide="log-out" aria-hidden="true"></i>
+                            <span>Sair</span>
+                        </button>
                     </form>
-                <?php else: ?>
-                    <a href="/">Início</a>
-                    <a href="/login">Entrar</a>
-                <?php endif; ?>
-            </nav>
+                </div>
+
+                <div class="dcx-admin-nav-panel" data-nav>
+                    <nav class="dcx-admin-primary-nav" aria-label="Navegação principal">
+                        <?php $dashActive = $navIsActive('/dashboard'); ?>
+                        <a class="dcx-nav-primary__item dcx-nav-link<?= $dashActive ? ' is-active' : '' ?>"
+                           href="<?= e(app_url('/dashboard')) ?>"<?= $dashActive ? ' aria-current="page"' : '' ?>>
+                            <i data-lucide="layout-dashboard" aria-hidden="true"></i>
+                            <span>Painel</span>
+                        </a>
+                        <?php if (can('companies.view')): ?>
+                            <?php $active = $navIsActive('/companies'); ?>
+                            <a class="dcx-nav-primary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/companies')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="building-2" aria-hidden="true"></i>
+                                <span>Empresas</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (can('contacts.view')): ?>
+                            <?php $active = $navIsActive('/contacts'); ?>
+                            <a class="dcx-nav-primary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/contacts')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="contact" aria-hidden="true"></i>
+                                <span>Contatos</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (can('opportunities.view')): ?>
+                            <?php $active = $navIsActive('/opportunities'); ?>
+                            <a class="dcx-nav-primary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/opportunities')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="target" aria-hidden="true"></i>
+                                <span>Oportunidades</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (can('proposals.view')): ?>
+                            <?php $active = $navIsActive('/proposals'); ?>
+                            <a class="dcx-nav-primary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/proposals')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="file-text" aria-hidden="true"></i>
+                                <span>Propostas</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (can('financials.view')): ?>
+                            <?php $active = $navIsActive('/financials'); ?>
+                            <a class="dcx-nav-primary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/financials')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="wallet" aria-hidden="true"></i>
+                                <span>Financeiro</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (can('reports.view')): ?>
+                            <?php $active = $navIsActive('/reports'); ?>
+                            <a class="dcx-nav-primary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/reports')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="chart-no-axes-combined" aria-hidden="true"></i>
+                                <span>Relatórios</span>
+                            </a>
+                        <?php endif; ?>
+                    </nav>
+
+                    <div class="dcx-header-divider" aria-hidden="true"></div>
+
+                    <nav class="dcx-admin-secondary-nav" aria-label="Navegação secundária">
+                        <?php if (can('sponsors.view')): ?>
+                            <?php $active = $navIsActive('/sponsors'); ?>
+                            <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/sponsors')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="handshake" aria-hidden="true"></i>
+                                <span>Patrocinadores</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (can('counterparts.view')): ?>
+                            <?php $active = $navIsActive('/counterparts'); ?>
+                            <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/counterparts')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="clipboard-check" aria-hidden="true"></i>
+                                <span>Contrapartidas</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (can('contracts.view')): ?>
+                            <?php $active = $navIsActive('/contracts'); ?>
+                            <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/contracts')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="file-signature" aria-hidden="true"></i>
+                                <span>Contratos</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (can('dossiers.view')): ?>
+                            <?php $active = $navIsActive('/sponsor-dossiers'); ?>
+                            <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/sponsor-dossiers')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="folder-check" aria-hidden="true"></i>
+                                <span>Dossiês</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (can('documents.view')): ?>
+                            <?php $active = $navIsActive('/documents'); ?>
+                            <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/documents')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="folder" aria-hidden="true"></i>
+                                <span>Documentos</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (can('quotas.view')): ?>
+                            <?php $active = $navIsActive('/quotas'); ?>
+                            <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/quotas')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="circle-dollar-sign" aria-hidden="true"></i>
+                                <span>Cotas</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (can('tasks.view')): ?>
+                            <?php $active = $navIsActive('/tasks'); ?>
+                            <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/tasks')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="list-checks" aria-hidden="true"></i>
+                                <span>Tarefas</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (can('leads.view')): ?>
+                            <?php $active = $navIsActive('/leads'); ?>
+                            <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/leads')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="inbox" aria-hidden="true"></i>
+                                <span>Leads</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (can('users.view')): ?>
+                            <?php $active = $navIsActive('/users'); ?>
+                            <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/users')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="users" aria-hidden="true"></i>
+                                <span>Usuários</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (can('roles.view')): ?>
+                            <?php $active = $navIsActive('/roles'); ?>
+                            <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/roles')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="shield" aria-hidden="true"></i>
+                                <span>Perfis</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (can('permissions.view')): ?>
+                            <?php $active = $navIsActive('/permissions'); ?>
+                            <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/permissions')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="lock-keyhole" aria-hidden="true"></i>
+                                <span>Permissões</span>
+                            </a>
+                        <?php endif; ?>
+                    </nav>
+                </div>
+            <?php else: ?>
+                <a class="dcx-admin-brand dcx-brand" href="/">
+                    <span class="dcx-admin-brand__mark brand-icon" aria-hidden="true">
+                        <i data-lucide="sparkles"></i>
+                    </span>
+                    <span class="dcx-admin-brand__text">
+                        <strong>Dança Carajás</strong>
+                        <small>Captação</small>
+                    </span>
+                </a>
+
+                <button class="dcx-nav-toggle" type="button"
+                        data-nav-toggle aria-expanded="false" aria-label="Abrir menu">
+                    <i data-lucide="menu"></i>
+                </button>
+
+                <nav class="dcx-admin-guest-nav" data-nav aria-label="Navegação">
+                    <a class="dcx-nav-link" href="/">Início</a>
+                    <a class="dcx-nav-link" href="/login">Entrar</a>
+                </nav>
+            <?php endif; ?>
         </div>
     </header>
 
