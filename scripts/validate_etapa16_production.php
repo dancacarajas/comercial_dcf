@@ -10,6 +10,8 @@ declare(strict_types=1);
 const BASE_URL = 'https://comercial.dancacarajas.com.br';
 const PASSWORD = 'Mudar@123';
 const PROD_PREFIX = 'DOSSIÊ ETAPA 16 PRODUCAO';
+const ADMIN_EMAIL = 'validacao-etapa16-admin@test.com';
+const SEM_VIEW_EMAIL = 'validacao-etapa16-sem@test.com';
 const LEITOR_EMAIL = 'validacao-etapa16-leitor@test.com';
 const CAP_EMAIL = 'validacao-etapa16-cap@test.com';
 const PROD_EMAIL = 'validacao-etapa16-prod@test.com';
@@ -176,29 +178,61 @@ function dbexec(string $sql, array $params = []): void
     $st->execute($params);
 }
 
-function ensureSemDossiersUser(): void
+function ensureTempValidationUsers(): void
 {
-    $row = dbq('SELECT id FROM users WHERE email = ?', ['sem-dossiers@test.com']);
-    if (!$row) {
-        $hash = dbq('SELECT password_hash FROM users WHERE id = 1')['password_hash'];
-        db()->prepare(
-            'INSERT INTO users (name, email, password_hash, status, created_at) VALUES (?, ?, ?, ?, NOW())'
-        )->execute(['Sem Dossiês', 'sem-dossiers@test.com', $hash, 'active']);
-        $uid = (int) db()->lastInsertId();
-        $roleId = dbq("SELECT id FROM roles WHERE slug = 'leitura-consulta'")['id'] ?? null;
+    $hash = password_hash(PASSWORD, PASSWORD_DEFAULT);
+    $users = [
+        [ADMIN_EMAIL, 'Validacao Etapa16 Admin', 'administrador-geral'],
+        [LEITOR_EMAIL, 'Validacao Etapa16 Leitor', 'leitura-consulta'],
+        [CAP_EMAIL, 'Validacao Etapa16 Captacao', 'captacao-comercial'],
+        [PROD_EMAIL, 'Validacao Etapa16 Producao', 'producao-coordenacao'],
+    ];
+    foreach ($users as [$email, $name, $roleSlug]) {
+        $row = dbq('SELECT id FROM users WHERE email = ?', [$email]);
+        if (!$row) {
+            db()->prepare('INSERT INTO users (name, email, password_hash, status, created_at) VALUES (?, ?, ?, ?, NOW())')
+                ->execute([$name, $email, $hash, 'active']);
+            $uid = (int) db()->lastInsertId();
+        } else {
+            $uid = (int) $row['id'];
+            db()->prepare("UPDATE users SET status='active', password_hash=? WHERE id=?")->execute([$hash, $uid]);
+        }
+        $roleId = dbq('SELECT id FROM roles WHERE slug = ?', [$roleSlug])['id'] ?? null;
         if ($roleId) {
             db()->prepare('INSERT IGNORE INTO user_roles (user_id, role_id) VALUES (?, ?)')->execute([$uid, $roleId]);
         }
+    }
+    $semRole = dbq("SELECT id FROM roles WHERE slug = 'teste-sem-dossiers-etapa16'");
+    if (!$semRole) {
+        db()->prepare('INSERT INTO roles (name, slug, description) VALUES (?, ?, ?)')
+            ->execute(['Teste sem dossiers Etapa16', 'teste-sem-dossiers-etapa16', 'Role temporaria validacao']);
+        $semRole = dbq("SELECT id FROM roles WHERE slug = 'teste-sem-dossiers-etapa16'");
+    }
+    $row = dbq('SELECT id FROM users WHERE email = ?', [SEM_VIEW_EMAIL]);
+    if (!$row) {
+        db()->prepare('INSERT INTO users (name, email, password_hash, status, created_at) VALUES (?, ?, ?, ?, NOW())')
+            ->execute(['Validacao Etapa16 Sem View', SEM_VIEW_EMAIL, $hash, 'active']);
+        $uid = (int) db()->lastInsertId();
     } else {
         $uid = (int) $row['id'];
-        db()->prepare('UPDATE users SET status = ? WHERE id = ?')->execute(['active', $uid]);
+        db()->prepare("UPDATE users SET status='active', password_hash=? WHERE id=?")->execute([$hash, $uid]);
     }
-    db()->prepare(
-        'DELETE rp FROM role_permissions rp
-         INNER JOIN permissions p ON p.id = rp.permission_id
-         INNER JOIN user_roles ur ON ur.role_id = rp.role_id
-         WHERE ur.user_id = ? AND p.slug LIKE ?'
-    )->execute([$uid, 'dossiers.%']);
+    if ($semRole) {
+        db()->prepare('DELETE FROM user_roles WHERE user_id = ?')->execute([$uid]);
+        db()->prepare('INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)')->execute([$uid, (int) $semRole['id']]);
+    }
+}
+
+function deactivateTempValidationUsers(): void
+{
+    foreach ([ADMIN_EMAIL, SEM_VIEW_EMAIL, LEITOR_EMAIL, CAP_EMAIL, PROD_EMAIL] as $email) {
+        db()->prepare("UPDATE users SET status='inactive' WHERE email=?")->execute([$email]);
+    }
+}
+
+function ensureSemDossiersUser(): void
+{
+    ensureTempValidationUsers();
 }
 
 function dossierPayload(array $overrides = []): array
@@ -497,12 +531,12 @@ $r = $anon->get('/sponsor-dossiers');
 
 ensureSemDossiersUser();
 $sem = new HttpClient();
-$sem->login('sem-dossiers@test.com', PASSWORD);
+$sem->login(SEM_VIEW_EMAIL, PASSWORD);
 $r = $sem->get('/sponsor-dossiers');
 ($r['code'] === 403) ? $R->pass('auth', 'GET /sponsor-dossiers sem dossiers.view → 403') : $R->fail('auth', 'sem view → 403', 'code=' . $r['code']);
 
 $admin = new HttpClient();
-$admin->login('admin@dancacarajas.com', PASSWORD);
+$admin->login(ADMIN_EMAIL, PASSWORD);
 $r = $admin->get('/sponsor-dossiers');
 ($r['code'] === 200) ? $R->pass('auth', 'GET /sponsor-dossiers admin → 200') : $R->fail('auth', 'admin list', 'code=' . $r['code']);
 
@@ -519,16 +553,16 @@ $r = $sem->get('/sponsor-dossiers/create');
 ($r['code'] === 403) ? $R->pass('auth', 'GET /sponsor-dossiers/create sem create → 403') : $R->fail('auth', 'create sem perm', 'code=' . $r['code']);
 
 $badCsrf = new HttpClient();
-$badCsrf->login('admin@dancacarajas.com', PASSWORD);
+$badCsrf->login(ADMIN_EMAIL, PASSWORD);
 $r = $badCsrf->post('/sponsor-dossiers', ['_csrf' => 'x', 'sponsor_id' => '1', 'title' => 'Teste CSRF']);
 ($r['code'] === 419) ? $R->pass('auth', 'POST CSRF inválido → 419') : $R->fail('auth', 'CSRF', 'code=' . $r['code']);
 
 $cap = new HttpClient();
-if ($cap->login('captacao@test.com', PASSWORD)) {
+if ($cap->login(CAP_EMAIL, PASSWORD)) {
     $r = $cap->get('/sponsor-dossiers');
     ($r['code'] === 200) ? $R->pass('auth', 'Captação lista dossiês → 200') : $R->fail('auth', 'captação list', 'code=' . $r['code']);
 } else {
-    $R->fail('auth', 'Login captacao@test.com');
+    $R->fail('auth', 'Login ' . CAP_EMAIL);
 }
 
 $sponsorId = ensureSponsor($admin, $R);
@@ -630,7 +664,7 @@ if ($dossierId > 0) {
         ? $R->pass('generate', 'Snapshot de métricas após generate')
         : $R->fail('generate', 'métricas');
 
-    if ($cap->login('captacao@test.com', PASSWORD)) {
+    if ($cap->login(CAP_EMAIL, PASSWORD)) {
         $showCap = $cap->get('/sponsor-dossiers/' . $dossierId);
         $csrfCap = HttpClient::extractCsrf($showCap['body']);
         $rCapApprove = $cap->post('/sponsor-dossiers/' . $dossierId . '/approve', ['_csrf' => $csrfCap, 'approval_notes' => 'Tentativa cap']);
