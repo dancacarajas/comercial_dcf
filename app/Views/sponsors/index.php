@@ -62,42 +62,47 @@ $createUrl = app_url('/sponsors/create');
             </div>
         <?php endif; ?>
 
-        <form method="get" action="<?= e(app_url('/sponsors')) ?>" class="filter-box">
-            <div class="filter-grid">
-                <div class="filter-q"><label for="q">Busca</label><input type="text" id="q" name="q" value="<?= e($f('q')) ?>" placeholder="Nome, empresa, PRONAC, observações"></div>
+        <form method="get" action="<?= e(app_url('/sponsors')) ?>" class="filter-box filter-box--financial">
+            <div class="filter-grid filter-grid--financial">
+                <div class="filter-q"><label for="q">Busca</label><input type="text" id="q" name="q" class="input" value="<?= e($f('q')) ?>" placeholder="Nome, empresa, PRONAC, observações"></div>
                 <div><label for="fcompany">Empresa</label>
-                    <select id="fcompany" name="company_id"><option value="">Todas</option>
+                    <select id="fcompany" name="company_id" class="input"><option value="">Todas</option>
                     <?php foreach ($companies as $co): ?><option value="<?= (int) $co['id'] ?>" <?= (int)($filters['company_id']??0)===(int)$co['id']?'selected':'' ?>><?= e($co['name']) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="ftype">Tipo</label>
-                    <select id="ftype" name="sponsorship_type"><option value="">Todos</option>
+                    <select id="ftype" name="sponsorship_type" class="input"><option value="">Todos</option>
                     <?php foreach ($sponsorshipTypes as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('sponsorship_type')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="ffund">Mecanismo</label>
-                    <select id="ffund" name="funding_mechanism"><option value="">Todos</option>
+                    <select id="ffund" name="funding_mechanism" class="input"><option value="">Todos</option>
                     <?php foreach ($fundingMechanisms as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('funding_mechanism')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fstatus">Status</label>
-                    <select id="fstatus" name="status"><option value="">Todos</option>
+                    <select id="fstatus" name="status" class="input"><option value="">Todos</option>
                     <?php foreach ($statuses as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('status')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fpay">Pagamento</label>
-                    <select id="fpay" name="payment_status"><option value="">Todos</option>
+                    <select id="fpay" name="payment_status" class="input"><option value="">Todos</option>
                     <?php foreach ($paymentStatuses as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('payment_status')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
                     </select></div>
-                <div><label for="fyear">Ano</label><input type="number" id="fyear" name="project_year" min="2026" value="<?= (int)($filters['project_year']??0) ?: '' ?>" placeholder="2026"></div>
+                <div><label for="fyear">Ano</label><input type="number" id="fyear" name="project_year" class="input" min="2026" value="<?= (int)($filters['project_year']??0) ?: '' ?>" placeholder="2026"></div>
                 <div><label for="fresp">Responsável</label>
-                    <select id="fresp" name="responsible_user_id"><option value="">Todos</option>
+                    <select id="fresp" name="responsible_user_id" class="input"><option value="">Todos</option>
                     <?php foreach ($users as $u): ?><option value="<?= (int)$u['id'] ?>" <?= (int)($filters['responsible_user_id']??0)===(int)$u['id']?'selected':'' ?>><?= e($u['name']) ?></option><?php endforeach; ?>
                     </select></div>
+            </div>
+
+            <div class="filter-flags">
+                <span class="filter-flags__title">Situação rápida</span>
                 <div class="filter-checks">
-                    <label><input type="checkbox" name="awaiting_contribution" value="1" <?= !empty($filters['awaiting_contribution'])?'checked':'' ?>> Aguardando aporte</label>
-                    <label><input type="checkbox" name="overdue" value="1" <?= !empty($filters['overdue'])?'checked':'' ?>> Em atraso</label>
-                    <label><input type="checkbox" name="show_archived" value="1" <?= !empty($filters['show_archived'])?'checked':'' ?>> Arquivados</label>
+                    <label class="check-inline"><input type="checkbox" name="awaiting_contribution" value="1" <?= !empty($filters['awaiting_contribution'])?'checked':'' ?>> Aguardando aporte</label>
+                    <label class="check-inline"><input type="checkbox" name="overdue" value="1" <?= !empty($filters['overdue'])?'checked':'' ?>> Em atraso</label>
+                    <label class="check-inline"><input type="checkbox" name="show_archived" value="1" <?= !empty($filters['show_archived'])?'checked':'' ?>> Arquivados</label>
                 </div>
             </div>
-            <div class="actions-row">
-                <button type="submit" class="btn btn-sm btn-yellow">Filtrar</button>
+
+            <div class="filter-actions-row">
+                <button type="submit" class="btn btn-sm btn-yellow"><i data-lucide="filter"></i> Filtrar</button>
                 <a href="<?= e(app_url('/sponsors')) ?>" class="btn btn-sm btn-outline">Limpar</a>
             </div>
         </form>

@@ -75,15 +75,15 @@ $periodLabel = static function (array $row): string {
             </div>
         <?php endif; ?>
 
-        <form method="get" action="<?= e(app_url('/sponsor-dossiers')) ?>" class="filter-box">
-            <div class="filter-grid">
+        <form method="get" action="<?= e(app_url('/sponsor-dossiers')) ?>" class="filter-box filter-box--financial">
+            <div class="filter-grid filter-grid--financial">
                 <div class="filter-q">
                     <label for="q">Busca</label>
-                    <input type="text" id="q" name="q" value="<?= e($f('q')) ?>" placeholder="Título, número, patrocinador, contrato, resumos, notas">
+                    <input type="text" id="q" name="q" class="input" value="<?= e($f('q')) ?>" placeholder="Título, número, patrocinador, contrato, resumos, notas">
                 </div>
                 <div>
                     <label for="fsponsor">Patrocinador</label>
-                    <select id="fsponsor" name="sponsor_id">
+                    <select id="fsponsor" name="sponsor_id" class="input">
                         <option value="">Todos</option>
                         <?php foreach ($sponsors as $sp): ?>
                             <option value="<?= (int) $sp['id'] ?>" <?= (int) ($filters['sponsor_id'] ?? 0) === (int) $sp['id'] ? 'selected' : '' ?>><?= e($sp['name']) ?></option>
@@ -92,7 +92,7 @@ $periodLabel = static function (array $row): string {
                 </div>
                 <div>
                     <label for="fcompany">Empresa</label>
-                    <select id="fcompany" name="company_id">
+                    <select id="fcompany" name="company_id" class="input">
                         <option value="">Todas</option>
                         <?php foreach ($companies as $co): ?>
                             <option value="<?= (int) $co['id'] ?>" <?= (int) ($filters['company_id'] ?? 0) === (int) $co['id'] ? 'selected' : '' ?>><?= e($co['name']) ?></option>
@@ -101,7 +101,7 @@ $periodLabel = static function (array $row): string {
                 </div>
                 <div>
                     <label for="fcontract">Contrato</label>
-                    <select id="fcontract" name="main_contract_id">
+                    <select id="fcontract" name="main_contract_id" class="input">
                         <option value="">Todos</option>
                         <?php foreach ($contracts as $cn): ?>
                             <option value="<?= (int) $cn['id'] ?>" <?= $contractFilter === (int) $cn['id'] ? 'selected' : '' ?>><?= e($cn['label'] ?? '') ?></option>
@@ -110,7 +110,7 @@ $periodLabel = static function (array $row): string {
                 </div>
                 <div>
                     <label for="ftype">Tipo</label>
-                    <select id="ftype" name="dossier_type">
+                    <select id="ftype" name="dossier_type" class="input">
                         <option value="">Todos</option>
                         <?php foreach ($dossierTypes as $k => $label): ?>
                             <option value="<?= e($k) ?>" <?= $f('dossier_type') === $k ? 'selected' : '' ?>><?= e($label) ?></option>
@@ -119,7 +119,7 @@ $periodLabel = static function (array $row): string {
                 </div>
                 <div>
                     <label for="fstatus">Status</label>
-                    <select id="fstatus" name="status">
+                    <select id="fstatus" name="status" class="input">
                         <option value="">Todos</option>
                         <?php foreach ($statuses as $k => $label): ?>
                             <option value="<?= e($k) ?>" <?= $f('status') === $k ? 'selected' : '' ?>><?= e($label) ?></option>
@@ -128,7 +128,7 @@ $periodLabel = static function (array $row): string {
                 </div>
                 <div>
                     <label for="fdelivery">Entrega</label>
-                    <select id="fdelivery" name="delivery_status">
+                    <select id="fdelivery" name="delivery_status" class="input">
                         <option value="">Todos</option>
                         <?php foreach ($deliveryStatuses as $k => $label): ?>
                             <option value="<?= e($k) ?>" <?= $f('delivery_status') === $k ? 'selected' : '' ?>><?= e($label) ?></option>
@@ -137,33 +137,44 @@ $periodLabel = static function (array $row): string {
                 </div>
                 <div>
                     <label for="fresp">Responsável</label>
-                    <select id="fresp" name="responsible_user_id">
+                    <select id="fresp" name="responsible_user_id" class="input">
                         <option value="">Todos</option>
                         <?php foreach ($users as $u): ?>
                             <option value="<?= (int) $u['id'] ?>" <?= (int) ($filters['responsible_user_id'] ?? 0) === (int) $u['id'] ? 'selected' : '' ?>><?= e($u['name']) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div>
-                    <label for="period_from">Período de</label>
-                    <input type="date" id="period_from" name="period_from" value="<?= e($f('period_from')) ?>">
-                </div>
-                <div>
-                    <label for="period_to">Período até</label>
-                    <input type="date" id="period_to" name="period_to" value="<?= e($f('period_to')) ?>">
-                </div>
-                <div class="filter-checks">
-                    <label><input type="checkbox" name="approved" value="1" <?= !empty($filters['approved']) ? 'checked' : '' ?>> Aprovados</label>
-                    <label><input type="checkbox" name="delivered" value="1" <?= !empty($filters['delivered']) ? 'checked' : '' ?>> Entregues</label>
-                    <label><input type="checkbox" name="pending" value="1" <?= !empty($filters['pending']) ? 'checked' : '' ?>> Pendentes</label>
-                    <label><input type="checkbox" name="with_balance" value="1" <?= !empty($filters['with_balance']) ? 'checked' : '' ?>> Com saldo</label>
-                    <label><input type="checkbox" name="pending_counterparts" value="1" <?= !empty($filters['pending_counterparts']) ? 'checked' : '' ?>> Contrapartidas pendentes</label>
-                    <label><input type="checkbox" name="overdue_counterparts" value="1" <?= !empty($filters['overdue_counterparts']) ? 'checked' : '' ?>> Contrapartidas atrasadas</label>
-                    <label><input type="checkbox" name="show_archived" value="1" <?= !empty($filters['show_archived']) ? 'checked' : '' ?>> Arquivados</label>
+            </div>
+
+            <div class="filter-subsection">
+                <span class="filter-subsection__title">Período</span>
+                <div class="filter-grid filter-grid--dates">
+                    <div>
+                        <label for="period_from">De</label>
+                        <input type="date" id="period_from" name="period_from" class="input" value="<?= e($f('period_from')) ?>">
+                    </div>
+                    <div>
+                        <label for="period_to">Até</label>
+                        <input type="date" id="period_to" name="period_to" class="input" value="<?= e($f('period_to')) ?>">
+                    </div>
                 </div>
             </div>
-            <div class="actions-row">
-                <button type="submit" class="btn btn-sm btn-yellow">Filtrar</button>
+
+            <div class="filter-flags">
+                <span class="filter-flags__title">Situação rápida</span>
+                <div class="filter-checks">
+                    <label class="check-inline"><input type="checkbox" name="approved" value="1" <?= !empty($filters['approved']) ? 'checked' : '' ?>> Aprovados</label>
+                    <label class="check-inline"><input type="checkbox" name="delivered" value="1" <?= !empty($filters['delivered']) ? 'checked' : '' ?>> Entregues</label>
+                    <label class="check-inline"><input type="checkbox" name="pending" value="1" <?= !empty($filters['pending']) ? 'checked' : '' ?>> Pendentes</label>
+                    <label class="check-inline"><input type="checkbox" name="with_balance" value="1" <?= !empty($filters['with_balance']) ? 'checked' : '' ?>> Com saldo</label>
+                    <label class="check-inline"><input type="checkbox" name="pending_counterparts" value="1" <?= !empty($filters['pending_counterparts']) ? 'checked' : '' ?>> Contrapartidas pendentes</label>
+                    <label class="check-inline"><input type="checkbox" name="overdue_counterparts" value="1" <?= !empty($filters['overdue_counterparts']) ? 'checked' : '' ?>> Contrapartidas atrasadas</label>
+                    <label class="check-inline"><input type="checkbox" name="show_archived" value="1" <?= !empty($filters['show_archived']) ? 'checked' : '' ?>> Arquivados</label>
+                </div>
+            </div>
+
+            <div class="filter-actions-row">
+                <button type="submit" class="btn btn-sm btn-yellow"><i data-lucide="filter"></i> Filtrar</button>
                 <a href="<?= e(app_url('/sponsor-dossiers')) ?>" class="btn btn-sm btn-outline">Limpar</a>
             </div>
         </form>

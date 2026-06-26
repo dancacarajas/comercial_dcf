@@ -54,48 +54,59 @@ $createUrl = app_url('/counterparts/create');
             </div>
         <?php endif; ?>
 
-        <form method="get" action="<?= e(app_url('/counterparts')) ?>" class="filter-box">
-            <div class="filter-grid">
-                <div class="filter-q"><label for="q">Busca</label><input type="text" id="q" name="q" value="<?= e($f('q')) ?>" placeholder="Título, patrocinador, empresa, evidência"></div>
+        <form method="get" action="<?= e(app_url('/counterparts')) ?>" class="filter-box filter-box--financial">
+            <div class="filter-grid filter-grid--financial">
+                <div class="filter-q"><label for="q">Busca</label><input type="text" id="q" name="q" class="input" value="<?= e($f('q')) ?>" placeholder="Título, patrocinador, empresa, evidência"></div>
                 <div><label for="fsponsor">Patrocinador</label>
-                    <select id="fsponsor" name="sponsor_id"><option value="">Todos</option>
+                    <select id="fsponsor" name="sponsor_id" class="input"><option value="">Todos</option>
                     <?php foreach ($sponsors as $sp): ?><option value="<?= (int) $sp['id'] ?>" <?= (int)($filters['sponsor_id']??0)===(int)$sp['id']?'selected':'' ?>><?= e($sp['name']) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fcompany">Empresa</label>
-                    <select id="fcompany" name="company_id"><option value="">Todas</option>
+                    <select id="fcompany" name="company_id" class="input"><option value="">Todas</option>
                     <?php foreach ($companies as $co): ?><option value="<?= (int) $co['id'] ?>" <?= (int)($filters['company_id']??0)===(int)$co['id']?'selected':'' ?>><?= e($co['name']) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fcat">Categoria</label>
-                    <select id="fcat" name="category"><option value="">Todas</option>
+                    <select id="fcat" name="category" class="input"><option value="">Todas</option>
                     <?php foreach ($categories as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('category')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fdtype">Tipo entrega</label>
-                    <select id="fdtype" name="delivery_type"><option value="">Todos</option>
+                    <select id="fdtype" name="delivery_type" class="input"><option value="">Todos</option>
                     <?php foreach ($deliveryTypes as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('delivery_type')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fpri">Prioridade</label>
-                    <select id="fpri" name="priority"><option value="">Todas</option>
+                    <select id="fpri" name="priority" class="input"><option value="">Todas</option>
                     <?php foreach ($priorities as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('priority')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fstatus">Status</label>
-                    <select id="fstatus" name="status"><option value="">Todos</option>
+                    <select id="fstatus" name="status" class="input"><option value="">Todos</option>
                     <?php foreach ($statuses as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('status')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fresp">Responsável</label>
-                    <select id="fresp" name="responsible_user_id"><option value="">Todos</option>
+                    <select id="fresp" name="responsible_user_id" class="input"><option value="">Todos</option>
                     <?php foreach ($users as $u): ?><option value="<?= (int)$u['id'] ?>" <?= (int)($filters['responsible_user_id']??0)===(int)$u['id']?'selected':'' ?>><?= e($u['name']) ?></option><?php endforeach; ?>
                     </select></div>
-                <div><label for="due_from">Prazo de</label><input type="date" id="due_from" name="due_from" value="<?= e($f('due_from')) ?>"></div>
-                <div><label for="due_to">Prazo até</label><input type="date" id="due_to" name="due_to" value="<?= e($f('due_to')) ?>"></div>
-                <div class="filter-checks">
-                    <label><input type="checkbox" name="overdue" value="1" <?= !empty($filters['overdue'])?'checked':'' ?>> Atrasadas</label>
-                    <label><input type="checkbox" name="delivered" value="1" <?= !empty($filters['delivered'])?'checked':'' ?>> Entregues</label>
-                    <label><input type="checkbox" name="pending" value="1" <?= !empty($filters['pending'])?'checked':'' ?>> Pendentes</label>
-                    <label><input type="checkbox" name="show_archived" value="1" <?= !empty($filters['show_archived'])?'checked':'' ?>> Arquivadas</label>
+            </div>
+
+            <div class="filter-subsection">
+                <span class="filter-subsection__title">Prazo</span>
+                <div class="filter-grid filter-grid--dates">
+                    <div><label for="due_from">De</label><input type="date" id="due_from" name="due_from" class="input" value="<?= e($f('due_from')) ?>"></div>
+                    <div><label for="due_to">Até</label><input type="date" id="due_to" name="due_to" class="input" value="<?= e($f('due_to')) ?>"></div>
                 </div>
             </div>
-            <div class="actions-row">
-                <button type="submit" class="btn btn-sm btn-yellow">Filtrar</button>
+
+            <div class="filter-flags">
+                <span class="filter-flags__title">Situação rápida</span>
+                <div class="filter-checks">
+                    <label class="check-inline"><input type="checkbox" name="overdue" value="1" <?= !empty($filters['overdue'])?'checked':'' ?>> Atrasadas</label>
+                    <label class="check-inline"><input type="checkbox" name="delivered" value="1" <?= !empty($filters['delivered'])?'checked':'' ?>> Entregues</label>
+                    <label class="check-inline"><input type="checkbox" name="pending" value="1" <?= !empty($filters['pending'])?'checked':'' ?>> Pendentes</label>
+                    <label class="check-inline"><input type="checkbox" name="show_archived" value="1" <?= !empty($filters['show_archived'])?'checked':'' ?>> Arquivadas</label>
+                </div>
+            </div>
+
+            <div class="filter-actions-row">
+                <button type="submit" class="btn btn-sm btn-yellow"><i data-lucide="filter"></i> Filtrar</button>
                 <a href="<?= e(app_url('/counterparts')) ?>" class="btn btn-sm btn-outline">Limpar</a>
             </div>
         </form>

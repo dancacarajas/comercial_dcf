@@ -69,78 +69,98 @@ $createUrl = app_url('/documents/create');
             </div>
         <?php endif; ?>
 
-        <form method="get" action="<?= e(app_url('/documents')) ?>" class="filter-box">
-            <div class="filter-grid">
-                <div class="filter-q"><label for="q">Busca</label><input type="text" id="q" name="q" value="<?= e($f('q')) ?>" placeholder="Título, descrição, arquivo, empresa, proposta"></div>
-                <div><label for="fcompany">Empresa</label>
-                    <select id="fcompany" name="company_id"><option value="">Todas</option>
-                    <?php foreach ($companies as $co): ?><option value="<?= (int) $co['id'] ?>" <?= (int)($filters['company_id']??0)===(int)$co['id']?'selected':'' ?>><?= e($co['name']) ?></option><?php endforeach; ?>
-                    </select></div>
-                <div><label for="fcontact">Contato</label>
-                    <select id="fcontact" name="contact_id"><option value="">Todos</option>
-                    <?php foreach ($contacts as $ct): ?><option value="<?= (int) $ct['id'] ?>" <?= (int)($filters['contact_id']??0)===(int)$ct['id']?'selected':'' ?>><?= e($ct['label']??'') ?></option><?php endforeach; ?>
-                    </select></div>
-                <div><label for="fopp">Oportunidade</label>
-                    <select id="fopp" name="opportunity_id"><option value="">Todas</option>
-                    <?php foreach ($opportunities as $op): ?><option value="<?= (int) $op['id'] ?>" <?= (int)($filters['opportunity_id']??0)===(int)$op['id']?'selected':'' ?>><?= e($op['label']??'') ?></option><?php endforeach; ?>
-                    </select></div>
-                <div><label for="fquota">Cota</label>
-                    <select id="fquota" name="quota_id"><option value="">Todas</option>
-                    <?php foreach ($quotas as $q): ?><option value="<?= (int) $q['id'] ?>" <?= (int)($filters['quota_id']??0)===(int)$q['id']?'selected':'' ?>><?= e($q['name']??'') ?></option><?php endforeach; ?>
-                    </select></div>
-                <div><label for="fproposal">Proposta</label>
-                    <select id="fproposal" name="proposal_id"><option value="">Todas</option>
-                    <?php foreach ($proposals as $pr): ?><option value="<?= (int) $pr['id'] ?>" <?= (int)($filters['proposal_id']??0)===(int)$pr['id']?'selected':'' ?>><?= e($pr['label']??'') ?></option><?php endforeach; ?>
-                    </select></div>
-                <div><label for="flead">Lead</label>
-                    <select id="flead" name="lead_id"><option value="">Todos</option>
-                    <?php foreach ($leads as $ld): ?><option value="<?= (int) $ld['id'] ?>" <?= (int)($filters['lead_id']??0)===(int)$ld['id']?'selected':'' ?>><?= e($ld['label']??'') ?></option><?php endforeach; ?>
-                    </select></div>
-                <div><label for="fsponsor">Patrocinador</label>
-                    <select id="fsponsor" name="sponsor_id"><option value="">Todos</option>
-                    <?php foreach ($sponsors as $sp): ?><option value="<?= (int) $sp['id'] ?>" <?= (int)($filters['sponsor_id']??0)===(int)$sp['id']?'selected':'' ?>><?= e($sp['label']??'') ?></option><?php endforeach; ?>
-                    </select></div>
-                <div><label for="fcounterpart">Contrapartida</label>
-                    <select id="fcounterpart" name="counterpart_id"><option value="">Todas</option>
-                    <?php foreach ($counterparts as $cp): ?><option value="<?= (int) $cp['id'] ?>" <?= (int)($filters['counterpart_id']??0)===(int)$cp['id']?'selected':'' ?>><?= e($cp['label']??'') ?></option><?php endforeach; ?>
-                    </select></div>
-                <div><label for="fcontract">Contrato</label>
-                    <select id="fcontract" name="contract_id"><option value="">Todos</option>
-                    <?php foreach ($contracts as $ct): ?><option value="<?= (int) $ct['id'] ?>" <?= (int)($filters['contract_id']??0)===(int)$ct['id']?'selected':'' ?>><?= e($ct['label']??'') ?></option><?php endforeach; ?>
-                    </select></div>
-                <div><label for="ffinancial">Lançamento financeiro</label>
-                    <select id="ffinancial" name="financial_entry_id"><option value="">Todos</option>
-                    <?php foreach (($financials ?? []) as $fe): ?><option value="<?= (int) $fe['id'] ?>" <?= (int)($filters['financial_entry_id']??0)===(int)$fe['id']?'selected':'' ?>><?= e($fe['label']??'') ?></option><?php endforeach; ?>
-                    </select></div>
-                <div><label for="fcat">Categoria</label>
-                    <select id="fcat" name="category"><option value="">Todas</option>
-                    <?php foreach ($categories as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('category')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
-                    </select></div>
-                <div><label for="fstatus">Status</label>
-                    <select id="fstatus" name="status"><option value="">Todos</option>
-                    <?php foreach ($statuses as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('status')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
-                    </select></div>
-                <div><label for="faccess">Nível de acesso</label>
-                    <select id="faccess" name="access_level"><option value="">Todos</option>
-                    <?php foreach ($accessLevels as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('access_level')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
-                    </select></div>
-                <div><label for="fresp">Responsável</label>
-                    <select id="fresp" name="responsible_user_id"><option value="">Todos</option>
-                    <?php foreach ($users as $u): ?><option value="<?= (int)$u['id'] ?>" <?= (int)($filters['responsible_user_id']??0)===(int)$u['id']?'selected':'' ?>><?= e($u['name']) ?></option><?php endforeach; ?>
-                    </select></div>
-                <div><label for="vfrom">Validade de</label><input type="date" id="vfrom" name="valid_from" value="<?= e($f('valid_from')) ?>"></div>
-                <div><label for="vto">Validade até</label><input type="date" id="vto" name="valid_to" value="<?= e($f('valid_to')) ?>"></div>
-                <div class="filter-checks">
-                    <label><input type="checkbox" name="expired" value="1" <?= !empty($filters['expired'])?'checked':'' ?>> Vencidos</label>
-                    <label><input type="checkbox" name="show_archived" value="1" <?= !empty($filters['show_archived'])?'checked':'' ?>> Arquivados</label>
+        <form method="get" action="<?= e(app_url('/documents')) ?>" class="filter-box filter-box--financial">
+            <div class="filter-grid filter-grid--financial">
+                <div class="filter-q"><label for="q">Busca</label><input type="text" id="q" name="q" class="input" value="<?= e($f('q')) ?>" placeholder="Título, descrição, arquivo, empresa, proposta"></div>
+            </div>
+
+            <div class="filter-subsection">
+                <span class="filter-subsection__title">Vínculos</span>
+                <div class="filter-grid filter-grid--financial">
+                    <div><label for="fcompany">Empresa</label>
+                        <select id="fcompany" name="company_id" class="input"><option value="">Todas</option>
+                        <?php foreach ($companies as $co): ?><option value="<?= (int) $co['id'] ?>" <?= (int)($filters['company_id']??0)===(int)$co['id']?'selected':'' ?>><?= e($co['name']) ?></option><?php endforeach; ?>
+                        </select></div>
+                    <div><label for="fcontact">Contato</label>
+                        <select id="fcontact" name="contact_id" class="input"><option value="">Todos</option>
+                        <?php foreach ($contacts as $ct): ?><option value="<?= (int) $ct['id'] ?>" <?= (int)($filters['contact_id']??0)===(int)$ct['id']?'selected':'' ?>><?= e($ct['label']??'') ?></option><?php endforeach; ?>
+                        </select></div>
+                    <div><label for="fopp">Oportunidade</label>
+                        <select id="fopp" name="opportunity_id" class="input"><option value="">Todas</option>
+                        <?php foreach ($opportunities as $op): ?><option value="<?= (int) $op['id'] ?>" <?= (int)($filters['opportunity_id']??0)===(int)$op['id']?'selected':'' ?>><?= e($op['label']??'') ?></option><?php endforeach; ?>
+                        </select></div>
+                    <div><label for="fquota">Cota</label>
+                        <select id="fquota" name="quota_id" class="input"><option value="">Todas</option>
+                        <?php foreach ($quotas as $q): ?><option value="<?= (int) $q['id'] ?>" <?= (int)($filters['quota_id']??0)===(int)$q['id']?'selected':'' ?>><?= e($q['name']??'') ?></option><?php endforeach; ?>
+                        </select></div>
+                    <div><label for="fproposal">Proposta</label>
+                        <select id="fproposal" name="proposal_id" class="input"><option value="">Todas</option>
+                        <?php foreach ($proposals as $pr): ?><option value="<?= (int) $pr['id'] ?>" <?= (int)($filters['proposal_id']??0)===(int)$pr['id']?'selected':'' ?>><?= e($pr['label']??'') ?></option><?php endforeach; ?>
+                        </select></div>
+                    <div><label for="flead">Lead</label>
+                        <select id="flead" name="lead_id" class="input"><option value="">Todos</option>
+                        <?php foreach ($leads as $ld): ?><option value="<?= (int) $ld['id'] ?>" <?= (int)($filters['lead_id']??0)===(int)$ld['id']?'selected':'' ?>><?= e($ld['label']??'') ?></option><?php endforeach; ?>
+                        </select></div>
+                    <div><label for="fsponsor">Patrocinador</label>
+                        <select id="fsponsor" name="sponsor_id" class="input"><option value="">Todos</option>
+                        <?php foreach ($sponsors as $sp): ?><option value="<?= (int) $sp['id'] ?>" <?= (int)($filters['sponsor_id']??0)===(int)$sp['id']?'selected':'' ?>><?= e($sp['label']??'') ?></option><?php endforeach; ?>
+                        </select></div>
+                    <div><label for="fcounterpart">Contrapartida</label>
+                        <select id="fcounterpart" name="counterpart_id" class="input"><option value="">Todas</option>
+                        <?php foreach ($counterparts as $cp): ?><option value="<?= (int) $cp['id'] ?>" <?= (int)($filters['counterpart_id']??0)===(int)$cp['id']?'selected':'' ?>><?= e($cp['label']??'') ?></option><?php endforeach; ?>
+                        </select></div>
+                    <div><label for="fcontract">Contrato</label>
+                        <select id="fcontract" name="contract_id" class="input"><option value="">Todos</option>
+                        <?php foreach ($contracts as $ct): ?><option value="<?= (int) $ct['id'] ?>" <?= (int)($filters['contract_id']??0)===(int)$ct['id']?'selected':'' ?>><?= e($ct['label']??'') ?></option><?php endforeach; ?>
+                        </select></div>
+                    <div><label for="ffinancial">Lançamento financeiro</label>
+                        <select id="ffinancial" name="financial_entry_id" class="input"><option value="">Todos</option>
+                        <?php foreach (($financials ?? []) as $fe): ?><option value="<?= (int) $fe['id'] ?>" <?= (int)($filters['financial_entry_id']??0)===(int)$fe['id']?'selected':'' ?>><?= e($fe['label']??'') ?></option><?php endforeach; ?>
+                        </select></div>
                 </div>
             </div>
-            <div class="actions-row">
-                <button type="submit" class="btn btn-sm btn-yellow">Filtrar</button>
+
+            <div class="filter-subsection">
+                <span class="filter-subsection__title">Classificação</span>
+                <div class="filter-grid filter-grid--financial">
+                    <div><label for="fcat">Categoria</label>
+                        <select id="fcat" name="category" class="input"><option value="">Todas</option>
+                        <?php foreach ($categories as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('category')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
+                        </select></div>
+                    <div><label for="fstatus">Status</label>
+                        <select id="fstatus" name="status" class="input"><option value="">Todos</option>
+                        <?php foreach ($statuses as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('status')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
+                        </select></div>
+                    <div><label for="faccess">Nível de acesso</label>
+                        <select id="faccess" name="access_level" class="input"><option value="">Todos</option>
+                        <?php foreach ($accessLevels as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('access_level')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
+                        </select></div>
+                    <div><label for="fresp">Responsável</label>
+                        <select id="fresp" name="responsible_user_id" class="input"><option value="">Todos</option>
+                        <?php foreach ($users as $u): ?><option value="<?= (int)$u['id'] ?>" <?= (int)($filters['responsible_user_id']??0)===(int)$u['id']?'selected':'' ?>><?= e($u['name']) ?></option><?php endforeach; ?>
+                        </select></div>
+                </div>
+            </div>
+
+            <div class="filter-subsection">
+                <span class="filter-subsection__title">Validade</span>
+                <div class="filter-grid filter-grid--dates">
+                    <div><label for="vfrom">De</label><input type="date" id="vfrom" name="valid_from" class="input" value="<?= e($f('valid_from')) ?>"></div>
+                    <div><label for="vto">Até</label><input type="date" id="vto" name="valid_to" class="input" value="<?= e($f('valid_to')) ?>"></div>
+                </div>
+            </div>
+
+            <div class="filter-flags">
+                <span class="filter-flags__title">Situação rápida</span>
+                <div class="filter-checks">
+                    <label class="check-inline"><input type="checkbox" name="expired" value="1" <?= !empty($filters['expired'])?'checked':'' ?>> Vencidos</label>
+                    <label class="check-inline"><input type="checkbox" name="show_archived" value="1" <?= !empty($filters['show_archived'])?'checked':'' ?>> Arquivados</label>
+                </div>
+            </div>
+
+            <div class="filter-actions-row">
+                <button type="submit" class="btn btn-sm btn-yellow"><i data-lucide="filter"></i> Filtrar</button>
                 <a href="<?= e(app_url('/documents')) ?>" class="btn btn-sm btn-outline">Limpar</a>
-                <?php if ($canCreate): ?>
-                    <a href="<?= e($createUrl) ?>" class="btn btn-sm btn-yellow"><i data-lucide="plus"></i> Novo documento</a>
-                <?php endif; ?>
             </div>
         </form>
 

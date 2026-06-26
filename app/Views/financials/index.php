@@ -70,60 +70,71 @@ $createUrl = app_url('/financials/create');
             </div>
         <?php endif; ?>
 
-        <form method="get" action="<?= e(app_url('/financials')) ?>" class="filter-box">
-            <div class="filter-grid">
-                <div class="filter-q"><label for="q">Busca</label><input type="text" id="q" name="q" value="<?= e($f('q')) ?>" placeholder="Título, número, patrocinador, contrato, referências, notas"></div>
+        <form method="get" action="<?= e(app_url('/financials')) ?>" class="filter-box filter-box--financial">
+            <div class="filter-grid filter-grid--financial">
+                <div class="filter-q"><label for="q">Busca</label><input type="text" id="q" name="q" class="input" value="<?= e($f('q')) ?>" placeholder="Título, número, patrocinador, contrato, referências, notas"></div>
                 <div><label for="fsponsor">Patrocinador</label>
-                    <select id="fsponsor" name="sponsor_id"><option value="">Todos</option>
+                    <select id="fsponsor" name="sponsor_id" class="input"><option value="">Todos</option>
                     <?php foreach ($sponsors as $sp): ?><option value="<?= (int) $sp['id'] ?>" <?= (int)($filters['sponsor_id']??0)===(int)$sp['id']?'selected':'' ?>><?= e($sp['name']) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fcontract">Contrato</label>
-                    <select id="fcontract" name="contract_id"><option value="">Todos</option>
+                    <select id="fcontract" name="contract_id" class="input"><option value="">Todos</option>
                     <?php foreach ($contracts as $cn): ?><option value="<?= (int) $cn['id'] ?>" <?= (int)($filters['contract_id']??0)===(int)$cn['id']?'selected':'' ?>><?= e($cn['label'] ?? '') ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fcompany">Empresa</label>
-                    <select id="fcompany" name="company_id"><option value="">Todas</option>
+                    <select id="fcompany" name="company_id" class="input"><option value="">Todas</option>
                     <?php foreach ($companies as $co): ?><option value="<?= (int) $co['id'] ?>" <?= (int)($filters['company_id']??0)===(int)$co['id']?'selected':'' ?>><?= e($co['name']) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="ftype">Tipo</label>
-                    <select id="ftype" name="entry_type"><option value="">Todos</option>
+                    <select id="ftype" name="entry_type" class="input"><option value="">Todos</option>
                     <?php foreach ($entryTypes as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('entry_type')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fmech">Mecanismo</label>
-                    <select id="fmech" name="funding_mechanism"><option value="">Todos</option>
+                    <select id="fmech" name="funding_mechanism" class="input"><option value="">Todos</option>
                     <?php foreach ($fundingMechanisms as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('funding_mechanism')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fpay">Pagamento</label>
-                    <select id="fpay" name="payment_method"><option value="">Todos</option>
+                    <select id="fpay" name="payment_method" class="input"><option value="">Todos</option>
                     <?php foreach ($paymentMethods as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('payment_method')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fstatus">Status</label>
-                    <select id="fstatus" name="status"><option value="">Todos</option>
+                    <select id="fstatus" name="status" class="input"><option value="">Todos</option>
                     <?php foreach ($statuses as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('status')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="ffiscal">Status fiscal</label>
-                    <select id="ffiscal" name="fiscal_document_status"><option value="">Todos</option>
+                    <select id="ffiscal" name="fiscal_document_status" class="input"><option value="">Todos</option>
                     <?php foreach ($fiscalStatuses as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('fiscal_document_status')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fresp">Responsável</label>
-                    <select id="fresp" name="responsible_user_id"><option value="">Todos</option>
+                    <select id="fresp" name="responsible_user_id" class="input"><option value="">Todos</option>
                     <?php foreach ($users as $u): ?><option value="<?= (int)$u['id'] ?>" <?= (int)($filters['responsible_user_id']??0)===(int)$u['id']?'selected':'' ?>><?= e($u['name']) ?></option><?php endforeach; ?>
                     </select></div>
-                <div><label for="due_from">Vencimento de</label><input type="date" id="due_from" name="due_from" value="<?= e($f('due_from')) ?>"></div>
-                <div><label for="due_to">Vencimento até</label><input type="date" id="due_to" name="due_to" value="<?= e($f('due_to')) ?>"></div>
-                <div><label for="received_from">Recebimento de</label><input type="date" id="received_from" name="received_from" value="<?= e($f('received_from')) ?>"></div>
-                <div><label for="received_to">Recebimento até</label><input type="date" id="received_to" name="received_to" value="<?= e($f('received_to')) ?>"></div>
-                <div class="filter-checks">
-                    <label><input type="checkbox" name="overdue" value="1" <?= !empty($filters['overdue'])?'checked':'' ?>> Atrasados</label>
-                    <label><input type="checkbox" name="received" value="1" <?= !empty($filters['received'])?'checked':'' ?>> Recebidos</label>
-                    <label><input type="checkbox" name="partial" value="1" <?= !empty($filters['partial'])?'checked':'' ?>> Parciais</label>
-                    <label><input type="checkbox" name="reconciled" value="1" <?= !empty($filters['reconciled'])?'checked':'' ?>> Conciliados</label>
-                    <label><input type="checkbox" name="pending" value="1" <?= !empty($filters['pending'])?'checked':'' ?>> Pendentes</label>
-                    <label><input type="checkbox" name="show_archived" value="1" <?= !empty($filters['show_archived'])?'checked':'' ?>> Arquivados</label>
+            </div>
+
+            <div class="filter-subsection">
+                <span class="filter-subsection__title">Períodos</span>
+                <div class="filter-grid filter-grid--dates">
+                    <div><label for="due_from">Vencimento de</label><input type="date" id="due_from" name="due_from" class="input" value="<?= e($f('due_from')) ?>"></div>
+                    <div><label for="due_to">Vencimento até</label><input type="date" id="due_to" name="due_to" class="input" value="<?= e($f('due_to')) ?>"></div>
+                    <div><label for="received_from">Recebimento de</label><input type="date" id="received_from" name="received_from" class="input" value="<?= e($f('received_from')) ?>"></div>
+                    <div><label for="received_to">Recebimento até</label><input type="date" id="received_to" name="received_to" class="input" value="<?= e($f('received_to')) ?>"></div>
                 </div>
             </div>
-            <div class="actions-row">
-                <button type="submit" class="btn btn-sm btn-yellow">Filtrar</button>
+
+            <div class="filter-flags">
+                <span class="filter-flags__title">Situação rápida</span>
+                <div class="filter-checks">
+                    <label class="check-inline"><input type="checkbox" name="overdue" value="1" <?= !empty($filters['overdue'])?'checked':'' ?>> Atrasados</label>
+                    <label class="check-inline"><input type="checkbox" name="received" value="1" <?= !empty($filters['received'])?'checked':'' ?>> Recebidos</label>
+                    <label class="check-inline"><input type="checkbox" name="partial" value="1" <?= !empty($filters['partial'])?'checked':'' ?>> Parciais</label>
+                    <label class="check-inline"><input type="checkbox" name="reconciled" value="1" <?= !empty($filters['reconciled'])?'checked':'' ?>> Conciliados</label>
+                    <label class="check-inline"><input type="checkbox" name="pending" value="1" <?= !empty($filters['pending'])?'checked':'' ?>> Pendentes</label>
+                    <label class="check-inline"><input type="checkbox" name="show_archived" value="1" <?= !empty($filters['show_archived'])?'checked':'' ?>> Arquivados</label>
+                </div>
+            </div>
+
+            <div class="filter-actions-row">
+                <button type="submit" class="btn btn-sm btn-yellow"><i data-lucide="filter"></i> Filtrar</button>
                 <a href="<?= e(app_url('/financials')) ?>" class="btn btn-sm btn-outline">Limpar</a>
             </div>
         </form>

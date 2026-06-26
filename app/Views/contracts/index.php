@@ -61,53 +61,64 @@ $createUrl = app_url('/contracts/create');
             </div>
         <?php endif; ?>
 
-        <form method="get" action="<?= e(app_url('/contracts')) ?>" class="filter-box">
-            <div class="filter-grid">
-                <div class="filter-q"><label for="q">Busca</label><input type="text" id="q" name="q" value="<?= e($f('q')) ?>" placeholder="Título, número, patrocinador, empresa, notas"></div>
+        <form method="get" action="<?= e(app_url('/contracts')) ?>" class="filter-box filter-box--financial">
+            <div class="filter-grid filter-grid--financial">
+                <div class="filter-q"><label for="q">Busca</label><input type="text" id="q" name="q" class="input" value="<?= e($f('q')) ?>" placeholder="Título, número, patrocinador, empresa, notas"></div>
                 <div><label for="fsponsor">Patrocinador</label>
-                    <select id="fsponsor" name="sponsor_id"><option value="">Todos</option>
+                    <select id="fsponsor" name="sponsor_id" class="input"><option value="">Todos</option>
                     <?php foreach ($sponsors as $sp): ?><option value="<?= (int) $sp['id'] ?>" <?= (int)($filters['sponsor_id']??0)===(int)$sp['id']?'selected':'' ?>><?= e($sp['name']) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fcompany">Empresa</label>
-                    <select id="fcompany" name="company_id"><option value="">Todas</option>
+                    <select id="fcompany" name="company_id" class="input"><option value="">Todas</option>
                     <?php foreach ($companies as $co): ?><option value="<?= (int) $co['id'] ?>" <?= (int)($filters['company_id']??0)===(int)$co['id']?'selected':'' ?>><?= e($co['name']) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="ftype">Tipo</label>
-                    <select id="ftype" name="contract_type"><option value="">Todos</option>
+                    <select id="ftype" name="contract_type" class="input"><option value="">Todos</option>
                     <?php foreach ($contractTypes as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('contract_type')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fmech">Mecanismo</label>
-                    <select id="fmech" name="funding_mechanism"><option value="">Todos</option>
+                    <select id="fmech" name="funding_mechanism" class="input"><option value="">Todos</option>
                     <?php foreach ($fundingMechanisms as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('funding_mechanism')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fstatus">Status</label>
-                    <select id="fstatus" name="status"><option value="">Todos</option>
+                    <select id="fstatus" name="status" class="input"><option value="">Todos</option>
                     <?php foreach ($statuses as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('status')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="freview">Revisão</label>
-                    <select id="freview" name="review_status"><option value="">Todos</option>
+                    <select id="freview" name="review_status" class="input"><option value="">Todos</option>
                     <?php foreach ($reviewStatuses as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('review_status')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fsig">Assinatura</label>
-                    <select id="fsig" name="signature_status"><option value="">Todos</option>
+                    <select id="fsig" name="signature_status" class="input"><option value="">Todos</option>
                     <?php foreach ($signatureStatuses as $k=>$label): ?><option value="<?= e($k) ?>" <?= $f('signature_status')===$k?'selected':'' ?>><?= e($label) ?></option><?php endforeach; ?>
                     </select></div>
                 <div><label for="fresp">Responsável</label>
-                    <select id="fresp" name="responsible_user_id"><option value="">Todos</option>
+                    <select id="fresp" name="responsible_user_id" class="input"><option value="">Todos</option>
                     <?php foreach ($users as $u): ?><option value="<?= (int)$u['id'] ?>" <?= (int)($filters['responsible_user_id']??0)===(int)$u['id']?'selected':'' ?>><?= e($u['name']) ?></option><?php endforeach; ?>
                     </select></div>
-                <div><label for="start_from">Início de</label><input type="date" id="start_from" name="start_from" value="<?= e($f('start_from')) ?>"></div>
-                <div><label for="end_to">Término até</label><input type="date" id="end_to" name="end_to" value="<?= e($f('end_to')) ?>"></div>
-                <div class="filter-checks">
-                    <label><input type="checkbox" name="expired" value="1" <?= !empty($filters['expired'])?'checked':'' ?>> Vencidos</label>
-                    <label><input type="checkbox" name="active_vigente" value="1" <?= !empty($filters['active_vigente'])?'checked':'' ?>> Vigentes</label>
-                    <label><input type="checkbox" name="awaiting_signature" value="1" <?= !empty($filters['awaiting_signature'])?'checked':'' ?>> Aguardando assinatura</label>
-                    <label><input type="checkbox" name="signed" value="1" <?= !empty($filters['signed'])?'checked':'' ?>> Assinados</label>
-                    <label><input type="checkbox" name="show_archived" value="1" <?= !empty($filters['show_archived'])?'checked':'' ?>> Arquivados</label>
+            </div>
+
+            <div class="filter-subsection">
+                <span class="filter-subsection__title">Vigência</span>
+                <div class="filter-grid filter-grid--dates">
+                    <div><label for="start_from">Início de</label><input type="date" id="start_from" name="start_from" class="input" value="<?= e($f('start_from')) ?>"></div>
+                    <div><label for="end_to">Término até</label><input type="date" id="end_to" name="end_to" class="input" value="<?= e($f('end_to')) ?>"></div>
                 </div>
             </div>
-            <div class="actions-row">
-                <button type="submit" class="btn btn-sm btn-yellow">Filtrar</button>
+
+            <div class="filter-flags">
+                <span class="filter-flags__title">Situação rápida</span>
+                <div class="filter-checks">
+                    <label class="check-inline"><input type="checkbox" name="expired" value="1" <?= !empty($filters['expired'])?'checked':'' ?>> Vencidos</label>
+                    <label class="check-inline"><input type="checkbox" name="active_vigente" value="1" <?= !empty($filters['active_vigente'])?'checked':'' ?>> Vigentes</label>
+                    <label class="check-inline"><input type="checkbox" name="awaiting_signature" value="1" <?= !empty($filters['awaiting_signature'])?'checked':'' ?>> Aguardando assinatura</label>
+                    <label class="check-inline"><input type="checkbox" name="signed" value="1" <?= !empty($filters['signed'])?'checked':'' ?>> Assinados</label>
+                    <label class="check-inline"><input type="checkbox" name="show_archived" value="1" <?= !empty($filters['show_archived'])?'checked':'' ?>> Arquivados</label>
+                </div>
+            </div>
+
+            <div class="filter-actions-row">
+                <button type="submit" class="btn btn-sm btn-yellow"><i data-lucide="filter"></i> Filtrar</button>
                 <a href="<?= e(app_url('/contracts')) ?>" class="btn btn-sm btn-outline">Limpar</a>
             </div>
         </form>
