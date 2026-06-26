@@ -200,6 +200,12 @@ final class DashboardController extends Controller
             $dossiersWithBalance       = $dossierModel->countWithFinancialBalance();
         }
 
+        $reportsAvailable = can('reports.view');
+        $reportTasksOverdue = $tasksOverdue;
+        $reportFinancialRemaining = $financialsRemaining;
+        $reportCounterpartsOverdue = $counterpartsOverdue;
+        $reportContractsAwaiting = $contractsAwaiting;
+
         $this->view('dashboard/index', [
             'title'              => 'Painel Administrativo',
             'user'               => $this->currentUser(),
@@ -258,6 +264,11 @@ final class DashboardController extends Controller
             'dossiersPending'         => $dossiersPending,
             'dossiersPendingCounterparts' => $dossiersPendingCounterparts,
             'dossiersWithBalance'     => $dossiersWithBalance,
+            'reportsAvailable'        => $reportsAvailable,
+            'reportTasksOverdue'      => $reportTasksOverdue,
+            'reportFinancialRemaining'=> $reportFinancialRemaining,
+            'reportCounterpartsOverdue'=> $reportCounterpartsOverdue,
+            'reportContractsAwaiting' => $reportContractsAwaiting,
         ], 'layouts/admin');
     }
 }

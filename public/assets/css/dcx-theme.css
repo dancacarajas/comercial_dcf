@@ -1865,3 +1865,29 @@ tr.task-overdue > td:first-child { box-shadow: inset 3px 0 0 #d34a4a; }
 .badge-del-nao_entregue { background: #f1f1ef; color: #555; border-color: #dededb; }
 .badge-del-entregue_patrocinador { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
 .badge-del-preparando_entrega { background: #fff9e0; color: #5a4800; border-color: #f0dd9a; }
+
+/* Etapa 17 — Relatórios / Indicadores Gerenciais */
+.report-card { border: 1px solid #e6e6e1; background: #fff; border-radius: 14px; }
+.report-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 20px 0; }
+.report-metric { padding: 16px; border-radius: 12px; border: 1px solid #e6e6e1; background: #fff; }
+.report-metric-label { display: block; font-size: 12px; font-weight: 700; color: #666; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .04em; }
+.report-metric-value { font-size: 22px; font-weight: 900; color: var(--dcx-black); font-family: var(--font-heading); }
+.report-metric-money .report-metric-value { color: #1f6b3a; }
+.report-filter { margin: 16px 0; }
+.report-table thead th { background: var(--dcx-black); color: #fff; }
+.report-alert { margin: 12px 0; }
+.report-ranking-list { list-style: none; padding: 0; margin: 0; }
+.report-ranking-list li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-bottom: 1px solid #ececea; }
+.report-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 20px; }
+.report-nav-link { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; border: 1px solid #dededb; background: #fff; font-weight: 700; font-size: 13px; color: var(--dcx-black); text-decoration: none; }
+.report-nav-link.is-active { background: var(--dcx-yellow); border-color: var(--dcx-yellow); }
+.report-section { margin-top: 24px; }
+.report-empty { padding: 28px; text-align: center; color: #666; background: #fafaf8; border: 1px dashed #dededb; border-radius: 12px; }
+.report-snapshot summary { list-style: none; }
+.report-print { background: #fff; }
+.report-print-header { margin-bottom: 20px; border-bottom: 2px solid var(--dcx-yellow); padding-bottom: 12px; }
+.report-print-body { background: #f5f5f3; font-family: var(--font-body); }
+@media print {
+    .report-print-body { background: #fff; }
+    .report-nav, .report-filter, .report-snapshot, .no-print { display: none !important; }
+}

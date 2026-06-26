@@ -296,6 +296,25 @@ return function (Router $router): void {
     $router->post('/sponsor-dossiers/{id}/items/{itemId}/restore', 'SponsorDossierController@restoreItem',  ['AuthMiddleware']);
     $router->get('/sponsor-dossiers/{id}/documents/create',        'DocumentController@createForSponsorDossier', ['AuthMiddleware']);
 
+    // Relatórios / Indicadores gerenciais (Etapa 17)
+    $router->get('/reports/snapshots',                    'ReportController@snapshots',        ['AuthMiddleware']);
+    $router->get('/reports/snapshots/{id}',               'ReportController@snapshotShow',     ['AuthMiddleware']);
+    $router->post('/reports/snapshots',                   'ReportController@storeSnapshot',  ['AuthMiddleware']);
+    $router->post('/reports/snapshots/{id}/archive',      'ReportController@archiveSnapshot',  ['AuthMiddleware']);
+    $router->post('/reports/snapshots/{id}/restore',      'ReportController@restoreSnapshot',  ['AuthMiddleware']);
+    $router->get('/reports/print',                        'ReportController@printGeneral',     ['AuthMiddleware']);
+    $router->get('/reports/pipeline',                     'ReportController@pipeline',         ['AuthMiddleware']);
+    $router->get('/reports/proposals',                    'ReportController@proposals',        ['AuthMiddleware']);
+    $router->get('/reports/sponsors',                       'ReportController@sponsors',         ['AuthMiddleware']);
+    $router->get('/reports/financials',                   'ReportController@financials',       ['AuthMiddleware']);
+    $router->get('/reports/contracts',                    'ReportController@contracts',        ['AuthMiddleware']);
+    $router->get('/reports/counterparts',                 'ReportController@counterparts',     ['AuthMiddleware']);
+    $router->get('/reports/dossiers',                     'ReportController@dossiers',         ['AuthMiddleware']);
+    $router->get('/reports/tasks',                        'ReportController@tasks',            ['AuthMiddleware']);
+    $router->get('/reports/leads',                        'ReportController@leads',            ['AuthMiddleware']);
+    $router->get('/reports/{reportKey}/print',            'ReportController@printReport',      ['AuthMiddleware']);
+    $router->get('/reports',                              'ReportController@index',            ['AuthMiddleware']);
+
     // Endpoint público de leads (sem AuthMiddleware; CORS para WordPress)
     $router->post('/api/leads/site', 'Api\LeadApiController@site');
     $router->add('OPTIONS', '/api/leads/site', 'Api\LeadApiController@site');

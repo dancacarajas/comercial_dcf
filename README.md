@@ -1829,6 +1829,97 @@ Resultado esperado: **127 PASS / 0 FAIL** (Docker `http://localhost`).
 
 ---
 
+## Etapa 17 — Relatórios Avançados / Indicadores Gerenciais
+
+Módulo interno de **leitura e consolidação** dos principais indicadores comerciais, financeiros, operacionais e de entrega. Camada somente leitura — **não altera** registros originais dos demais módulos.
+
+**Fora do escopo desta etapa:** BI externo, Power BI, Looker Studio, exportador Excel global, PDF automático, envio automático por e-mail/WhatsApp, portal externo, link público, agendamento recorrente, integrações Google Drive/Dropbox/bancárias, cobrança automática, NF/boleto e assinatura digital.
+
+### Migration
+
+```powershell
+Get-Content -Raw database/migrations/2026_etapa17_reports.sql | docker exec -i dcc_db mariadb -udanca -pdanca danca_captacao
+```
+
+Cria:
+
+- Tabela `report_snapshots` (snapshots manuais com filtros, métricas e resumo JSON)
+- Permissões `reports.view|generate|snapshots|archive|print` e matriz por perfil
+
+### Tabela `report_snapshots`
+
+| Campo | Descrição |
+|-------|-----------|
+| `report_key` | Chave do relatório (`executive`, `pipeline`, `proposals`, …) |
+| `title`, `description`, `notes` | Metadados do snapshot |
+| `period_start`, `period_end` | Período analisado |
+| `filters_json`, `metrics_json`, `summary_json` | Dados consolidados no momento da geração |
+| `status` | `gerado`, `revisado`, `arquivado` |
+| `generated_by`, `generated_at` | Autor e data da geração |
+| `archived_at` | Arquivamento lógico (sem DELETE físico) |
+
+### Permissões
+
+| Perfil | reports.* |
+|--------|-----------|
+| Administrador Geral | view, generate, snapshots, archive, print |
+| Captação / Comercial | view, generate, snapshots, print |
+| Produção / Coordenação | view, generate, print |
+| Comunicação | view, generate, print |
+| Leitura / Consulta | view, print |
+
+### Relatórios internos
+
+| Rota | Relatório |
+|------|-----------|
+| `GET /reports` | Executivo geral |
+| `GET /reports/pipeline` | Funil comercial |
+| `GET /reports/proposals` | Propostas |
+| `GET /reports/sponsors` | Patrocinadores |
+| `GET /reports/financials` | Financeiro |
+| `GET /reports/contracts` | Contratos |
+| `GET /reports/counterparts` | Contrapartidas |
+| `GET /reports/dossiers` | Dossiês |
+| `GET /reports/tasks` | Tarefas e pendências |
+| `GET /reports/leads` | Leads do site |
+
+### Filtros globais (URL)
+
+`period_start`, `period_end`, `responsible_user_id`, `company_id`, `sponsor_id`, `quota_id`, `status`, `source`, `only_pending`, `only_overdue` — com botão **Limpar filtros** e aviso quando `period_end < period_start`.
+
+### Snapshots manuais
+
+- `GET /reports/snapshots` — listagem (15/página; arquivados ocultos por padrão)
+- `POST /reports/snapshots` — geração manual (`reports.snapshots` + CSRF)
+- `GET /reports/snapshots/{id}` — visualização dos dados salvos
+- `POST /reports/snapshots/{id}/archive|restore` — arquivamento lógico (`reports.archive`)
+
+### Impressão autenticada
+
+- `GET /reports/print` e `GET /reports/{reportKey}/print` — layout limpo para impressão pelo navegador (`reports.print`); **sem PDF automático nem link público**.
+
+### Validação local
+
+```bash
+docker exec dcc_app php /var/www/html/scripts/validate_etapa17.php
+```
+
+Resultado esperado: **87 PASS / 0 FAIL** (Docker `http://localhost`).
+
+### Checklist de testes (Etapa 17 — seção 21)
+
+- [ ] Migration executada; tabela `report_snapshots` e permissões `reports.*` criadas
+- [ ] Matriz de roles conforme spec; menu Relatórios só com `reports.view`
+- [ ] 10 relatórios + filtros + cards/tabelas + estado vazio
+- [ ] Snapshots: criar, listar, show, archive/restore sem DELETE físico
+- [ ] Impressão autenticada; CSRF em POST; 403/419 conforme permissão
+- [ ] Dashboard com bloco Indicadores Gerenciais
+- [ ] **NÃO** criados: BI externo, Excel global, PDF automático, envio automático, portal/link público, agendador, integrações externas
+
+> **Deploy em produção:** somente após validação local completa e aprovação explícita.
+
+---
+
 ## Segurança implementada nesta etapa
 
 - Apenas `/public` acessível pela web; `app/`, `config/`, `routes/`, `storage/` bloqueados via `.htaccess`.

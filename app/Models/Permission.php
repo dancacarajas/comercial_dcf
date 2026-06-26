@@ -17,7 +17,6 @@ final class Permission extends Model
      * Prefixos de permissoes RESERVADAS para modulos de CRM futuros.
      */
     private const RESERVED_PREFIXES = [
-        'reports',
     ];
 
     /**

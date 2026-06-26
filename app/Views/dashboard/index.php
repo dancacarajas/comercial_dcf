@@ -64,6 +64,11 @@ $dossiersDelivered       = $dossiersDelivered ?? null;
 $dossiersPending         = $dossiersPending ?? null;
 $dossiersPendingCounterparts = $dossiersPendingCounterparts ?? null;
 $dossiersWithBalance     = $dossiersWithBalance ?? null;
+$reportsAvailable         = !empty($reportsAvailable);
+$reportTasksOverdue       = $reportTasksOverdue ?? null;
+$reportFinancialRemaining = $reportFinancialRemaining ?? null;
+$reportCounterpartsOverdue= $reportCounterpartsOverdue ?? null;
+$reportContractsAwaiting  = $reportContractsAwaiting ?? null;
 ?>
 
 <section class="section section-dark">
@@ -322,6 +327,28 @@ $dossiersWithBalance     = $dossiersWithBalance ?? null;
                 </article>
             <?php endif; ?>
 
+            <?php if ($reportsAvailable): ?>
+                <article class="card card-accent report-card">
+                    <span class="card-icon"><i data-lucide="chart-no-axes-combined"></i></span>
+                    <h3>Indicadores Gerenciais</h3>
+                    <p style="font-size:14px;margin-bottom:12px;">Relatórios internos consolidados para tomada de decisão comercial.</p>
+                    <p style="margin-bottom:8px;">
+                        <?php if ($reportTasksOverdue !== null): ?><span class="pill"><?= (int) $reportTasksOverdue ?> tarefa(s) vencida(s)</span><?php endif; ?>
+                        <?php if ($reportCounterpartsOverdue !== null): ?><span class="pill"><?= (int) $reportCounterpartsOverdue ?> contrap. atrasada(s)</span><?php endif; ?>
+                        <?php if ($reportContractsAwaiting !== null): ?><span class="pill"><?= (int) $reportContractsAwaiting ?> contrato(s) aguard. assinatura</span><?php endif; ?>
+                    </p>
+                    <p style="display:flex;flex-wrap:wrap;gap:8px 14px;">
+                        <a href="<?= e(app_url('/reports')) ?>" class="link-strong"><i data-lucide="layout-dashboard"></i> Executivo</a>
+                        <a href="<?= e(app_url('/reports/pipeline')) ?>" class="link-strong">Funil</a>
+                        <a href="<?= e(app_url('/reports/financials')) ?>" class="link-strong">Financeiro</a>
+                        <a href="<?= e(app_url('/reports/counterparts')) ?>" class="link-strong">Contrapartidas</a>
+                        <a href="<?= e(app_url('/reports/contracts')) ?>" class="link-strong">Contratos</a>
+                        <a href="<?= e(app_url('/reports/dossiers')) ?>" class="link-strong">Dossiês</a>
+                        <a href="<?= e(app_url('/reports/tasks')) ?>" class="link-strong">Tarefas/Pendências</a>
+                    </p>
+                </article>
+            <?php endif; ?>
+
             <article class="card card-accent">
                 <span class="card-icon"><i data-lucide="id-card"></i></span>
                 <h3>Usuário autenticado</h3>
@@ -367,7 +394,7 @@ $dossiersWithBalance     = $dossiersWithBalance ?? null;
             <h3 class="h3-card flex items-center gap-12"><i data-lucide="info"></i> Módulos ativos: Empresas, Contatos, Oportunidades, Cotas, Tarefas, Leads, Propostas, Documentos e Patrocinadores</h3>
             <p>
                 O CRM comercial registra fechamentos de patrocínio com vínculos a empresa, proposta, cota e documentos.
-                Assinatura digital integrada, portal externo, relatórios avançados e automações externas ainda não foram criados.
+                Assinatura digital integrada, portal externo, BI externo, exportação Excel global, envio automático e automações externas continuam para etapas futuras. Relatórios internos e indicadores gerenciais estão disponíveis em Relatórios.
             </p>
         </div>
     </div>
