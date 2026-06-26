@@ -139,6 +139,7 @@ UPDATE `permissions`
  WHERE `slug` = 'counterparts.view';
 
 INSERT INTO `permissions` (`name`, `slug`, `description`) VALUES
+    ('Ver contrapartidas',    'counterparts.view',    'Visualizar contrapartidas dos patrocinadores'),
     ('Criar contrapartidas',    'counterparts.create',  'Registrar contrapartidas de patrocinadores'),
     ('Editar contrapartidas',   'counterparts.edit',    'Editar contrapartidas'),
     ('Arquivar contrapartidas', 'counterparts.archive', 'Arquivar e restaurar contrapartidas'),
@@ -146,29 +147,27 @@ INSERT INTO `permissions` (`name`, `slug`, `description`) VALUES
     ('Alterar status contrap.', 'counterparts.status',  'Alterar status de contrapartidas')
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `description` = VALUES(`description`);
 
-INSERT INTO `role_permissions` (`role_id`, `permission_id`)
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.`id`, p.`id`
 FROM `roles` r
 JOIN `permissions` p ON p.`slug` IN (
     'counterparts.view', 'counterparts.create', 'counterparts.edit',
     'counterparts.archive', 'counterparts.deliver', 'counterparts.status'
 )
-WHERE r.`slug` IN ('administrador-geral', 'captacao-comercial')
-ON DUPLICATE KEY UPDATE `role_id` = `role_permissions`.`role_id`;
+WHERE r.`slug` IN ('administrador-geral', 'captacao-comercial');
 
-INSERT INTO `role_permissions` (`role_id`, `permission_id`)
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.`id`, p.`id`
 FROM `roles` r
 JOIN `permissions` p ON p.`slug` IN (
     'counterparts.view', 'counterparts.create', 'counterparts.edit',
     'counterparts.deliver', 'counterparts.status'
 )
-WHERE r.`slug` IN ('producao-coordenacao', 'comunicacao')
-ON DUPLICATE KEY UPDATE `role_id` = `role_permissions`.`role_id`;
+WHERE r.`slug` IN ('producao-coordenacao', 'comunicacao');
 
-INSERT INTO `role_permissions` (`role_id`, `permission_id`)
+-- Garantia idempotente: Leitura / Consulta sempre recebe apenas counterparts.view
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.`id`, p.`id`
 FROM `roles` r
-JOIN `permissions` p ON p.`slug` = 'counterparts.view'
-WHERE r.`slug` = 'leitura-consulta'
-ON DUPLICATE KEY UPDATE `role_id` = `role_permissions`.`role_id`;
+INNER JOIN `permissions` p ON p.`slug` = 'counterparts.view'
+WHERE r.`slug` = 'leitura-consulta';

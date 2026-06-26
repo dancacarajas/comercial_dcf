@@ -10,6 +10,9 @@ declare(strict_types=1);
 const BASE_URL = 'https://comercial.dancacarajas.com.br';
 const PASSWORD = 'Mudar@123';
 const ADMIN_EMAIL = 'validacao-etapa13-admin@test.com';
+const SEM_VIEW_EMAIL = 'validacao-etapa13-sem@test.com';
+const LEITOR_EMAIL = 'validacao-etapa13-leitor@test.com';
+const COM_EMAIL = 'validacao-etapa13-com@test.com';
 
 final class HttpClient
 {
@@ -167,27 +170,13 @@ function dbq(string $sql, array $params = []): mixed
     return $st->fetch(PDO::FETCH_ASSOC);
 }
 
-function ensureSemCounterpartsUser(): void
+function ensureLeituraCounterpartView(): void
 {
-    $row = dbq('SELECT id FROM users WHERE email = ?', ['sem-counterparts@test.com']);
-    if ($row) {
-        return;
-    }
-    $hash = dbq('SELECT password_hash FROM users WHERE id = 1')['password_hash'];
-    db()->prepare(
-        'INSERT INTO users (name, email, password_hash, status, created_at) VALUES (?, ?, ?, ?, NOW())'
-    )->execute(['Sem Contrapartidas', 'sem-counterparts@test.com', $hash, 'active']);
-    $uid = (int) db()->lastInsertId();
     $roleId = dbq("SELECT id FROM roles WHERE slug = 'leitura-consulta'")['id'] ?? null;
-    if ($roleId) {
-        db()->prepare('INSERT IGNORE INTO user_roles (user_id, role_id) VALUES (?, ?)')->execute([$uid, $roleId]);
+    $permId = dbq("SELECT id FROM permissions WHERE slug = 'counterparts.view'")['id'] ?? null;
+    if ($roleId && $permId) {
+        db()->prepare('INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)')->execute([$roleId, $permId]);
     }
-    db()->prepare(
-        'DELETE rp FROM role_permissions rp
-         INNER JOIN permissions p ON p.id = rp.permission_id
-         INNER JOIN user_roles ur ON ur.role_id = rp.role_id
-         WHERE ur.user_id = ? AND p.slug LIKE ?'
-    )->execute([$uid, 'counterparts.%']);
 }
 
 function cpPayload(array $overrides = []): array
@@ -282,14 +271,14 @@ $r = $anon->get('/counterparts');
     ? $R->pass('auth', 'GET /counterparts sem login → 302')
     : $R->fail('auth', 'GET /counterparts sem login → 302', 'code=' . $r['code']);
 
-ensureSemCounterpartsUser();
+ensureLeituraCounterpartView();
 $sem = new HttpClient();
-$sem->login('sem-counterparts@test.com', PASSWORD);
+$sem->login(SEM_VIEW_EMAIL, PASSWORD);
 $r = $sem->get('/counterparts');
 ($r['code'] === 403) ? $R->pass('auth', 'GET /counterparts sem counterparts.view → 403') : $R->fail('auth', 'sem view → 403', 'code=' . $r['code']);
 
 $admin = new HttpClient();
-$admin->login(ADMIN_EMAIL, PASSWORD) || $admin->login('admin@dancacarajas.com', PASSWORD);
+$admin->login(ADMIN_EMAIL, PASSWORD);
 $r = $admin->get('/counterparts');
 ($r['code'] === 200) ? $R->pass('auth', 'GET /counterparts admin → 200') : $R->fail('auth', 'admin list', 'code=' . $r['code']);
 
@@ -306,9 +295,21 @@ $r = $sem->get('/counterparts/create');
 ($r['code'] === 403) ? $R->pass('auth', 'GET /counterparts/create sem create → 403') : $R->fail('auth', 'create sem perm', 'code=' . $r['code']);
 
 $badCsrf = new HttpClient();
-$badCsrf->login('admin@dancacarajas.com', PASSWORD);
+$badCsrf->login(ADMIN_EMAIL, PASSWORD);
 $r = $badCsrf->post('/counterparts', ['_csrf' => 'x', 'sponsor_id' => '1', 'title' => 'Teste']);
 ($r['code'] === 419) ? $R->pass('auth', 'POST CSRF inválido → 419') : $R->fail('auth', 'CSRF', 'code=' . $r['code']);
+
+$leitor = new HttpClient();
+$leitor->login(LEITOR_EMAIL, PASSWORD);
+$r = $leitor->get('/counterparts');
+($r['code'] === 200) ? $R->pass('auth', 'GET /counterparts leitor → 200') : $R->fail('auth', 'leitor list', 'code=' . $r['code']);
+$r = $leitor->get('/counterparts/create');
+($r['code'] === 403) ? $R->pass('auth', 'GET /counterparts/create leitor → 403') : $R->fail('auth', 'leitor create', 'code=' . $r['code']);
+
+$com = new HttpClient();
+$com->login(COM_EMAIL, PASSWORD);
+$r = $com->get('/counterparts/create');
+($r['code'] === 200) ? $R->pass('auth', 'GET /counterparts/create comunicacao → 200') : $R->fail('auth', 'com create', 'code=' . $r['code']);
 
 $sponsorId = ensureSponsor($admin, $R);
 if ($sponsorId <= 0) {
@@ -467,6 +468,11 @@ if ($cpId > 0) {
             ? $R->pass('docs', 'Show contrapartida bloco documentos')
             : $R->fail('docs', 'Bloco documentos contrapartida');
     }
+
+    $show = $com->get('/counterparts/' . $cpId);
+    $csrf = HttpClient::extractCsrf($show['body']);
+    $r = $com->post('/counterparts/' . $cpId . '/archive', ['_csrf' => $csrf ?? '']);
+    ($r['code'] === 403) ? $R->pass('auth', 'POST archive comunicacao → 403') : $R->fail('auth', 'com archive', 'code=' . $r['code']);
 }
 
 echo PHP_EOL . "8. FILTROS E PAGINAÇÃO" . PHP_EOL;

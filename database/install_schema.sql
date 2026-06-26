@@ -958,6 +958,13 @@ JOIN `permissions` p ON p.`slug` IN (
 WHERE r.`slug` = 'leitura-consulta'
 ON DUPLICATE KEY UPDATE `role_id` = `role_permissions`.`role_id`;
 
+-- Garantia idempotente (Etapa 13): Leitura / Consulta com counterparts.view
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
+SELECT r.`id`, p.`id`
+FROM `roles` r
+INNER JOIN `permissions` p ON p.`slug` = 'counterparts.view'
+WHERE r.`slug` = 'leitura-consulta';
+
 -- Configuracoes iniciais do sistema
 INSERT INTO `system_settings` (`setting_key`, `setting_value`, `setting_type`, `description`) VALUES
     ('app_name',     'Dança Carajás Captação', 'string',  'Nome do sistema'),
@@ -1040,3 +1047,10 @@ SELECT r.`id`, p.`id` FROM `roles` r
 JOIN `permissions` p ON p.`slug` = 'leads.view'
 WHERE r.`slug` IN ('producao-coordenacao','comunicacao','leitura-consulta')
 ON DUPLICATE KEY UPDATE `role_id` = `role_permissions`.`role_id`;
+
+-- Garantia idempotente (Etapa 13): Leitura / Consulta com counterparts.view
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
+SELECT r.`id`, p.`id`
+FROM `roles` r
+INNER JOIN `permissions` p ON p.`slug` = 'counterparts.view'
+WHERE r.`slug` = 'leitura-consulta';

@@ -1543,6 +1543,20 @@ Cria:
 - Tabela `counterparts` (vínculos com patrocinador, empresa, contato, oportunidade, proposta, cota, documento de evidência)
 - Coluna `documents.counterpart_id` (integração contextual com Documentos)
 - Permissões `counterparts.view|create|edit|archive|deliver|status` e matriz por perfil
+- `INSERT IGNORE` explícito garante `counterparts.view` para **Leitura / Consulta** em reexecuções e instalações futuras
+
+### Validação em produção
+
+```bash
+php scripts/validate_etapa13_production.php
+```
+
+Usa usuários temporários de validação (não depende do admin real). Resultado em produção: **72 PASS / 0 FAIL**.
+
+### Hotfix pós-deploy (Etapa 13)
+
+- Script `validate_etapa13_production.php` versionado com usuários temporários e `ensureLeituraCounterpartView()`
+- Migration/schema/install_schema com `INSERT IGNORE` para `leitura-consulta` + `counterparts.view`
 
 ### Permissões
 
