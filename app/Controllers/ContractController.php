@@ -12,6 +12,7 @@ use App\Models\Contact;
 use App\Models\Contract;
 use App\Models\Document;
 use App\Models\FinancialEntry;
+use App\Models\SponsorDossier;
 use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Quota;
@@ -251,6 +252,15 @@ final class ContractController extends Controller
             $financialSummary = $financialModel->summaryByContract($cid);
         }
 
+        $dossiers       = [];
+        $dossierSummary = ['total' => 0, 'approved' => 0, 'delivered' => 0, 'pending' => 0, 'with_pending_counterparts' => 0, 'with_overdue_counterparts' => 0, 'with_balance' => 0];
+        $dossierModel   = null;
+        if (can('dossiers.view')) {
+            $dossierModel   = new SponsorDossier();
+            $dossiers       = $dossierModel->findByContract($cid, 10);
+            $dossierSummary = $dossierModel->summaryByContract($cid);
+        }
+
         $this->view('contracts/show', [
             'title'             => $contract['title'] ?? 'Contrato',
             'contract'          => $contract,
@@ -266,6 +276,9 @@ final class ContractController extends Controller
             'financials'        => $financials,
             'financialSummary'  => $financialSummary,
             'financialModel'    => $financialModel,
+            'dossiers'          => $dossiers,
+            'dossierSummary'    => $dossierSummary,
+            'dossierModel'      => $dossierModel,
         ]);
     }
 

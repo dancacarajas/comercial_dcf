@@ -17,6 +17,7 @@ use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Quota;
 use App\Models\Sponsor;
+use App\Models\SponsorDossier;
 use App\Models\User;
 
 /**
@@ -250,6 +251,15 @@ final class SponsorController extends Controller
             $financialSummary = $financialModel->summaryBySponsor($sid);
         }
 
+        $dossiers       = [];
+        $dossierSummary = ['total' => 0, 'approved' => 0, 'delivered' => 0, 'pending' => 0, 'with_pending_counterparts' => 0, 'with_overdue_counterparts' => 0, 'with_balance' => 0];
+        $dossierModel   = null;
+        if (can('dossiers.view')) {
+            $dossierModel   = new SponsorDossier();
+            $dossiers       = $dossierModel->findBySponsor($sid, 10);
+            $dossierSummary = $dossierModel->summaryBySponsor($sid);
+        }
+
         $this->view('sponsors/show', [
             'title'           => $sponsor['sponsor_display_name'] ?? 'Patrocinador',
             'sponsor'         => $sponsor,
@@ -270,6 +280,9 @@ final class SponsorController extends Controller
             'financials'         => $financials,
             'financialSummary'   => $financialSummary,
             'financialModel'     => $financialModel,
+            'dossiers'           => $dossiers,
+            'dossierSummary'     => $dossierSummary,
+            'dossierModel'       => $dossierModel,
         ]);
     }
 

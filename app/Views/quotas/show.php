@@ -201,6 +201,16 @@ $oProbClass = static function (int $p): string {
             ?>
         <?php endif; ?>
 
+        <?php if (can('dossiers.view')): ?>
+            <?php
+            $blockTitle = 'Dossiês / Prestação Comercial';
+            $createUrl  = can('dossiers.create') ? app_url('/quotas/' . $qid . '/dossiers/create') : '';
+            $allUrl     = app_url('/sponsor-dossiers?quota_id=' . $qid);
+            $emptyText  = 'Nenhum dossiê vinculado a esta cota ainda.';
+            require dirname(__DIR__) . '/sponsor_dossiers/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice" style="margin-top:18px;">
             <p class="mb-0"><i data-lucide="info"></i> Contratos, assinatura digital e portal do patrocinador serão tratados em etapas futuras.</p>
         </div>

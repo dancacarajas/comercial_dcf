@@ -11,6 +11,7 @@ use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Document;
 use App\Models\FinancialEntry;
+use App\Models\SponsorDossier;
 use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Sponsor;
@@ -214,6 +215,15 @@ final class ContactController extends Controller
             $financialSummary = $financialModel->summaryByContact($id);
         }
 
+        $dossiers       = [];
+        $dossierSummary = ['total' => 0, 'approved' => 0, 'delivered' => 0, 'pending' => 0, 'with_pending_counterparts' => 0, 'with_overdue_counterparts' => 0, 'with_balance' => 0];
+        $dossierModel   = null;
+        if (can('dossiers.view')) {
+            $dossierModel   = new SponsorDossier();
+            $dossiers       = $dossierModel->findByContact($id, 6);
+            $dossierSummary = $dossierModel->summaryByContact($id);
+        }
+
         $this->view('contacts/show', [
             'title'              => $contact['name'] ?? 'Contato',
             'contact'            => $contact,
@@ -245,6 +255,9 @@ final class ContactController extends Controller
             'financials'         => $financials,
             'financialSummary'   => $financialSummary,
             'financialModel'     => $financialModel,
+            'dossiers'           => $dossiers,
+            'dossierSummary'     => $dossierSummary,
+            'dossierModel'       => $dossierModel,
         ]);
     }
 

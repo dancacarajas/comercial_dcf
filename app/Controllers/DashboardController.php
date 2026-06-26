@@ -16,6 +16,7 @@ use App\Models\Lead;
 use App\Models\Proposal;
 use App\Models\Quota;
 use App\Models\Sponsor;
+use App\Models\SponsorDossier;
 use App\Models\Task;
 
 /**
@@ -183,6 +184,22 @@ final class DashboardController extends Controller
             $financialsReconciled  = $financialModel->countReconciled();
         }
 
+        $dossiersTotal = null;
+        $dossiersApproved = null;
+        $dossiersDelivered = null;
+        $dossiersPending = null;
+        $dossiersPendingCounterparts = null;
+        $dossiersWithBalance = null;
+        if (can('dossiers.view')) {
+            $dossierModel              = new SponsorDossier();
+            $dossiersTotal             = $dossierModel->countActive();
+            $dossiersApproved          = $dossierModel->countApproved();
+            $dossiersDelivered         = $dossierModel->countDelivered();
+            $dossiersPending           = $dossierModel->countPending();
+            $dossiersPendingCounterparts = $dossierModel->countWithPendingCounterparts();
+            $dossiersWithBalance       = $dossierModel->countWithFinancialBalance();
+        }
+
         $this->view('dashboard/index', [
             'title'              => 'Painel Administrativo',
             'user'               => $this->currentUser(),
@@ -235,6 +252,12 @@ final class DashboardController extends Controller
             'financialsPartial'       => $financialsPartial,
             'financialsOverdue'       => $financialsOverdue,
             'financialsReconciled'    => $financialsReconciled,
+            'dossiersTotal'           => $dossiersTotal,
+            'dossiersApproved'        => $dossiersApproved,
+            'dossiersDelivered'       => $dossiersDelivered,
+            'dossiersPending'         => $dossiersPending,
+            'dossiersPendingCounterparts' => $dossiersPendingCounterparts,
+            'dossiersWithBalance'     => $dossiersWithBalance,
         ], 'layouts/admin');
     }
 }

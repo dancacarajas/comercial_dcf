@@ -170,6 +170,34 @@ $err = static function (string $k) use ($errors): string {
                 </label>
             </div>
         <?php endif; ?>
+        <?php if (can('dossiers.view')): ?>
+        <div>
+            <label for="sponsor_dossier_id">Dossiê do patrocinador</label>
+            <select id="sponsor_dossier_id" name="sponsor_dossier_id">
+                <option value="">— Opcional —</option>
+                <?php foreach (($sponsorDossiers ?? []) as $sd): ?>
+                    <option value="<?= (int) $sd['id'] ?>" <?= (int) $val('sponsor_dossier_id') === (int) $sd['id'] ? 'selected' : '' ?>><?= e($sd['label'] ?? '') ?></option>
+                <?php endforeach; ?>
+            </select>
+            <?= $err('sponsor_dossier_id') ?>
+        </div>
+        <?php if (!empty($val('sponsor_dossier_id')) && can('dossiers.edit')): ?>
+            <div class="form-grid-full dossier-doc-links">
+                <label class="checkbox-inline">
+                    <input type="checkbox" name="use_as_dossier_main" value="1" <?= !empty($val('use_as_dossier_main')) ? 'checked' : '' ?>>
+                    Usar como documento principal do dossiê
+                </label>
+                <label class="checkbox-inline">
+                    <input type="checkbox" name="use_as_dossier_final" value="1" <?= !empty($val('use_as_dossier_final')) ? 'checked' : '' ?>>
+                    Usar como documento final do dossiê
+                </label>
+                <label class="checkbox-inline">
+                    <input type="checkbox" name="use_as_dossier_delivery_receipt" value="1" <?= !empty($val('use_as_dossier_delivery_receipt')) ? 'checked' : '' ?>>
+                    Usar como comprovante de entrega do dossiê
+                </label>
+            </div>
+        <?php endif; ?>
+        <?php endif; ?>
     </div>
 
     <h3 class="h3-card form-section-title"><i data-lucide="file-stack"></i> Dados do documento</h3>

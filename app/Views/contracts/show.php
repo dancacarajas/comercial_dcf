@@ -132,6 +132,16 @@ $dash = static fn ($v): string => ($v === null || $v === '') ? '—' : (string) 
             ?>
         <?php endif; ?>
 
+        <?php if (can('dossiers.view')): ?>
+            <?php
+            $blockTitle = 'Dossiês / Prestação Comercial';
+            $createUrl = can('dossiers.create') ? app_url('/contracts/' . $cid . '/dossiers/create') : '';
+            $allUrl = app_url('/sponsor-dossiers?main_contract_id=' . $cid);
+            $emptyText = 'Nenhum dossiê vinculado a este contrato.';
+            require __DIR__ . '/../sponsor_dossiers/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="contract-actions actions-row" style="margin-top:22px;">
             <?php if (can('contracts.edit') && !$isArchived): ?>
                 <a href="<?= e(app_url('/contracts/' . $cid . '/edit')) ?>" class="btn btn-yellow"><i data-lucide="pencil"></i> Editar</a>

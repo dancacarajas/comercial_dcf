@@ -58,6 +58,12 @@ $financialsRemaining     = $financialsRemaining ?? null;
 $financialsPartial       = $financialsPartial ?? null;
 $financialsOverdue       = $financialsOverdue ?? null;
 $financialsReconciled    = $financialsReconciled ?? null;
+$dossiersTotal           = $dossiersTotal ?? null;
+$dossiersApproved        = $dossiersApproved ?? null;
+$dossiersDelivered       = $dossiersDelivered ?? null;
+$dossiersPending         = $dossiersPending ?? null;
+$dossiersPendingCounterparts = $dossiersPendingCounterparts ?? null;
+$dossiersWithBalance     = $dossiersWithBalance ?? null;
 ?>
 
 <section class="section section-dark">
@@ -287,6 +293,30 @@ $financialsReconciled    = $financialsReconciled ?? null;
                         <?php if (can('financials.create')): ?>
                             &nbsp;·&nbsp;
                             <a href="<?= e(app_url('/financials/create')) ?>" class="link-strong"><i data-lucide="plus"></i> Novo lançamento</a>
+                        <?php endif; ?>
+                    </p>
+                </article>
+            <?php endif; ?>
+
+            <?php if ($dossiersTotal !== null): ?>
+                <article class="card card-accent dossier-card">
+                    <span class="card-icon"><i data-lucide="folder-check"></i></span>
+                    <h3>Dossiês</h3>
+                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $dossiersTotal ?> <span style="font-size:14px;font-weight:600;">cadastrados</span></p>
+                    <p style="margin-bottom:6px;">
+                        <span class="pill"><?= (int) $dossiersApproved ?> aprovado(s)</span>
+                        <span class="pill"><?= (int) $dossiersDelivered ?> entregue(s)</span>
+                        <span class="pill"><?= (int) $dossiersPending ?> pendente(s)</span>
+                    </p>
+                    <p style="margin-bottom:6px;">
+                        <span class="pill"><?= (int) $dossiersPendingCounterparts ?> c/ contrap. pendente(s)</span>
+                        <span class="pill"><?= (int) $dossiersWithBalance ?> c/ saldo</span>
+                    </p>
+                    <p>
+                        <a href="<?= e(app_url('/sponsor-dossiers')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar dossiês</a>
+                        <?php if (can('dossiers.create')): ?>
+                            &nbsp;·&nbsp;
+                            <a href="<?= e(app_url('/sponsor-dossiers/create')) ?>" class="link-strong"><i data-lucide="plus"></i> Novo dossiê</a>
                         <?php endif; ?>
                     </p>
                 </article>

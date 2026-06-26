@@ -11,6 +11,7 @@ use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Document;
 use App\Models\FinancialEntry;
+use App\Models\SponsorDossier;
 use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Quota;
@@ -220,6 +221,15 @@ final class ProposalController extends Controller
             $financialSummary = $financialModel->summaryByProposal($pid);
         }
 
+        $dossiers       = [];
+        $dossierSummary = ['total' => 0, 'approved' => 0, 'delivered' => 0, 'pending' => 0, 'with_pending_counterparts' => 0, 'with_overdue_counterparts' => 0, 'with_balance' => 0];
+        $dossierModel   = null;
+        if (can('dossiers.view')) {
+            $dossierModel   = new SponsorDossier();
+            $dossiers       = $dossierModel->findByProposal($pid, 6);
+            $dossierSummary = $dossierModel->summaryByProposal($pid);
+        }
+
         $this->view('proposals/show', [
             'title'    => $proposal['title'] ?? 'Proposta',
             'proposal' => $proposal,
@@ -241,6 +251,9 @@ final class ProposalController extends Controller
             'financials'         => $financials,
             'financialSummary'   => $financialSummary,
             'financialModel'     => $financialModel,
+            'dossiers'           => $dossiers,
+            'dossierSummary'     => $dossierSummary,
+            'dossierModel'       => $dossierModel,
         ]);
     }
 

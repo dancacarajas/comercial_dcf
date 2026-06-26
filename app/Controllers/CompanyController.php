@@ -13,6 +13,7 @@ use App\Models\Contract;
 use App\Models\Counterpart;
 use App\Models\Document;
 use App\Models\FinancialEntry;
+use App\Models\SponsorDossier;
 use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Sponsor;
@@ -199,6 +200,15 @@ final class CompanyController extends Controller
             $financialSummary = $financialModel->summaryByCompany($id);
         }
 
+        $dossiers       = [];
+        $dossierSummary = ['total' => 0, 'approved' => 0, 'delivered' => 0, 'pending' => 0, 'with_pending_counterparts' => 0, 'with_overdue_counterparts' => 0, 'with_balance' => 0];
+        $dossierModel   = null;
+        if (can('dossiers.view')) {
+            $dossierModel   = new SponsorDossier();
+            $dossiers       = $dossierModel->findByCompany($id, 6);
+            $dossierSummary = $dossierModel->summaryByCompany($id);
+        }
+
         $this->view('companies/show', [
             'title'              => $company['name'] ?? 'Empresa',
             'company'            => $company,
@@ -231,6 +241,9 @@ final class CompanyController extends Controller
             'financials'         => $financials,
             'financialSummary'   => $financialSummary,
             'financialModel'     => $financialModel,
+            'dossiers'           => $dossiers,
+            'dossierSummary'     => $dossierSummary,
+            'dossierModel'       => $dossierModel,
         ]);
     }
 

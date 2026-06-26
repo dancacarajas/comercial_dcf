@@ -131,6 +131,16 @@ $dash = static fn ($v): string => ($v === null || $v === '') ? '—' : (string) 
             ?>
         <?php endif; ?>
 
+        <?php if (can('dossiers.view')): ?>
+            <?php
+            $blockTitle = 'Dossiês / Prestação Comercial';
+            $createUrl = can('dossiers.create') ? app_url('/sponsors/' . $sid . '/dossiers/create') : '';
+            $allUrl = app_url('/sponsor-dossiers?sponsor_id=' . $sid);
+            $emptyText = 'Nenhum dossiê registrado para este patrocinador.';
+            require __DIR__ . '/../sponsor_dossiers/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="sponsor-actions actions-row" style="margin-top:22px;">
             <?php if (can('sponsors.edit') && !$isArchived): ?>
                 <a href="<?= e(app_url('/sponsors/' . $sid . '/edit')) ?>" class="btn btn-yellow"><i data-lucide="pencil"></i> Editar</a>

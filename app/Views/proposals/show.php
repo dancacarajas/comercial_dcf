@@ -159,6 +159,16 @@ $dash       = static fn ($v): string => ($v === null || $v === '') ? '—' : (st
             ?>
         <?php endif; ?>
 
+        <?php if (can('dossiers.view')): ?>
+            <?php
+            $blockTitle = 'Dossiês / Prestação Comercial';
+            $createUrl  = can('dossiers.create') ? app_url('/proposals/' . $pid . '/dossiers/create') : '';
+            $allUrl     = app_url('/sponsor-dossiers?proposal_id=' . $pid);
+            $emptyText  = 'Nenhum dossiê vinculado a esta proposta ainda.';
+            require dirname(__DIR__) . '/sponsor_dossiers/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <article class="card meta-audit" style="margin-top:18px;">
             <dl class="meta-list meta-list-inline">
                 <dt>Criado por</dt><dd><?= e($dash($proposal['created_by_name'] ?? '')) ?></dd>

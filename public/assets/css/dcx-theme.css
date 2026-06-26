@@ -1835,3 +1835,33 @@ tr.task-overdue > td:first-child { box-shadow: inset 3px 0 0 #d34a4a; }
 .badge-fin-suspenso { background: #f1f1ef; color: #555; border-color: #dededb; }
 .badge-fin-inadimplente { background: #fdecec; color: #8a1f1f; border-color: #f3c0c0; }
 .badge-fin-arquivado { background: #2b2b2b; color: #fff; border-color: #2b2b2b; }
+
+/* Etapa 16 — Dossiês / Prestação Comercial */
+.dossier-card { border: 1px solid #e6e6e1; }
+.dossier-summary { border: 1px solid #e6e6e1; }
+.dossier-status, .dossier-delivery-status, .dossier-type {
+    display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; border: 1px solid transparent;
+}
+.dossier-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 16px 0; }
+.dossier-metrics .metric-card { background: #fff; border: 1px solid #e6e6e1; border-radius: 12px; padding: 14px; }
+.dossier-section { margin-top: 20px; }
+.dossier-items { margin-top: 16px; }
+.dossier-actions { flex-wrap: wrap; gap: 10px; }
+.dossier-linked-list { width: 100%; }
+.dossier-alert { border-left: 4px solid var(--dcx-yellow); }
+.dossier-documents { margin-top: 16px; }
+.dossier-print { background: #fff; color: #050505; padding: 24px; max-width: 960px; margin: 0 auto; }
+.dossier-print .no-print { display: none !important; }
+.badge-dos-rascunho { background: #f1f1ef; color: #555; border-color: #dededb; }
+.badge-dos-em_preparacao { background: #eef3fb; color: #2a4b78; border-color: #cdddf2; }
+.badge-dos-aguardando_evidencias { background: #fff9e0; color: #5a4800; border-color: #f0dd9a; }
+.badge-dos-em_revisao { background: #fff3d6; color: #6b5600; border-color: #f0dd9a; }
+.badge-dos-aprovado { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
+.badge-dos-entregue { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
+.badge-dos-pendente { background: #fff9e0; color: #5a4800; border-color: #f0dd9a; }
+.badge-dos-cancelado { background: #fdecec; color: #8a1f1f; border-color: #f3c0c0; }
+.badge-dos-suspenso { background: #f1f1ef; color: #555; border-color: #dededb; }
+.badge-dos-arquivado { background: #2b2b2b; color: #fff; border-color: #2b2b2b; }
+.badge-del-nao_entregue { background: #f1f1ef; color: #555; border-color: #dededb; }
+.badge-del-entregue_patrocinador { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
+.badge-del-preparando_entrega { background: #fff9e0; color: #5a4800; border-color: #f0dd9a; }

@@ -1750,6 +1750,85 @@ Resultado esperado: **68 PASS / 0 FAIL** (Docker `http://localhost`).
 
 ---
 
+## Etapa 16 — Prestação de Contas Comercial / Dossiê do Patrocinador
+
+Módulo interno para consolidar, em uma visão única por patrocinador, tudo que foi fechado, formalizado, recebido, entregue e comprovado: contratos, contrapartidas, financeiro, documentos, itens manuais, aprovação interna, entrega ao patrocinador e versão de impressão autenticada.
+
+**Fora do escopo desta etapa:** portal externo do patrocinador, link público, envio automático de e-mail/WhatsApp, relatórios avançados globais, BI/gráficos complexos, exportador Excel global, assinatura digital, integrações Google Drive/Dropbox, cobrança automática, emissão de NF/boleto e integração bancária.
+
+### Migration
+
+```bash
+Get-Content -Raw database/migrations/2026_etapa16_sponsor_dossiers.sql | docker exec -i dcc_db mariadb -udanca -pdanca danca_captacao
+```
+
+Cria:
+
+- Tabela `sponsor_dossiers` (snapshots consolidados, métricas, resumos, aprovação/entrega)
+- Tabela `sponsor_dossier_items` (itens vinculados e manuais)
+- Coluna `documents.sponsor_dossier_id` (integração contextual com Documentos)
+- Permissões `dossiers.view|create|edit|archive|status|generate|approve|deliver` e matriz por perfil
+
+### Permissões
+
+| Perfil | dossiers.* |
+|--------|------------|
+| Administrador Geral | todas (8) |
+| Captação / Comercial | view, create, edit, archive, status, generate, deliver (**sem approve**) |
+| Produção / Coordenação | view, edit, generate |
+| Comunicação | view, edit, generate |
+| Leitura / Consulta | view |
+
+### Listas controladas
+
+- **Tipos de dossiê:** `prestacao_comercial`, `relatorio_patrocinador`, `dossie_evidencias`, `dossie_final`, `dossie_parcial`, `encerramento_patrocinio`, `outro`
+- **Status do dossiê:** `rascunho`, `em_preparacao`, `aguardando_evidencias`, `em_revisao`, `aprovado`, `entregue`, `pendente`, `cancelado`, `suspenso`, `arquivado`
+- **Status de entrega:** `nao_entregue`, `preparando_entrega`, `entregue_internamente`, `entregue_patrocinador`, `recebido_confirmado`, `pendente_retorno`, `nao_aplicavel`
+- **Tipos de item:** `contrato`, `contrapartida`, `financeiro`, `comprovante`, `recibo`, `documento_fiscal`, `evidencia`, `clipping`, `foto`, `video`, `print`, `release`, `midia_social`, `observacao`, `manual`, `outro`
+- **Status de item:** `ativo`, `pendente`, `conferido`, `aprovado`, `rejeitado`, `substituido`, `arquivado`
+- **Status de evidência:** `nao_aplicavel`, `pendente`, `anexada`, `conferida`, `insuficiente`, `substituida`
+
+### Fluxo principal
+
+1. **Criar dossiê** vinculado a um patrocinador (herda empresa, contato, oportunidade, proposta, cota e contrato quando possível)
+2. **Gerar/atualizar consolidação** — lê dados atuais dos módulos vinculados e atualiza snapshots/itens **sem alterar registros originais**
+3. **Aprovar** internamente (`dossiers.approve`)
+4. **Marcar como entregue** ao patrocinador (`dossiers.deliver`) — sem envio automático
+5. **Itens manuais** e **documentos contextuais** (`use_as_dossier_main`, `use_as_dossier_final`, `use_as_dossier_delivery_receipt`)
+6. **Impressão autenticada** em `/sponsor-dossiers/{id}/print` (sem PDF automático nem link público)
+
+### Rotas principais
+
+- `GET /sponsor-dossiers` — listagem (15/página, filtros comerciais)
+- `GET|POST /sponsor-dossiers/create|store`
+- `GET /sponsor-dossiers/{id}` — visão consolidada
+- `GET|POST /sponsor-dossiers/{id}/edit|update`
+- `POST /sponsor-dossiers/{id}/generate|approve|deliver|status|archive|restore`
+- `POST /sponsor-dossiers/{id}/items` e CRUD de itens
+- `GET /sponsor-dossiers/{id}/print`
+- Rotas contextuais: `/sponsors|companies|contacts|opportunities|proposals|quotas|contracts/{id}/dossiers/create`
+- `GET /sponsor-dossiers/{id}/documents/create` — documento vinculado ao dossiê
+
+### Validação local
+
+```bash
+docker exec dcc_app php /var/www/html/scripts/validate_etapa16.php
+```
+
+Resultado esperado: **127 PASS / 0 FAIL** (Docker `http://localhost`).
+
+### Checklist de testes (Etapa 16 — seção 33)
+
+- [ ] Migration executada; tabelas `sponsor_dossiers`, `sponsor_dossier_items` e `documents.sponsor_dossier_id` criados
+- [ ] Permissões `dossiers.*` (8) sem duplicidade; matriz por perfil correta
+- [ ] Auth, CSRF, validações, CRUD, generate, approve, deliver, status, itens, archive/restore
+- [ ] Filtros, paginação, blocos contextuais, dashboard, vínculo com documentos (principal/final/entrega), impressão autenticada
+- [ ] **NÃO** criados: portal externo, link público, envio automático, relatórios avançados globais, assinatura digital, integrações externas
+
+> **Deploy em produção:** somente após validação local completa e aprovação explícita.
+
+---
+
 ## Segurança implementada nesta etapa
 
 - Apenas `/public` acessível pela web; `app/`, `config/`, `routes/`, `storage/` bloqueados via `.htaccess`.

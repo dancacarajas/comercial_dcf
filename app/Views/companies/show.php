@@ -313,6 +313,16 @@ $regimeLabel   = $taxRegimes[(string) ($company['tax_regime_guess'] ?? '')] ?? (
             ?>
         <?php endif; ?>
 
+        <?php if (can('dossiers.view')): ?>
+            <?php
+            $blockTitle = 'Dossiês / Prestação Comercial';
+            $createUrl  = can('dossiers.create') ? app_url('/companies/' . $cid . '/dossiers/create') : '';
+            $allUrl     = app_url('/sponsor-dossiers?company_id=' . $cid);
+            $emptyText  = 'Nenhum dossiê registrado para esta empresa ainda.';
+            require dirname(__DIR__) . '/sponsor_dossiers/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice" style="margin-top:20px;">
             <p class="mb-0"><i data-lucide="info"></i> Histórico comercial detalhado e relatórios serão vinculados a esta empresa nas próximas etapas.</p>
         </div>

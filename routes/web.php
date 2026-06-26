@@ -267,6 +267,35 @@ return function (Router $router): void {
     $router->post('/financials/{id}/restore',      'FinancialController@restore',      ['AuthMiddleware']);
     $router->get('/financials/{id}/documents/create', 'DocumentController@createForFinancialEntry', ['AuthMiddleware']);
 
+    // Rotas contextuais de dossiês (Etapa 16)
+    $router->get('/companies/{id}/dossiers/create',     'SponsorDossierController@createForCompany',     ['AuthMiddleware']);
+    $router->get('/contacts/{id}/dossiers/create',      'SponsorDossierController@createForContact',      ['AuthMiddleware']);
+    $router->get('/opportunities/{id}/dossiers/create', 'SponsorDossierController@createForOpportunity', ['AuthMiddleware']);
+    $router->get('/proposals/{id}/dossiers/create',     'SponsorDossierController@createForProposal',     ['AuthMiddleware']);
+    $router->get('/quotas/{id}/dossiers/create',        'SponsorDossierController@createForQuota',        ['AuthMiddleware']);
+    $router->get('/sponsors/{id}/dossiers/create',      'SponsorDossierController@createForSponsor',      ['AuthMiddleware']);
+    $router->get('/contracts/{id}/dossiers/create',     'SponsorDossierController@createForContract',     ['AuthMiddleware']);
+
+    // Dossiês / Prestação Comercial (Etapa 16)
+    $router->get('/sponsor-dossiers',                              'SponsorDossierController@index',        ['AuthMiddleware']);
+    $router->get('/sponsor-dossiers/create',                       'SponsorDossierController@create',       ['AuthMiddleware']);
+    $router->post('/sponsor-dossiers',                             'SponsorDossierController@store',        ['AuthMiddleware']);
+    $router->get('/sponsor-dossiers/{id}',                         'SponsorDossierController@show',         ['AuthMiddleware']);
+    $router->get('/sponsor-dossiers/{id}/edit',                    'SponsorDossierController@edit',           ['AuthMiddleware']);
+    $router->post('/sponsor-dossiers/{id}/update',                 'SponsorDossierController@update',       ['AuthMiddleware']);
+    $router->post('/sponsor-dossiers/{id}/generate',               'SponsorDossierController@generate',     ['AuthMiddleware']);
+    $router->post('/sponsor-dossiers/{id}/approve',                'SponsorDossierController@approve',      ['AuthMiddleware']);
+    $router->post('/sponsor-dossiers/{id}/deliver',                'SponsorDossierController@deliver',        ['AuthMiddleware']);
+    $router->post('/sponsor-dossiers/{id}/status',                 'SponsorDossierController@status',         ['AuthMiddleware']);
+    $router->post('/sponsor-dossiers/{id}/archive',                'SponsorDossierController@archive',      ['AuthMiddleware']);
+    $router->post('/sponsor-dossiers/{id}/restore',                'SponsorDossierController@restore',      ['AuthMiddleware']);
+    $router->get('/sponsor-dossiers/{id}/print',                   'SponsorDossierController@print',          ['AuthMiddleware']);
+    $router->post('/sponsor-dossiers/{id}/items',                  'SponsorDossierController@storeItem',    ['AuthMiddleware']);
+    $router->post('/sponsor-dossiers/{id}/items/{itemId}/update',  'SponsorDossierController@updateItem',   ['AuthMiddleware']);
+    $router->post('/sponsor-dossiers/{id}/items/{itemId}/archive', 'SponsorDossierController@archiveItem',  ['AuthMiddleware']);
+    $router->post('/sponsor-dossiers/{id}/items/{itemId}/restore', 'SponsorDossierController@restoreItem',  ['AuthMiddleware']);
+    $router->get('/sponsor-dossiers/{id}/documents/create',        'DocumentController@createForSponsorDossier', ['AuthMiddleware']);
+
     // Endpoint público de leads (sem AuthMiddleware; CORS para WordPress)
     $router->post('/api/leads/site', 'Api\LeadApiController@site');
     $router->add('OPTIONS', '/api/leads/site', 'Api\LeadApiController@site');

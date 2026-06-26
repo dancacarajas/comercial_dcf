@@ -258,6 +258,16 @@ $oProbClass = static function (int $p): string {
             ?>
         <?php endif; ?>
 
+        <?php if (can('dossiers.view')): ?>
+            <?php
+            $blockTitle = 'Dossiês / Prestação Comercial';
+            $createUrl  = can('dossiers.create') ? app_url('/contacts/' . $cid . '/dossiers/create') : '';
+            $allUrl     = app_url('/sponsor-dossiers?contact_id=' . $cid);
+            $emptyText  = 'Nenhum dossiê vinculado a este contato ainda.';
+            require dirname(__DIR__) . '/sponsor_dossiers/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice timeline-placeholder" style="margin-top:20px;">
             <p class="mb-0"><i data-lucide="info"></i> Histórico comercial detalhado e relatórios serão vinculados a este contato nas próximas etapas.</p>
         </div>

@@ -18,6 +18,7 @@ use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Quota;
 use App\Models\Sponsor;
+use App\Models\SponsorDossier;
 use App\Models\User;
 
 /**
@@ -280,6 +281,32 @@ final class DocumentController extends Controller
         ]), []);
     }
 
+    public function createForSponsorDossier(array $params): void
+    {
+        AuthMiddleware::requirePermission('documents.create');
+        $id      = (int) ($params['id'] ?? 0);
+        $dossier = $id > 0 ? (new SponsorDossier())->findById($id) : null;
+        if ($dossier === null) {
+            $this->abort(404, 'Dossiê não encontrado.');
+        }
+        $this->renderForm('documents/create', 'Novo documento', $this->prefillFromQuery([
+            'sponsor_dossier_id'  => $id,
+            'sponsor_id'          => $dossier['sponsor_id'] ? (int) $dossier['sponsor_id'] : null,
+            'contract_id'         => $dossier['main_contract_id'] ? (int) $dossier['main_contract_id'] : null,
+            'company_id'          => $dossier['company_id'] ? (int) $dossier['company_id'] : null,
+            'contact_id'          => $dossier['contact_id'] ? (int) $dossier['contact_id'] : null,
+            'opportunity_id'      => $dossier['opportunity_id'] ? (int) $dossier['opportunity_id'] : null,
+            'proposal_id'         => $dossier['proposal_id'] ? (int) $dossier['proposal_id'] : null,
+            'quota_id'            => $dossier['quota_id'] ? (int) $dossier['quota_id'] : null,
+            'category'            => 'documento_comercial',
+            'status'              => 'ativo',
+            'access_level'        => 'interno',
+            'version_number'      => 1,
+            'document_date'       => date('Y-m-d'),
+            'responsible_user_id' => $_SESSION['user_id'] ?? null,
+        ]), []);
+    }
+
     public function store(): void
     {
         AuthMiddleware::requirePermission('documents.create');
@@ -319,6 +346,7 @@ final class DocumentController extends Controller
         }
         $this->linkDocumentToContract($data, $id);
         $this->linkDocumentToFinancial($data, $id);
+        $this->linkDocumentToDossier($data, $id);
         flash('success', 'Documento cadastrado com sucesso.');
         $this->redirect('/documents/' . $id);
     }
@@ -427,6 +455,7 @@ final class DocumentController extends Controller
         }
         $this->linkDocumentToContract($data, $id);
         $this->linkDocumentToFinancial($data, $id);
+        $this->linkDocumentToDossier($data, $id);
 
         flash('success', 'Documento atualizado com sucesso.');
         $this->redirect('/documents/' . $id);
@@ -585,6 +614,7 @@ final class DocumentController extends Controller
             'counterpart_id'      => (int) input('counterpart_id', 0),
             'contract_id'         => (int) input('contract_id', 0),
             'financial_entry_id'  => (int) input('financial_entry_id', 0),
+            'sponsor_dossier_id'  => (int) input('sponsor_dossier_id', 0),
             'category'            => (string) input('category', ''),
             'status'              => (string) input('status', ''),
             'access_level'        => (string) input('access_level', ''),
@@ -610,6 +640,7 @@ final class DocumentController extends Controller
             'counterpart_id'      => input('counterpart_id') !== null && input('counterpart_id') !== '' ? (int) input('counterpart_id') : null,
             'contract_id'         => input('contract_id') !== null && input('contract_id') !== '' ? (int) input('contract_id') : null,
             'financial_entry_id'  => input('financial_entry_id') !== null && input('financial_entry_id') !== '' ? (int) input('financial_entry_id') : null,
+            'sponsor_dossier_id'  => input('sponsor_dossier_id') !== null && input('sponsor_dossier_id') !== '' ? (int) input('sponsor_dossier_id') : null,
             'use_as_evidence'     => input('use_as_evidence') !== null ? 1 : 0,
             'use_as_draft'        => input('use_as_draft') !== null ? 1 : 0,
             'use_as_final'        => input('use_as_final') !== null ? 1 : 0,
@@ -617,6 +648,9 @@ final class DocumentController extends Controller
             'use_as_proof'        => input('use_as_proof') !== null ? 1 : 0,
             'use_as_receipt'      => input('use_as_receipt') !== null ? 1 : 0,
             'use_as_fiscal'       => input('use_as_fiscal') !== null ? 1 : 0,
+            'use_as_dossier_main' => input('use_as_dossier_main') !== null ? 1 : 0,
+            'use_as_dossier_final'=> input('use_as_dossier_final') !== null ? 1 : 0,
+            'use_as_dossier_delivery_receipt' => input('use_as_dossier_delivery_receipt') !== null ? 1 : 0,
             'title'               => clean((string) input('title', '')),
             'description'         => trim((string) input('description', '')) ?: null,
             'category'            => clean((string) input('category', 'documento_comercial')),
@@ -633,7 +667,7 @@ final class DocumentController extends Controller
     /** @param array<string, mixed> $data @return array<string, mixed> */
     private function prefillFromQuery(array $data): array
     {
-        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id', 'financial_entry_id'] as $k) {
+        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id', 'financial_entry_id', 'sponsor_dossier_id'] as $k) {
             $q = input($k);
             if ($q !== null && $q !== '') {
                 $data[$k] = (int) $q;
@@ -773,6 +807,33 @@ final class DocumentController extends Controller
             }
         }
 
+        if (!empty($data['sponsor_dossier_id'])) {
+            $dossier = (new SponsorDossier())->findById((int) $data['sponsor_dossier_id']);
+            if ($dossier !== null) {
+                if (empty($data['sponsor_id']) && !empty($dossier['sponsor_id'])) {
+                    $data['sponsor_id'] = (int) $dossier['sponsor_id'];
+                }
+                if (empty($data['contract_id']) && !empty($dossier['main_contract_id'])) {
+                    $data['contract_id'] = (int) $dossier['main_contract_id'];
+                }
+                if (empty($data['company_id']) && !empty($dossier['company_id'])) {
+                    $data['company_id'] = (int) $dossier['company_id'];
+                }
+                if (empty($data['contact_id']) && !empty($dossier['contact_id'])) {
+                    $data['contact_id'] = (int) $dossier['contact_id'];
+                }
+                if (empty($data['opportunity_id']) && !empty($dossier['opportunity_id'])) {
+                    $data['opportunity_id'] = (int) $dossier['opportunity_id'];
+                }
+                if (empty($data['proposal_id']) && !empty($dossier['proposal_id'])) {
+                    $data['proposal_id'] = (int) $dossier['proposal_id'];
+                }
+                if (empty($data['quota_id']) && !empty($dossier['quota_id'])) {
+                    $data['quota_id'] = (int) $dossier['quota_id'];
+                }
+            }
+        }
+
         if (empty($data['document_date'])) {
             $data['document_date'] = date('Y-m-d');
         }
@@ -846,6 +907,11 @@ final class DocumentController extends Controller
             $errors['financial_entry_id'] = 'Lançamento financeiro não encontrado.';
         }
 
+        $dossierId = (int) ($data['sponsor_dossier_id'] ?? 0);
+        if ($dossierId > 0 && (new SponsorDossier())->findById($dossierId) === null) {
+            $errors['sponsor_dossier_id'] = 'Dossiê não encontrado.';
+        }
+
         $respId = (int) ($data['responsible_user_id'] ?? 0);
         if ($respId > 0 && (new User())->findBy('id', $respId) === null) {
             $errors['responsible_user_id'] = 'Responsável não encontrado.';
@@ -892,6 +958,26 @@ final class DocumentController extends Controller
     private function financialFilterOptions(): array
     {
         return (new Document())->filterFinancialEntryOptions();
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function sponsorDossierFilterOptions(): array
+    {
+        if (!can('dossiers.view')) {
+            return [];
+        }
+
+        $rows = (new SponsorDossier())->paginate(['show_archived' => 0], 1, 200);
+        $out  = [];
+        foreach ($rows as $row) {
+            $label = trim((string) ($row['title'] ?? ''));
+            if (!empty($row['dossier_number'])) {
+                $label .= ' (' . $row['dossier_number'] . ')';
+            }
+            $out[] = ['id' => (int) $row['id'], 'label' => $label];
+        }
+
+        return $out;
     }
 
     /** @param array<string, mixed> $data */
@@ -979,6 +1065,38 @@ final class DocumentController extends Controller
         }
     }
 
+    /** @param array<string, mixed> $data */
+    private function linkDocumentToDossier(array $data, int|string $documentId): void
+    {
+        $dossierId = (int) ($data['sponsor_dossier_id'] ?? 0);
+        if ($dossierId <= 0) {
+            return;
+        }
+
+        (new ActivityLog())->record('sponsor_dossier_document_linked', $_SESSION['user_id'] ?? null, 'sponsor_dossier', $dossierId);
+
+        if (!can('dossiers.edit')) {
+            return;
+        }
+
+        $patch = ['updated_by' => $_SESSION['user_id'] ?? null];
+        if (!empty($data['use_as_dossier_main'])) {
+            $patch['main_document_id'] = (int) $documentId;
+        }
+        if (!empty($data['use_as_dossier_final'])) {
+            $patch['final_document_id'] = (int) $documentId;
+        }
+        if (!empty($data['use_as_dossier_delivery_receipt'])) {
+            $patch['delivery_receipt_document_id'] = (int) $documentId;
+        }
+
+        if (count($patch) <= 1) {
+            return;
+        }
+
+        (new SponsorDossier())->update($dossierId, $patch);
+    }
+
     /**
      * @param array<string, mixed> $old
      * @param array<string, string> $errors
@@ -1008,6 +1126,7 @@ final class DocumentController extends Controller
             'counterparts'    => $this->counterpartFilterOptions(),
             'contracts'       => $this->contractFilterOptions(),
             'financials'      => $this->financialFilterOptions(),
+            'sponsorDossiers' => $this->sponsorDossierFilterOptions(),
             'users'           => (new User())->activeList(),
             'companyContacts' => $companyContacts,
         ]);

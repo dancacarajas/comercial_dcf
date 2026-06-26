@@ -98,6 +98,12 @@ $dash       = static fn ($v): string => ($v === null || $v === '') ? '—' : (st
                             <a href="<?= e(app_url('/financials/' . (int) $document['financial_entry_id'])) ?>" class="link-strong"><?= e($document['financial_entry_title'] ?? '—') ?></a>
                         <?php else: ?>—<?php endif; ?>
                     </dd>
+                    <dt>Dossiê do patrocinador</dt>
+                    <dd>
+                        <?php if (!empty($document['sponsor_dossier_id'])): ?>
+                            <a href="<?= e(app_url('/sponsor-dossiers/' . (int) $document['sponsor_dossier_id'])) ?>" class="link-strong"><?= e($document['sponsor_dossier_title'] ?? '—') ?></a>
+                        <?php else: ?>—<?php endif; ?>
+                    </dd>
                     <dt>Responsável</dt>
                     <dd><?= e($dash($document['responsible_name'] ?? '')) ?></dd>
                 </dl>

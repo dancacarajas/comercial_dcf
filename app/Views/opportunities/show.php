@@ -241,6 +241,16 @@ $probMap = htmlspecialchars(json_encode($statusProbabilities, JSON_UNESCAPED_UNI
             ?>
         <?php endif; ?>
 
+        <?php if (can('dossiers.view')): ?>
+            <?php
+            $blockTitle = 'Dossiês / Prestação Comercial';
+            $createUrl  = can('dossiers.create') ? app_url('/opportunities/' . $oid . '/dossiers/create') : '';
+            $allUrl     = app_url('/sponsor-dossiers?opportunity_id=' . $oid);
+            $emptyText  = 'Nenhum dossiê vinculado a esta oportunidade ainda.';
+            require dirname(__DIR__) . '/sponsor_dossiers/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice timeline-placeholder" style="margin-top:20px;">
             <p class="mb-0"><i data-lucide="info"></i> Contratos, assinatura digital e histórico comercial avançado serão vinculados nas próximas etapas.</p>
         </div>
