@@ -1414,16 +1414,42 @@ tr:last-child td {
 }
 
 /* Métricas / grids de resumo */
-.summary-grid {
+.summary-grid,
+.report-summary {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 14px;
+    margin: 20px 0;
 }
-.metric-card {
+.metric-card,
+.report-metric {
     background: #fff;
     border: 1px solid var(--dcx-line);
     border-radius: 10px;
     padding: 16px 18px;
+}
+.report-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 16px 0 20px;
+}
+.report-nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid #dededb;
+    background: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--dcx-black);
+    text-decoration: none;
+}
+.report-nav-link.is-active {
+    background: var(--dcx-yellow);
+    border-color: var(--dcx-yellow);
 }
 .status-flow { display: flex; flex-wrap: wrap; gap: 6px; }
 .metric-num { display: block; font-size: 26px; font-weight: 900; color: var(--dcx-black); line-height: 1.1; }

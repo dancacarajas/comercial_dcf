@@ -11,10 +11,12 @@ $rankings = $rankings ?? [];
     <div class="report-section">
         <h3 class="h4-section"><?= e($title) ?></h3>
         <?php if ($rows === []): ?>
-            <div class="report-empty"><p class="mb-0">Sem registros para exibir.</p></div>
+            <div class="empty-state" style="margin:12px 0;padding:20px;text-align:center;color:#666;">
+                <p class="mb-0">Sem registros para exibir.</p>
+            </div>
         <?php else: ?>
             <div class="table-wrap">
-                <table class="table-dcx report-table">
+                <table class="report-table">
                     <thead>
                         <tr>
                             <?php foreach ($headers as $h): ?>

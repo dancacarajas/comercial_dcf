@@ -92,7 +92,7 @@ $pageUrl = static fn (int $p): string => app_url('/reports/snapshots') . '?' . h
             <div class="report-empty"><p>Nenhum snapshot encontrado.</p></div>
         <?php else: ?>
             <div class="table-wrap">
-                <table class="table-dcx report-table">
+                <table class="report-table">
                     <thead>
                         <tr>
                             <th>Título</th>

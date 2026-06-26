@@ -4,7 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($title ?? 'Impressão') ?> — Dança Carajás Captação</title>
-    <link rel="stylesheet" href="/assets/css/dcx-theme.css">
+    <?php
+    $cssFile = dirname(__DIR__, 3) . '/public/assets/css/dcx-theme.css';
+    $cssVer  = is_file($cssFile) ? (string) filemtime($cssFile) : '1';
+    ?>
+    <link rel="stylesheet" href="/assets/css/dcx-theme.css?v=<?= e($cssVer) ?>">
     <style>
         @media print {
             .no-print { display: none !important; }
