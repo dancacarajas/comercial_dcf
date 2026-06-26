@@ -208,6 +208,16 @@ $oProbClass = static function (int $p): string {
             ?>
         <?php endif; ?>
 
+        <?php if (can('documents.view')): ?>
+            <?php
+            $blockTitle = 'Documentos do contato';
+            $createUrl  = app_url('/contacts/' . $cid . '/documents/create');
+            $allUrl     = app_url('/documents?contact_id=' . $cid);
+            $emptyText  = 'Nenhum documento vinculado a este contato ainda.';
+            require dirname(__DIR__) . '/documents/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice timeline-placeholder" style="margin-top:20px;">
             <p class="mb-0"><i data-lucide="info"></i> Histórico comercial detalhado e relatórios serão vinculados a este contato nas próximas etapas.</p>
         </div>

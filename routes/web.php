@@ -88,6 +88,14 @@ return function (Router $router): void {
     $router->get('/contacts/{id}/proposals/create',      'ProposalController@createForContact',      ['AuthMiddleware']);
     $router->get('/opportunities/{id}/proposals/create', 'ProposalController@createForOpportunity', ['AuthMiddleware']);
     $router->get('/quotas/{id}/proposals/create',        'ProposalController@createForQuota',        ['AuthMiddleware']);
+
+    // Rotas contextuais de documentos (Etapa 11)
+    $router->get('/companies/{id}/documents/create',     'DocumentController@createForCompany',     ['AuthMiddleware']);
+    $router->get('/contacts/{id}/documents/create',      'DocumentController@createForContact',      ['AuthMiddleware']);
+    $router->get('/opportunities/{id}/documents/create', 'DocumentController@createForOpportunity', ['AuthMiddleware']);
+    $router->get('/quotas/{id}/documents/create',        'DocumentController@createForQuota',        ['AuthMiddleware']);
+    $router->get('/proposals/{id}/documents/create',     'DocumentController@createForProposal',     ['AuthMiddleware']);
+    $router->get('/leads/{id}/documents/create',         'DocumentController@createForLead',         ['AuthMiddleware']);
     $router->get('/contacts/{id}',           'ContactController@show',    ['AuthMiddleware']);
     $router->get('/contacts/{id}/edit',      'ContactController@edit',    ['AuthMiddleware']);
     $router->post('/contacts/{id}/update',   'ContactController@update',  ['AuthMiddleware']);
@@ -157,6 +165,20 @@ return function (Router $router): void {
     $router->post('/proposals/{id}/status',       'ProposalController@status',       ['AuthMiddleware']);
     $router->post('/proposals/{id}/archive',      'ProposalController@archive',      ['AuthMiddleware']);
     $router->post('/proposals/{id}/restore',      'ProposalController@restore',      ['AuthMiddleware']);
+
+    // Documentos e arquivos (Etapa 11) — rotas estáticas antes das dinâmicas {id}
+    $router->get('/documents',                    'DocumentController@index',        ['AuthMiddleware']);
+    $router->get('/documents/create',             'DocumentController@create',       ['AuthMiddleware']);
+    $router->post('/documents',                   'DocumentController@store',        ['AuthMiddleware']);
+    $router->get('/documents/{id}',               'DocumentController@show',         ['AuthMiddleware']);
+    $router->get('/documents/{id}/download',      'DocumentController@download',     ['AuthMiddleware']);
+    $router->get('/documents/{id}/edit',          'DocumentController@edit',         ['AuthMiddleware']);
+    $router->post('/documents/{id}/update',       'DocumentController@update',       ['AuthMiddleware']);
+    $router->get('/documents/{id}/version',       'DocumentController@versionForm',  ['AuthMiddleware']);
+    $router->post('/documents/{id}/version',      'DocumentController@versionStore', ['AuthMiddleware']);
+    $router->post('/documents/{id}/status',       'DocumentController@status',       ['AuthMiddleware']);
+    $router->post('/documents/{id}/archive',      'DocumentController@archive',      ['AuthMiddleware']);
+    $router->post('/documents/{id}/restore',      'DocumentController@restore',      ['AuthMiddleware']);
 
     // Endpoint público de leads (sem AuthMiddleware; CORS para WordPress)
     $router->post('/api/leads/site', 'Api\LeadApiController@site');

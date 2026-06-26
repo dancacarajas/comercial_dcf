@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\Document;
 use App\Models\Opportunity;
 use App\Models\Lead;
 use App\Models\Proposal;
@@ -102,6 +103,18 @@ final class DashboardController extends Controller
             $proposalsOpenValue = $proposalModel->sumOpenValue();
         }
 
+        $documentsTotal = null;
+        $documentsActive = null;
+        $documentsExpiring = null;
+        $documentsExpired = null;
+        if (can('documents.view')) {
+            $documentModel     = new Document();
+            $documentsTotal    = $documentModel->count(['show_archived' => 0]);
+            $documentsActive   = $documentModel->countActive();
+            $documentsExpiring = $documentModel->countExpiringSoon(30);
+            $documentsExpired  = $documentModel->countExpired();
+        }
+
         $this->view('dashboard/index', [
             'title'              => 'Painel Administrativo',
             'user'               => $this->currentUser(),
@@ -126,6 +139,10 @@ final class DashboardController extends Controller
             'proposalsOpen'      => $proposalsOpen,
             'proposalsExpired'   => $proposalsExpired,
             'proposalsOpenValue' => $proposalsOpenValue,
+            'documentsTotal'     => $documentsTotal,
+            'documentsActive'    => $documentsActive,
+            'documentsExpiring'  => $documentsExpiring,
+            'documentsExpired'   => $documentsExpired,
         ], 'layouts/admin');
     }
 }

@@ -9,6 +9,7 @@ use App\Middlewares\AuthMiddleware;
 use App\Models\ActivityLog;
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\Document;
 use App\Models\Lead;
 use App\Models\Opportunity;
 use App\Models\Task;
@@ -78,11 +79,24 @@ final class LeadController extends Controller
     {
         AuthMiddleware::requirePermission('leads.view');
         $lead = $this->findOr404($params['id'] ?? null);
+        $id   = (int) $lead['id'];
+
+        $documents       = [];
+        $documentSummary = ['total' => 0, 'active' => 0, 'expired' => 0, 'expiring_soon' => 0];
+        $documentModel   = null;
+        if (can('documents.view')) {
+            $documentModel   = new Document();
+            $documents       = $documentModel->findByLead($id, 6);
+            $documentSummary = $documentModel->summaryByLead($id);
+        }
 
         $this->view('leads/show', [
             'title'    => $lead['name'] ?? 'Lead',
             'lead'     => $lead,
             'statuses' => (new Lead())->getStatuses(),
+            'documents'       => $documents,
+            'documentSummary' => $documentSummary,
+            'documentModel'   => $documentModel,
         ]);
     }
 

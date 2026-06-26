@@ -9,6 +9,7 @@ use App\Middlewares\AuthMiddleware;
 use App\Models\ActivityLog;
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\Document;
 use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Task;
@@ -149,6 +150,15 @@ final class CompanyController extends Controller
             $proposalSummary = $proposalModel->summaryByCompany($id);
         }
 
+        $documents       = [];
+        $documentSummary = ['total' => 0, 'active' => 0, 'expired' => 0, 'expiring_soon' => 0];
+        $documentModel   = null;
+        if (can('documents.view')) {
+            $documentModel   = new Document();
+            $documents       = $documentModel->findByCompany($id, 6);
+            $documentSummary = $documentModel->summaryByCompany($id);
+        }
+
         $this->view('companies/show', [
             'title'              => $company['name'] ?? 'Empresa',
             'company'            => $company,
@@ -166,6 +176,9 @@ final class CompanyController extends Controller
             'proposals'          => $proposals,
             'proposalSummary'    => $proposalSummary,
             'proposalModel'      => $proposalModel,
+            'documents'          => $documents,
+            'documentSummary'    => $documentSummary,
+            'documentModel'      => $documentModel,
         ]);
     }
 

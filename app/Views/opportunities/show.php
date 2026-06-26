@@ -191,8 +191,18 @@ $probMap = htmlspecialchars(json_encode($statusProbabilities, JSON_UNESCAPED_UNI
             ?>
         <?php endif; ?>
 
+        <?php if (can('documents.view')): ?>
+            <?php
+            $blockTitle = 'Documentos da oportunidade';
+            $createUrl  = app_url('/opportunities/' . $oid . '/documents/create');
+            $allUrl     = app_url('/documents?opportunity_id=' . $oid);
+            $emptyText  = 'Nenhum documento vinculado a esta oportunidade ainda.';
+            require dirname(__DIR__) . '/documents/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice timeline-placeholder" style="margin-top:20px;">
-            <p class="mb-0"><i data-lucide="info"></i> Documentos, contratos e histórico comercial avançado serão vinculados a esta oportunidade nas próximas etapas.</p>
+            <p class="mb-0"><i data-lucide="info"></i> Contratos, assinatura digital e histórico comercial avançado serão vinculados nas próximas etapas.</p>
         </div>
 
         <div class="actions-row" style="margin-top:22px;">

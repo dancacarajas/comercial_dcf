@@ -9,6 +9,7 @@ use App\Middlewares\AuthMiddleware;
 use App\Models\ActivityLog;
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\Document;
 use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Quota;
@@ -168,6 +169,16 @@ final class ProposalController extends Controller
         AuthMiddleware::requirePermission('proposals.view');
         $proposal = $this->findOr404($params['id'] ?? null);
         $model    = new Proposal();
+        $pid      = (int) $proposal['id'];
+
+        $documents       = [];
+        $documentSummary = ['total' => 0, 'active' => 0, 'expired' => 0, 'expiring_soon' => 0];
+        $documentModel   = null;
+        if (can('documents.view')) {
+            $documentModel   = new Document();
+            $documents       = $documentModel->findByProposal($pid, 6);
+            $documentSummary = $documentModel->summaryByProposal($pid);
+        }
 
         $this->view('proposals/show', [
             'title'    => $proposal['title'] ?? 'Proposta',
@@ -175,6 +186,9 @@ final class ProposalController extends Controller
             'model'    => $model,
             'types'    => $model->getTypes(),
             'statuses' => $model->getStatuses(),
+            'documents'       => $documents,
+            'documentSummary' => $documentSummary,
+            'documentModel'   => $documentModel,
         ]);
     }
 

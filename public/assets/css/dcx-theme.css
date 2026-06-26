@@ -1679,3 +1679,40 @@ tr.task-overdue > td:first-child { box-shadow: inset 3px 0 0 #d34a4a; }
 }
 .proposal-empty-state p { margin: 0 0 16px; color: var(--dcx-muted); }
 .proposal-filter-notice { border-left: 4px solid var(--dcx-yellow); }
+
+/* ------------------------------------------------------------------ */
+/* Documentos e Arquivos (Etapa 11)                                   */
+/* ------------------------------------------------------------------ */
+.badge-document {
+    display: inline-block; padding: 3px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 700; border: 1px solid transparent;
+}
+.document-version { font-weight: 800; color: var(--dcx-black); }
+.document-card { border: 1px solid #e6e6e1; }
+.document-summary { border: 1px solid #e6e6e1; }
+.document-linked-list { width: 100%; }
+.document-upload .document-upload-input { max-width: 100%; }
+.document-actions { flex-wrap: wrap; gap: 10px; }
+.document-file-meta { word-break: break-word; }
+.document-expired-row { background: #fff7f7; }
+.document-expired-row > td:first-child { box-shadow: inset 3px 0 0 #d34a4a; }
+.document-index-head { align-items: center; }
+.document-index-actions { flex-shrink: 0; }
+.document-create-btn { font-weight: 800; min-height: 44px; }
+.document-empty-state {
+    text-align: center; padding: 48px 24px;
+    background: #fff; border: 1px solid #e6e6e1; border-radius: 14px; margin-top: 18px;
+}
+.document-empty-state p { margin: 0 0 16px; color: var(--dcx-muted); }
+.document-filter-notice { border-left: 4px solid var(--dcx-yellow); }
+.badge-document-ativo       { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
+.badge-document-em_revisao  { background: #fff3d6; color: #6b5600; border-color: #f0dd9a; }
+.badge-document-aprovado    { background: #e7f6ec; color: #1f6b3a; border-color: #bfe6cd; }
+.badge-document-enviado     { background: #eef3fb; color: #2a4b78; border-color: #cdddf2; }
+.badge-document-substituido { background: #f1f1ef; color: #555; border-color: #dededb; }
+.badge-document-expirado    { background: #fdecec; color: #8a1f1f; border-color: #f3c0c0; }
+.badge-document-arquivado   { background: #2b2b2b; color: #fff; border-color: #2b2b2b; }
+.badge-access-interno           { background: #eef3fb; color: #2a4b78; border-color: #cdddf2; }
+.badge-access-publico_comercial { background: #fff9e0; color: #5a4800; border-color: #f0dd9a; }
+.badge-access-restrito          { background: #fff3d6; color: #6b5600; border-color: #f0dd9a; }
+.badge-access-confidencial      { background: #fdecec; color: #8a1f1f; border-color: #f3c0c0; }

@@ -106,8 +106,18 @@ $dash       = static fn ($v): string => ($v === null || $v === '') ? '—' : (st
         <?php endif; ?>
 
         <div class="notice" style="margin-top:20px;">
-            <p class="mb-0"><i data-lucide="info"></i> Documentos, contratos, assinatura digital e controle avançado de arquivos serão tratados em etapas futuras.</p>
+            <p class="mb-0"><i data-lucide="info"></i> Links públicos, assinatura digital, contratos e portal externo serão tratados em etapas futuras.</p>
         </div>
+
+        <?php if (can('documents.view')): ?>
+            <?php
+            $blockTitle = 'Documentos da proposta';
+            $createUrl  = app_url('/proposals/' . $pid . '/documents/create');
+            $allUrl     = app_url('/documents?proposal_id=' . $pid);
+            $emptyText  = 'Nenhum documento vinculado a esta proposta ainda.';
+            require dirname(__DIR__) . '/documents/_summary_block.php';
+            ?>
+        <?php endif; ?>
 
         <article class="card meta-audit" style="margin-top:18px;">
             <dl class="meta-list meta-list-inline">

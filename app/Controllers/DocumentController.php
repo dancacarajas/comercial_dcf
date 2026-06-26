@@ -1,0 +1,706 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use App\Core\Controller;
+use App\Middlewares\AuthMiddleware;
+use App\Models\ActivityLog;
+use App\Models\Company;
+use App\Models\Contact;
+use App\Models\Document;
+use App\Models\Lead;
+use App\Models\Opportunity;
+use App\Models\Proposal;
+use App\Models\Quota;
+use App\Models\User;
+
+/**
+ * Módulo Documentos e Arquivos (Etapa 11).
+ */
+final class DocumentController extends Controller
+{
+    private const PER_PAGE = 15;
+
+    public function index(): void
+    {
+        AuthMiddleware::requirePermission('documents.view');
+
+        $model   = new Document();
+        $filters = $this->collectFilters();
+
+        $page  = max(1, (int) input('page', 1));
+        $total = $model->count($filters);
+        $pages = (int) max(1, (int) ceil($total / self::PER_PAGE));
+        $page  = min($page, $pages);
+
+        $this->view('documents/index', [
+            'title'         => 'Documentos e arquivos',
+            'items'         => $model->paginate($filters, $page, self::PER_PAGE),
+            'filters'       => $filters,
+            'categories'    => $model->getCategories(),
+            'statuses'      => $model->getStatuses(),
+            'accessLevels'  => $model->getAccessLevels(),
+            'model'         => $model,
+            'companies'     => $this->companyFilterOptions($filters),
+            'contacts'      => $this->linkOptions('contacts', 'name'),
+            'opportunities' => $this->linkOptions('opportunities', 'title'),
+            'quotas'        => (new Quota())->activeOptions(),
+            'proposals'     => $this->proposalFilterOptions(),
+            'leads'         => $this->leadFilterOptions(),
+            'users'         => (new User())->activeList(),
+            'page'          => $page,
+            'pages'         => $pages,
+            'total'         => $total,
+            'perPage'       => self::PER_PAGE,
+            'hasFilters'    => $this->hasActiveFilters($filters),
+        ]);
+    }
+
+    public function create(): void
+    {
+        AuthMiddleware::requirePermission('documents.create');
+        $this->renderForm('documents/create', 'Novo documento', $this->prefillFromQuery([
+            'category'            => 'documento_comercial',
+            'status'              => 'ativo',
+            'access_level'        => 'interno',
+            'version_number'      => 1,
+            'document_date'       => date('Y-m-d'),
+            'responsible_user_id' => $_SESSION['user_id'] ?? null,
+        ]), []);
+    }
+
+    public function createForCompany(array $params): void
+    {
+        AuthMiddleware::requirePermission('documents.create');
+        $id = (int) ($params['id'] ?? 0);
+        if ($id <= 0 || (new Company())->findById($id) === null) {
+            $this->abort(404, 'Empresa não encontrada.');
+        }
+        $this->renderForm('documents/create', 'Novo documento', $this->prefillFromQuery([
+            'company_id' => $id, 'category' => 'documento_comercial', 'status' => 'ativo',
+            'access_level' => 'interno', 'version_number' => 1, 'document_date' => date('Y-m-d'),
+            'responsible_user_id' => $_SESSION['user_id'] ?? null,
+        ]), []);
+    }
+
+    public function createForContact(array $params): void
+    {
+        AuthMiddleware::requirePermission('documents.create');
+        $id      = (int) ($params['id'] ?? 0);
+        $contact = $id > 0 ? (new Contact())->findById($id) : null;
+        if ($contact === null) {
+            $this->abort(404, 'Contato não encontrado.');
+        }
+        $this->renderForm('documents/create', 'Novo documento', $this->prefillFromQuery([
+            'company_id' => (int) $contact['company_id'], 'contact_id' => $id,
+            'category' => 'documento_comercial', 'status' => 'ativo', 'access_level' => 'interno',
+            'version_number' => 1, 'document_date' => date('Y-m-d'),
+            'responsible_user_id' => $_SESSION['user_id'] ?? null,
+        ]), []);
+    }
+
+    public function createForOpportunity(array $params): void
+    {
+        AuthMiddleware::requirePermission('documents.create');
+        $id  = (int) ($params['id'] ?? 0);
+        $opp = $id > 0 ? (new Opportunity())->findById($id) : null;
+        if ($opp === null) {
+            $this->abort(404, 'Oportunidade não encontrada.');
+        }
+        $this->renderForm('documents/create', 'Novo documento', $this->prefillFromQuery([
+            'company_id' => (int) $opp['company_id'],
+            'contact_id' => $opp['contact_id'] ? (int) $opp['contact_id'] : null,
+            'opportunity_id' => $id,
+            'quota_id' => $opp['quota_id'] ? (int) $opp['quota_id'] : null,
+            'category' => 'documento_comercial', 'status' => 'ativo', 'access_level' => 'interno',
+            'version_number' => 1, 'document_date' => date('Y-m-d'),
+            'responsible_user_id' => $_SESSION['user_id'] ?? null,
+        ]), []);
+    }
+
+    public function createForQuota(array $params): void
+    {
+        AuthMiddleware::requirePermission('documents.create');
+        $id    = (int) ($params['id'] ?? 0);
+        $quota = $id > 0 ? (new Quota())->findById($id) : null;
+        if ($quota === null) {
+            $this->abort(404, 'Cota não encontrada.');
+        }
+        $this->renderForm('documents/create', 'Novo documento', $this->prefillFromQuery([
+            'quota_id' => $id, 'category' => 'documento_comercial', 'status' => 'ativo',
+            'access_level' => 'interno', 'version_number' => 1, 'document_date' => date('Y-m-d'),
+            'responsible_user_id' => $_SESSION['user_id'] ?? null,
+        ]), []);
+    }
+
+    public function createForProposal(array $params): void
+    {
+        AuthMiddleware::requirePermission('documents.create');
+        $id       = (int) ($params['id'] ?? 0);
+        $proposal = $id > 0 ? (new Proposal())->findById($id) : null;
+        if ($proposal === null) {
+            $this->abort(404, 'Proposta não encontrada.');
+        }
+        $this->renderForm('documents/create', 'Novo documento', $this->prefillFromQuery([
+            'company_id' => (int) $proposal['company_id'],
+            'contact_id' => $proposal['contact_id'] ? (int) $proposal['contact_id'] : null,
+            'opportunity_id' => $proposal['opportunity_id'] ? (int) $proposal['opportunity_id'] : null,
+            'quota_id' => $proposal['quota_id'] ? (int) $proposal['quota_id'] : null,
+            'proposal_id' => $id,
+            'category' => 'proposta_pdf', 'status' => 'ativo', 'access_level' => 'interno',
+            'version_number' => 1, 'document_date' => date('Y-m-d'),
+            'responsible_user_id' => $_SESSION['user_id'] ?? null,
+        ]), []);
+    }
+
+    public function createForLead(array $params): void
+    {
+        AuthMiddleware::requirePermission('documents.create');
+        $id   = (int) ($params['id'] ?? 0);
+        $lead = $id > 0 ? (new Lead())->findById($id) : null;
+        if ($lead === null) {
+            $this->abort(404, 'Lead não encontrado.');
+        }
+        $this->renderForm('documents/create', 'Novo documento', $this->prefillFromQuery([
+            'lead_id' => $id, 'category' => 'briefing_empresa', 'status' => 'ativo',
+            'access_level' => 'interno', 'version_number' => 1, 'document_date' => date('Y-m-d'),
+            'responsible_user_id' => $_SESSION['user_id'] ?? null,
+        ]), []);
+    }
+
+    public function store(): void
+    {
+        AuthMiddleware::requirePermission('documents.create');
+        csrf_verify();
+
+        $model = new Document();
+        $data  = $this->collectInput($model);
+        $data  = $this->applyAutofill($data);
+
+        $errors = $model->validate($data, 'create');
+        $this->validateLinks($data, $errors);
+        $uploadErrors = $model->validateUpload($_FILES['document_file'] ?? [], true);
+        $errors = array_merge($errors, $uploadErrors);
+
+        if ($errors !== []) {
+            http_response_code(422);
+            $this->renderForm('documents/create', 'Novo documento', $data, $errors);
+            return;
+        }
+
+        $data['created_by'] = $_SESSION['user_id'] ?? null;
+        $id = $model->create($data, $_FILES['document_file']);
+
+        (new ActivityLog())->record('document_created', $_SESSION['user_id'] ?? null, 'document', $id);
+        flash('success', 'Documento cadastrado com sucesso.');
+        $this->redirect('/documents/' . $id);
+    }
+
+    public function show(array $params): void
+    {
+        AuthMiddleware::requirePermission('documents.view');
+        $document = $this->findOr404($params['id'] ?? null);
+        $model    = new Document();
+
+        $this->view('documents/show', [
+            'title'        => $document['title'] ?? 'Documento',
+            'document'     => $document,
+            'model'        => $model,
+            'categories'   => $model->getCategories(),
+            'statuses'     => $model->getStatuses(),
+            'accessLevels' => $model->getAccessLevels(),
+        ]);
+    }
+
+    public function download(array $params): void
+    {
+        AuthMiddleware::requirePermission('documents.download');
+
+        $document = $this->findOr404($params['id'] ?? null);
+        $id       = (int) $document['id'];
+
+        if (!empty($document['archived_at']) && !can('documents.archive')) {
+            $this->abort(403, 'Documento arquivado. Restaure-o ou solicite permissão de arquivamento.');
+        }
+
+        $info = (new Document())->downloadInfo($id);
+        if ($info === null) {
+            $this->abort(404, 'Arquivo não encontrado.');
+        }
+
+        (new ActivityLog())->record('document_downloaded', $_SESSION['user_id'] ?? null, 'document', $id);
+
+        $name = $info['original_name'];
+        header('Content-Type: ' . $info['mime_type']);
+        header('Content-Disposition: attachment; filename="' . rawurlencode($name) . '"');
+        header('Content-Length: ' . (string) $info['size_bytes']);
+        header('X-Content-Type-Options: nosniff');
+        readfile($info['path']);
+        exit;
+    }
+
+    public function edit(array $params): void
+    {
+        AuthMiddleware::requirePermission('documents.edit');
+        $document = $this->findOr404($params['id'] ?? null);
+
+        if (!empty($document['archived_at'])) {
+            flash('error', 'Este documento está arquivado. Restaure-o antes de editar.');
+            $this->redirect('/documents/' . (int) $document['id']);
+            return;
+        }
+
+        $this->renderForm('documents/edit', 'Editar documento', $document, [], $document);
+    }
+
+    public function update(array $params): void
+    {
+        AuthMiddleware::requirePermission('documents.edit');
+        csrf_verify();
+
+        $document = $this->findOr404($params['id'] ?? null);
+        $id       = (int) $document['id'];
+
+        if (!empty($document['archived_at'])) {
+            flash('error', 'Este documento está arquivado. Restaure-o antes de editar.');
+            $this->redirect('/documents/' . $id);
+            return;
+        }
+
+        $model  = new Document();
+        $data   = $this->collectInput($model);
+        $data   = $this->applyAutofill($data);
+        $errors = $model->validate($data, 'update');
+        $this->validateLinks($data, $errors);
+
+        $file     = $_FILES['document_file'] ?? [];
+        $hasFile  = ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK;
+        $uploadErrors = $model->validateUpload($file, false);
+        $errors = array_merge($errors, $uploadErrors);
+
+        if ($errors !== []) {
+            http_response_code(422);
+            $this->renderForm('documents/edit', 'Editar documento', $data, $errors, array_merge($document, $data));
+            return;
+        }
+
+        if ($hasFile) {
+            $note = '[' . date('Y-m-d H:i') . '] Arquivo substituído.';
+            $prev = trim((string) ($data['notes'] ?? $document['notes'] ?? ''));
+            $data['notes'] = $prev === '' ? $note : ($prev . "\n" . $note);
+        }
+
+        $statusChanged = (string) $document['status'] !== (string) ($data['status'] ?? '');
+        $data['updated_by'] = $_SESSION['user_id'] ?? null;
+        $model->update($id, $data, $hasFile ? $file : null);
+
+        (new ActivityLog())->record('document_updated', $_SESSION['user_id'] ?? null, 'document', $id);
+        if ($statusChanged) {
+            (new ActivityLog())->record('document_status_changed', $_SESSION['user_id'] ?? null, 'document', $id);
+        }
+
+        flash('success', 'Documento atualizado com sucesso.');
+        $this->redirect('/documents/' . $id);
+    }
+
+    public function versionForm(array $params): void
+    {
+        AuthMiddleware::requirePermission('documents.version');
+        $document = $this->findOr404($params['id'] ?? null);
+
+        $this->view('documents/version', [
+            'title'        => 'Nova versão — ' . ($document['title'] ?? ''),
+            'document'     => $document,
+            'old'          => [
+                'title'       => $document['title'],
+                'description' => $document['description'],
+                'category'    => $document['category'],
+                'valid_until' => $document['valid_until'],
+                'notes'       => $document['notes'],
+                'status'      => 'ativo',
+            ],
+            'errors'       => [],
+            'categories'   => (new Document())->getCategories(),
+            'statuses'     => (new Document())->getStatuses(),
+        ]);
+    }
+
+    public function versionStore(array $params): void
+    {
+        AuthMiddleware::requirePermission('documents.version');
+        csrf_verify();
+
+        $base  = $this->findOr404($params['id'] ?? null);
+        $model = new Document();
+
+        $data = [
+            'title'       => clean((string) input('title', (string) $base['title'])),
+            'description' => trim((string) input('description', (string) ($base['description'] ?? ''))) ?: null,
+            'category'    => clean((string) input('category', (string) $base['category'])),
+            'status'      => clean((string) input('status', 'ativo')),
+            'valid_until' => $model->normalizeDate((string) input('valid_until', (string) ($base['valid_until'] ?? ''))),
+            'notes'       => trim((string) input('notes', '')) ?: null,
+            'created_by'  => $_SESSION['user_id'] ?? null,
+        ];
+
+        $errors = $model->validate($data, 'create');
+        $uploadErrors = $model->validateUpload($_FILES['document_file'] ?? [], true);
+        $errors = array_merge($errors, $uploadErrors);
+
+        if ($errors !== []) {
+            http_response_code(422);
+            $this->view('documents/version', [
+                'title' => 'Nova versão — ' . ($base['title'] ?? ''),
+                'document' => $base, 'old' => $data, 'errors' => $errors,
+                'categories' => $model->getCategories(), 'statuses' => $model->getStatuses(),
+            ]);
+            return;
+        }
+
+        $newId = $model->createVersion((int) $base['id'], $data, $_FILES['document_file']);
+        (new ActivityLog())->record('document_version_created', $_SESSION['user_id'] ?? null, 'document', $newId);
+
+        if (input('mark_previous_substituted') !== null) {
+            $model->updateStatus((int) $base['id'], [
+                'status'       => 'substituido',
+                'notes_append' => "\n[" . date('Y-m-d H:i') . '] Substituído pela versão #' . $newId . '.',
+                'updated_by'   => $_SESSION['user_id'] ?? null,
+            ]);
+            (new ActivityLog())->record('document_status_changed', $_SESSION['user_id'] ?? null, 'document', (int) $base['id']);
+        }
+
+        flash('success', 'Nova versão do documento criada.');
+        $this->redirect('/documents/' . $newId);
+    }
+
+    public function status(array $params): void
+    {
+        AuthMiddleware::requirePermission('documents.edit');
+        csrf_verify();
+
+        $document = $this->findOr404($params['id'] ?? null);
+        $id       = (int) $document['id'];
+        $model    = new Document();
+
+        $status = clean((string) input('status', (string) $document['status']));
+        if (!array_key_exists($status, $model->getStatuses())) {
+            flash('error', 'Status inválido.');
+            $this->redirect('/documents/' . $id);
+            return;
+        }
+
+        $note = trim((string) input('notes', ''));
+        $append = $note !== '' ? "\n[" . date('Y-m-d H:i') . '] ' . $note : '';
+
+        $model->updateStatus($id, [
+            'status'       => $status,
+            'notes_append' => $append !== '' ? $append : null,
+            'updated_by'   => $_SESSION['user_id'] ?? null,
+        ]);
+
+        (new ActivityLog())->record('document_status_changed', $_SESSION['user_id'] ?? null, 'document', $id);
+        flash('success', 'Status atualizado.');
+        $this->redirect('/documents/' . $id);
+    }
+
+    public function archive(array $params): void
+    {
+        AuthMiddleware::requirePermission('documents.archive');
+        csrf_verify();
+
+        $document = $this->findOr404($params['id'] ?? null);
+        $id       = (int) $document['id'];
+
+        if (empty($document['archived_at'])) {
+            (new Document())->archive($id);
+            (new ActivityLog())->record('document_archived', $_SESSION['user_id'] ?? null, 'document', $id);
+            flash('success', 'Documento arquivado.');
+        }
+
+        $this->redirect('/documents/' . $id);
+    }
+
+    public function restore(array $params): void
+    {
+        AuthMiddleware::requirePermission('documents.archive');
+        csrf_verify();
+
+        $document = $this->findOr404($params['id'] ?? null);
+        $id       = (int) $document['id'];
+
+        if (!empty($document['archived_at'])) {
+            (new Document())->restore($id);
+            (new ActivityLog())->record('document_restored', $_SESSION['user_id'] ?? null, 'document', $id);
+            flash('success', 'Documento restaurado.');
+        }
+
+        $this->redirect('/documents/' . $id);
+    }
+
+    // -----------------------------------------------------------------
+    // Internos
+    // -----------------------------------------------------------------
+
+    /** @return array<string, mixed> */
+    private function collectFilters(): array
+    {
+        return [
+            'q'                   => (string) input('q', ''),
+            'company_id'          => (int) input('company_id', 0),
+            'contact_id'          => (int) input('contact_id', 0),
+            'opportunity_id'      => (int) input('opportunity_id', 0),
+            'quota_id'            => (int) input('quota_id', 0),
+            'proposal_id'         => (int) input('proposal_id', 0),
+            'lead_id'             => (int) input('lead_id', 0),
+            'category'            => (string) input('category', ''),
+            'status'              => (string) input('status', ''),
+            'access_level'        => (string) input('access_level', ''),
+            'responsible_user_id' => (int) input('responsible_user_id', 0),
+            'expired'             => input('expired') !== null ? 1 : 0,
+            'valid_from'          => (string) input('valid_from', ''),
+            'valid_to'            => (string) input('valid_to', ''),
+            'show_archived'       => input('show_archived') !== null ? 1 : 0,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function collectInput(Document $model): array
+    {
+        return [
+            'company_id'          => input('company_id') !== null && input('company_id') !== '' ? (int) input('company_id') : null,
+            'contact_id'          => input('contact_id') !== null && input('contact_id') !== '' ? (int) input('contact_id') : null,
+            'opportunity_id'      => input('opportunity_id') !== null && input('opportunity_id') !== '' ? (int) input('opportunity_id') : null,
+            'quota_id'            => input('quota_id') !== null && input('quota_id') !== '' ? (int) input('quota_id') : null,
+            'proposal_id'         => input('proposal_id') !== null && input('proposal_id') !== '' ? (int) input('proposal_id') : null,
+            'lead_id'             => input('lead_id') !== null && input('lead_id') !== '' ? (int) input('lead_id') : null,
+            'title'               => clean((string) input('title', '')),
+            'description'         => trim((string) input('description', '')) ?: null,
+            'category'            => clean((string) input('category', 'documento_comercial')),
+            'status'              => clean((string) input('status', 'ativo')),
+            'access_level'        => clean((string) input('access_level', 'interno')),
+            'document_date'       => $model->normalizeDate((string) input('document_date', '')),
+            'valid_until'         => $model->normalizeDate((string) input('valid_until', '')),
+            'responsible_user_id' => input('responsible_user_id') !== null && input('responsible_user_id') !== '' ? (int) input('responsible_user_id') : null,
+            'notes'               => trim((string) input('notes', '')) ?: null,
+            'version_number'      => (int) input('version_number', 1),
+        ];
+    }
+
+    /** @param array<string, mixed> $data @return array<string, mixed> */
+    private function prefillFromQuery(array $data): array
+    {
+        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id'] as $k) {
+            $q = input($k);
+            if ($q !== null && $q !== '') {
+                $data[$k] = (int) $q;
+            }
+        }
+
+        return $data;
+    }
+
+    /** @param array<string, mixed> $data @return array<string, mixed> */
+    private function applyAutofill(array $data): array
+    {
+        if (!empty($data['proposal_id'])) {
+            $prop = (new Proposal())->findById((int) $data['proposal_id']);
+            if ($prop !== null) {
+                if (empty($data['company_id'])) {
+                    $data['company_id'] = (int) $prop['company_id'];
+                }
+                if (empty($data['contact_id']) && !empty($prop['contact_id'])) {
+                    $data['contact_id'] = (int) $prop['contact_id'];
+                }
+                if (empty($data['opportunity_id']) && !empty($prop['opportunity_id'])) {
+                    $data['opportunity_id'] = (int) $prop['opportunity_id'];
+                }
+                if (empty($data['quota_id']) && !empty($prop['quota_id'])) {
+                    $data['quota_id'] = (int) $prop['quota_id'];
+                }
+            }
+        }
+
+        if (!empty($data['opportunity_id']) && empty($data['company_id'])) {
+            $opp = (new Opportunity())->findById((int) $data['opportunity_id']);
+            if ($opp !== null) {
+                $data['company_id'] = (int) $opp['company_id'];
+                if (empty($data['contact_id']) && !empty($opp['contact_id'])) {
+                    $data['contact_id'] = (int) $opp['contact_id'];
+                }
+                if (empty($data['quota_id']) && !empty($opp['quota_id'])) {
+                    $data['quota_id'] = (int) $opp['quota_id'];
+                }
+            }
+        }
+
+        if (empty($data['document_date'])) {
+            $data['document_date'] = date('Y-m-d');
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @param array<string, string> $errors
+     */
+    private function validateLinks(array $data, array &$errors): void
+    {
+        $companyId = (int) ($data['company_id'] ?? 0);
+        if ($companyId > 0 && (new Company())->findById($companyId) === null) {
+            $errors['company_id'] = 'Empresa não encontrada.';
+        }
+
+        $contactId = (int) ($data['contact_id'] ?? 0);
+        if ($contactId > 0) {
+            $contact = (new Contact())->findById($contactId);
+            if ($contact === null) {
+                $errors['contact_id'] = 'Contato não encontrado.';
+            } elseif ($companyId > 0 && (int) $contact['company_id'] !== $companyId) {
+                $errors['contact_id'] = 'O contato não pertence à empresa selecionada.';
+            }
+        }
+
+        $oppId = (int) ($data['opportunity_id'] ?? 0);
+        if ($oppId > 0 && (new Opportunity())->findById($oppId) === null) {
+            $errors['opportunity_id'] = 'Oportunidade não encontrada.';
+        }
+
+        $quotaId = (int) ($data['quota_id'] ?? 0);
+        if ($quotaId > 0 && (new Quota())->findById($quotaId) === null) {
+            $errors['quota_id'] = 'Cota não encontrada.';
+        }
+
+        $proposalId = (int) ($data['proposal_id'] ?? 0);
+        if ($proposalId > 0) {
+            $prop = (new Proposal())->findById($proposalId);
+            if ($prop === null) {
+                $errors['proposal_id'] = 'Proposta não encontrada.';
+            } elseif ($companyId > 0 && (int) $prop['company_id'] !== $companyId) {
+                $errors['proposal_id'] = 'A proposta não pertence à empresa selecionada.';
+            }
+        }
+
+        $leadId = (int) ($data['lead_id'] ?? 0);
+        if ($leadId > 0 && (new Lead())->findById($leadId) === null) {
+            $errors['lead_id'] = 'Lead não encontrado.';
+        }
+
+        $respId = (int) ($data['responsible_user_id'] ?? 0);
+        if ($respId > 0 && (new User())->findBy('id', $respId) === null) {
+            $errors['responsible_user_id'] = 'Responsável não encontrado.';
+        }
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function linkOptions(string $table, string $labelCol): array
+    {
+        return (new Proposal())->filterLinkOptions($table, $labelCol);
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function proposalFilterOptions(): array
+    {
+        return (new Document())->filterProposalOptions();
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function leadFilterOptions(): array
+    {
+        return (new Document())->filterLeadOptions();
+    }
+
+    /**
+     * @param array<string, mixed> $old
+     * @param array<string, string> $errors
+     * @param array<string, mixed> $document
+     */
+    private function renderForm(string $view, string $title, array $old, array $errors, array $document = []): void
+    {
+        $model     = new Document();
+        $companyId = (int) ($old['company_id'] ?? ($document['company_id'] ?? 0));
+        $companyContacts = $companyId > 0 ? (new Contact())->findByCompany($companyId, 200) : [];
+
+        $this->view($view, [
+            'title'           => $title,
+            'old'             => $old,
+            'errors'          => $errors,
+            'document'        => $document,
+            'model'           => $model,
+            'categories'      => $model->getCategories(),
+            'statuses'        => $model->getStatuses(),
+            'accessLevels'    => $model->getAccessLevels(),
+            'companies'       => (new Company())->activeOptions(),
+            'opportunities'   => $this->linkOptions('opportunities', 'title'),
+            'quotas'          => (new Quota())->activeOptions(),
+            'proposals'       => $this->proposalFilterOptions(),
+            'leads'           => $this->leadFilterOptions(),
+            'users'           => (new User())->activeList(),
+            'companyContacts' => $companyContacts,
+        ]);
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function companyFilterOptions(array $filters): array
+    {
+        $companies  = (new Company())->activeOptions();
+        $selectedId = (int) ($filters['company_id'] ?? 0);
+
+        if ($selectedId <= 0) {
+            return $companies;
+        }
+
+        foreach ($companies as $co) {
+            if ((int) ($co['id'] ?? 0) === $selectedId) {
+                return $companies;
+            }
+        }
+
+        $archived = (new Company())->findById($selectedId);
+        if ($archived !== null) {
+            $companies[] = [
+                'id'   => $selectedId,
+                'name' => (string) ($archived['name'] ?? '') . ' (arquivada)',
+            ];
+        }
+
+        return $companies;
+    }
+
+    /** @param array<string, mixed> $filters */
+    private function hasActiveFilters(array $filters): bool
+    {
+        foreach (['q', 'category', 'status', 'access_level', 'valid_from', 'valid_to'] as $k) {
+            if (trim((string) ($filters[$k] ?? '')) !== '') {
+                return true;
+            }
+        }
+
+        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'responsible_user_id'] as $k) {
+            if ((int) ($filters[$k] ?? 0) > 0) {
+                return true;
+            }
+        }
+
+        foreach (['expired', 'show_archived'] as $k) {
+            if (!empty($filters[$k])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @return array<string, mixed> */
+    private function findOr404(mixed $id): array
+    {
+        $row = is_numeric($id) ? (new Document())->findById((int) $id) : null;
+        if ($row === null) {
+            $this->abort(404, 'Documento não encontrado.');
+        }
+
+        return $row;
+    }
+}

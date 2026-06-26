@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Middlewares\AuthMiddleware;
 use App\Models\ActivityLog;
+use App\Models\Document;
 use App\Models\Proposal;
 use App\Models\Quota;
 
@@ -103,6 +104,15 @@ final class QuotaController extends Controller
             $proposalSummary = $proposalModel->summaryByQuota((int) $quota['id']);
         }
 
+        $documents       = [];
+        $documentSummary = ['total' => 0, 'active' => 0, 'expired' => 0, 'expiring_soon' => 0];
+        $documentModel   = null;
+        if (can('documents.view')) {
+            $documentModel   = new Document();
+            $documents       = $documentModel->findByQuota((int) $quota['id'], 6);
+            $documentSummary = $documentModel->summaryByQuota((int) $quota['id']);
+        }
+
         $this->view('quotas/show', [
             'title'         => $quota['name'] ?? 'Cota',
             'quota'         => $quota,
@@ -117,6 +127,9 @@ final class QuotaController extends Controller
             'proposals'       => $proposals,
             'proposalSummary' => $proposalSummary,
             'proposalModel'   => $proposalModel,
+            'documents'       => $documents,
+            'documentSummary' => $documentSummary,
+            'documentModel'   => $documentModel,
         ]);
     }
 

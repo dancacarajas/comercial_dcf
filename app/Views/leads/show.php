@@ -52,6 +52,16 @@ if (is_string($payload) && $payload!=='') { $payload = json_decode($payload,true
 <?php if ($payload): ?><article class="card lead-payload" style="margin-top:18px;"><h3 class="h3-card">Payload técnico</h3>
 <pre style="font-size:12px;overflow:auto;max-height:240px;"><?= e(is_array($payload)?json_encode($payload,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE):$payload) ?></pre></article><?php endif; ?>
 
+<?php if (can('documents.view')): ?>
+    <?php
+    $blockTitle = 'Documentos do lead';
+    $createUrl  = app_url('/leads/' . $id . '/documents/create');
+    $allUrl     = app_url('/documents?lead_id=' . $id);
+    $emptyText  = 'Nenhum documento vinculado a este lead ainda.';
+    require dirname(__DIR__) . '/documents/_summary_block.php';
+    ?>
+<?php endif; ?>
+
 <div class="actions-row" style="margin-top:22px;flex-wrap:wrap;gap:10px;">
 <?php if (can('leads.edit') && !$arch): ?><a href="<?= e(app_url('/leads/'.$id.'/edit')) ?>" class="btn btn-light"><i data-lucide="pencil"></i> Editar</a><?php endif; ?>
 <?php if (can('leads.convert') && !$arch): ?><a href="<?= e(app_url('/leads/'.$id.'/convert')) ?>" class="btn btn-yellow"><i data-lucide="git-merge"></i> Converter</a><?php endif; ?>

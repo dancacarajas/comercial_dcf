@@ -263,6 +263,16 @@ $regimeLabel   = $taxRegimes[(string) ($company['tax_regime_guess'] ?? '')] ?? (
             ?>
         <?php endif; ?>
 
+        <?php if (can('documents.view')): ?>
+            <?php
+            $blockTitle = 'Documentos da empresa';
+            $createUrl  = app_url('/companies/' . $cid . '/documents/create');
+            $allUrl     = app_url('/documents?company_id=' . $cid);
+            $emptyText  = 'Nenhum documento cadastrado para esta empresa ainda.';
+            require dirname(__DIR__) . '/documents/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice" style="margin-top:20px;">
             <p class="mb-0"><i data-lucide="info"></i> Histórico comercial detalhado e relatórios serão vinculados a esta empresa nas próximas etapas.</p>
         </div>

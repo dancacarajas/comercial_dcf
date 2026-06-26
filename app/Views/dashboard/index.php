@@ -30,6 +30,10 @@ $proposalsSent      = $proposalsSent ?? null;
 $proposalsOpen      = $proposalsOpen ?? null;
 $proposalsExpired   = $proposalsExpired ?? null;
 $proposalsOpenValue = $proposalsOpenValue ?? null;
+$documentsTotal     = $documentsTotal ?? null;
+$documentsActive    = $documentsActive ?? null;
+$documentsExpiring  = $documentsExpiring ?? null;
+$documentsExpired   = $documentsExpired ?? null;
 ?>
 
 <section class="section section-dark">
@@ -149,6 +153,26 @@ $proposalsOpenValue = $proposalsOpenValue ?? null;
                         <?php if (can('proposals.create')): ?>
                             &nbsp;·&nbsp;
                             <a href="<?= e(app_url('/proposals/create')) ?>" class="link-strong"><i data-lucide="plus"></i> Nova proposta</a>
+                        <?php endif; ?>
+                    </p>
+                </article>
+            <?php endif; ?>
+
+            <?php if ($documentsTotal !== null): ?>
+                <article class="card card-accent">
+                    <span class="card-icon"><i data-lucide="folder"></i></span>
+                    <h3>Documentos e arquivos</h3>
+                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $documentsTotal ?> <span style="font-size:14px;font-weight:600;">cadastrados</span></p>
+                    <p style="margin-bottom:6px;">
+                        <span class="pill"><?= (int) $documentsActive ?> ativo(s)</span>
+                        <span class="pill"><?= (int) $documentsExpiring ?> vencendo (30d)</span>
+                        <span class="pill <?= (int) $documentsExpired > 0 ? 'pill-danger' : '' ?>"><?= (int) $documentsExpired ?> vencido(s)</span>
+                    </p>
+                    <p>
+                        <a href="<?= e(app_url('/documents')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar documentos</a>
+                        <?php if (can('documents.create')): ?>
+                            &nbsp;·&nbsp;
+                            <a href="<?= e(app_url('/documents/create')) ?>" class="link-strong"><i data-lucide="plus"></i> Novo documento</a>
                         <?php endif; ?>
                     </p>
                 </article>

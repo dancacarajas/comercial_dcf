@@ -66,6 +66,9 @@ $pageTitle = isset($title) ? ($title . ' — ' . $appName) : $appName;
                     <?php if (can('proposals.view')): ?>
                         <a href="<?= e(app_url('/proposals')) ?>"><i data-lucide="file-text"></i> Propostas</a>
                     <?php endif; ?>
+                    <?php if (can('documents.view')): ?>
+                        <a href="<?= e(app_url('/documents')) ?>"><i data-lucide="folder"></i> Documentos</a>
+                    <?php endif; ?>
                     <?php if (can('users.view')): ?>
                         <a href="<?= e(app_url('/users')) ?>"><i data-lucide="users"></i> Usuários</a>
                     <?php endif; ?>

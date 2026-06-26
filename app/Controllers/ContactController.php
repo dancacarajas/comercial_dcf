@@ -9,6 +9,7 @@ use App\Middlewares\AuthMiddleware;
 use App\Models\ActivityLog;
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\Document;
 use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Task;
@@ -164,6 +165,15 @@ final class ContactController extends Controller
             $proposalSummary = $proposalModel->summaryByContact($id);
         }
 
+        $documents       = [];
+        $documentSummary = ['total' => 0, 'active' => 0, 'expired' => 0, 'expiring_soon' => 0];
+        $documentModel   = null;
+        if (can('documents.view')) {
+            $documentModel   = new Document();
+            $documents       = $documentModel->findByContact($id, 6);
+            $documentSummary = $documentModel->summaryByContact($id);
+        }
+
         $this->view('contacts/show', [
             'title'              => $contact['name'] ?? 'Contato',
             'contact'            => $contact,
@@ -180,6 +190,9 @@ final class ContactController extends Controller
             'proposals'          => $proposals,
             'proposalSummary'    => $proposalSummary,
             'proposalModel'      => $proposalModel,
+            'documents'          => $documents,
+            'documentSummary'    => $documentSummary,
+            'documentModel'      => $documentModel,
         ]);
     }
 

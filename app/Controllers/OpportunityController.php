@@ -9,6 +9,7 @@ use App\Middlewares\AuthMiddleware;
 use App\Models\ActivityLog;
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\Document;
 use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Quota;
@@ -168,6 +169,15 @@ final class OpportunityController extends Controller
             $proposalSummary = $proposalModel->summaryByOpportunity($id);
         }
 
+        $documents       = [];
+        $documentSummary = ['total' => 0, 'active' => 0, 'expired' => 0, 'expiring_soon' => 0];
+        $documentModel   = null;
+        if (can('documents.view')) {
+            $documentModel   = new Document();
+            $documents       = $documentModel->findByOpportunity($id, 6);
+            $documentSummary = $documentModel->summaryByOpportunity($id);
+        }
+
         $this->view('opportunities/show', array_merge($this->lists($model), [
             'title'       => $opportunity['title'] ?? 'Oportunidade',
             'opportunity' => $opportunity,
@@ -177,6 +187,9 @@ final class OpportunityController extends Controller
             'proposals'       => $proposals,
             'proposalSummary' => $proposalSummary,
             'proposalModel'   => $proposalModel,
+            'documents'       => $documents,
+            'documentSummary' => $documentSummary,
+            'documentModel'   => $documentModel,
         ]));
     }
 

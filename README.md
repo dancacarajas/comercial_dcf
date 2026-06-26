@@ -255,7 +255,7 @@ WHERE email = 'admin@dancacarajas.com';
 | Perfil | Permissões |
 |--------|-----------|
 | **Administrador Geral** (`administrador-geral`) | **Todas** |
-| **Captação / Comercial** (`captacao-comercial`) | `dashboard.view`, `companies.*`, `contacts.*`, `opportunities.*`, `quotas.view`, `tasks.view`, `leads.view`, `proposals.view`, `documents.view` |
+| **Captação / Comercial** (`captacao-comercial`) | `dashboard.view`, `companies.*`, `contacts.*`, `opportunities.*`, `quotas.view`, `tasks.view`, `leads.view`, `proposals.*`, `documents.*` |
 | **Produção / Coordenação** (`producao-coordenacao`) | `dashboard.view`, `sponsors.view`, `counterparts.view`, `documents.view`, `reports.view` |
 | **Comunicação** (`comunicacao`) | `dashboard.view`, `sponsors.view`, `counterparts.view`, `documents.view`, `reports.view` |
 | **Leitura / Consulta** (`leitura-consulta`) | `dashboard.view` + `*.view` de consulta (companies, contacts, opportunities, quotas, tasks, leads, proposals, documents, sponsors, counterparts, reports) |
@@ -1363,9 +1363,81 @@ tratará contratos, comprovantes, assinatura digital e gestão avançada de arqu
 - [ ] Filtros, paginação, blocos em empresa/contato/oportunidade/cota
 - [ ] Dashboard com cards de propostas
 - [ ] PDF salvo em `storage/uploads/proposals/` (não em `/public`)
-- [ ] Nenhum módulo Documentos, Patrocinadores, Contrapartidas ou Relatórios avançados criado
+- [ ] Nenhum módulo Patrocinadores, Contrapartidas ou Relatórios avançados criado
 
-> **Próxima etapa: Documentos (Etapa 11)** — após validação de Propostas em produção.
+> **Próxima etapa: Patrocinadores (Etapa 12)** — após validação de Documentos em produção.
+
+---
+
+## Etapa 11 — Documentos e Arquivos
+
+Módulo para armazenar, organizar, vincular, versionar e baixar materiais comerciais (one-page, deck, mídia kit, proposta PDF, atas, planilhas etc.) com **download protegido por login e permissão**.
+
+### Como rodar a migration da Etapa 11
+
+```bash
+mysql -u USUARIO -p BANCO < database/migrations/2026_etapa11_documents.sql
+```
+
+Docker local:
+
+```powershell
+Get-Content -Raw database/migrations/2026_etapa11_documents.sql | docker exec -i -e MYSQL_PWD=danca dcc_db mariadb -udanca danca_captacao
+```
+
+### Tabela `documents`
+
+Campos principais: vínculos opcionais (`company_id`, `contact_id`, `opportunity_id`, `quota_id`, `proposal_id`, `lead_id`), metadados (`title`, `category`, `status`, `access_level`), arquivo (`file_path`, `original_name`, `stored_name`, `extension`, `mime_type`, `size_bytes`, `checksum_sha256`), versionamento (`version_number`, `parent_document_id`), validade (`document_date`, `valid_until`), auditoria e `archived_at` (sem DELETE físico).
+
+### Permissões
+
+| Slug | Descrição |
+|------|-----------|
+| `documents.view` | Listar e visualizar |
+| `documents.create` | Cadastrar |
+| `documents.edit` | Editar e mudar status |
+| `documents.archive` | Arquivar/restaurar |
+| `documents.download` | Download protegido |
+| `documents.version` | Criar nova versão |
+
+**Matriz:** Administrador e Captação têm todas; Produção e Comunicação têm view/create/edit/download/version; Leitura tem view/download.
+
+### Upload e storage
+
+- Tipos: PDF, Office (doc/docx/ppt/pptx/xls/xlsx), CSV, TXT, JPG/PNG/WebP, ZIP
+- Tamanho máximo: **25 MB**
+- Pasta: `storage/uploads/documents/YYYY/MM/` (fora de `/public`)
+- `.htaccess` bloqueia acesso web direto
+- Download via `GET /documents/{id}/download` (controller autenticado)
+- SHA-256 salvo em `checksum_sha256`
+- Extensões bloqueadas: php, phtml, phar, exe, js, html, svg, sh, bat
+
+### Rotas
+
+- `GET /documents` — listagem (15/página, filtros, vencidos primeiro)
+- `GET /documents/create` + `POST /documents` — cadastro
+- `GET /documents/{id}` — visualização
+- `GET /documents/{id}/download` — download protegido
+- `GET|POST /documents/{id}/edit|update` — edição (arquivo opcional)
+- `GET|POST /documents/{id}/version` — nova versão
+- `POST /documents/{id}/status`, `/archive`, `/restore`
+
+Rotas contextuais: `/companies|contacts|opportunities|quotas|proposals|leads/{id}/documents/create`
+
+### Checklist de testes (Etapa 11)
+
+- [ ] Migration executada; permissões `documents.*` sem duplicidade
+- [ ] `GET /documents` sem login → 302; sem `documents.view` → 403
+- [ ] Menu **Documentos** só com `documents.view`
+- [ ] CSRF em POST; validações de título, categoria, status, access_level, arquivo
+- [ ] Upload válido salvo fora de `/public` com `stored_name` seguro e checksum
+- [ ] Download exige `documents.download`; caminho físico não exposto
+- [ ] PHP disfarçado rejeitado; edição com/sem novo arquivo
+- [ ] Versionamento (`parent_document_id`, `version_number`); archive/restore
+- [ ] Filtros, paginação, blocos contextuais, dashboard
+- [ ] **NÃO** criados: Patrocinadores, Contrapartidas, Contratos, Assinatura Digital, Portal Externo, Relatórios avançados
+
+> **Próxima etapa após validação:** Patrocinadores e Contrapartidas (etapas futuras).
 
 ---
 

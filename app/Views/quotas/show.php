@@ -151,6 +151,16 @@ $oProbClass = static function (int $p): string {
             ?>
         <?php endif; ?>
 
+        <?php if (can('documents.view')): ?>
+            <?php
+            $blockTitle = 'Documentos da cota';
+            $createUrl  = app_url('/quotas/' . $qid . '/documents/create');
+            $allUrl     = app_url('/documents?quota_id=' . $qid);
+            $emptyText  = 'Nenhum documento vinculado a esta cota ainda.';
+            require dirname(__DIR__) . '/documents/_summary_block.php';
+            ?>
+        <?php endif; ?>
+
         <div class="notice" style="margin-top:18px;">
             <p class="mb-0"><i data-lucide="info"></i> Patrocinadores fechados serão gerados em etapa futura. Nesta etapa, a cota apenas se vincula às oportunidades.</p>
         </div>
