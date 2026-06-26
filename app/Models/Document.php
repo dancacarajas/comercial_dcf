@@ -613,7 +613,7 @@ final class Document extends Model
      * @param array<string, mixed> $data
      * @param array<string, mixed> $file
      */
-    public function create(array $data, array $file): string
+    public function insertWithFile(array $data, array $file): string
     {
         $stored = $this->storeUpload($file);
         $row    = $this->prepareRow(array_merge($data, [
@@ -701,7 +701,7 @@ final class Document extends Model
             'notes'               => $base['notes'],
         ], $data);
 
-        return $this->create($merged, $file);
+        return $this->insertWithFile($merged, $file);
     }
 
     /**

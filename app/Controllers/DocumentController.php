@@ -191,7 +191,7 @@ final class DocumentController extends Controller
         }
 
         $data['created_by'] = $_SESSION['user_id'] ?? null;
-        $id = $model->create($data, $_FILES['document_file']);
+        $id = $model->insertWithFile($data, $_FILES['document_file']);
 
         (new ActivityLog())->record('document_created', $_SESSION['user_id'] ?? null, 'document', $id);
         flash('success', 'Documento cadastrado com sucesso.');
