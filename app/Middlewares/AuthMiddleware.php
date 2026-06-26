@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Middlewares;
 
 use App\Models\ActivityLog;
+use App\Models\User;
 use Throwable;
 
 /**
@@ -31,6 +32,8 @@ final class AuthMiddleware
         }
 
         if (!empty($_SESSION['user_id'])) {
+            self::refreshSessionPermissions();
+
             return; // autenticado
         }
 
@@ -70,6 +73,24 @@ final class AuthMiddleware
             http_response_code(403);
             echo \App\Core\View::render('errors/403', [], 'layouts/admin');
             exit;
+        }
+    }
+
+    /**
+     * Sincroniza permissoes da sessao com o banco a cada requisicao autenticada.
+     * Evita menu/botoes ocultos apos migrations que adicionam permissoes novas.
+     */
+    private static function refreshSessionPermissions(): void
+    {
+        $userId = (int) ($_SESSION['user_id'] ?? 0);
+        if ($userId <= 0) {
+            return;
+        }
+
+        try {
+            $_SESSION['permissions'] = (new User())->permissionsFor($userId);
+        } catch (Throwable $e) {
+            error_log('[AUTH] Falha ao atualizar permissoes da sessao: ' . $e->getMessage());
         }
     }
 }

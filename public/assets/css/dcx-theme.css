@@ -1665,3 +1665,17 @@ tr.task-overdue > td:first-child { box-shadow: inset 3px 0 0 #d34a4a; }
 .badge-proposal-arquivada             { background: #2b2b2b; color: #fff;    border-color: #2b2b2b; }
 .status-quick-form summary { cursor: pointer; list-style: none; }
 .status-quick-form summary::-webkit-details-marker { display: none; }
+
+.proposal-index-head { align-items: center; }
+.proposal-index-actions { flex-shrink: 0; }
+.proposal-create-btn { font-weight: 800; min-height: 44px; }
+.proposal-empty-state {
+    text-align: center;
+    padding: 32px 20px;
+    background: #fff;
+    border: 1px solid #e6e6e1;
+    border-radius: 14px;
+    margin-top: 18px;
+}
+.proposal-empty-state p { margin: 0 0 16px; color: var(--dcx-muted); }
+.proposal-filter-notice { border-left: 4px solid var(--dcx-yellow); }

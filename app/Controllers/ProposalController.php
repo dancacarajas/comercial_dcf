@@ -40,7 +40,7 @@ final class ProposalController extends Controller
             'types'         => $model->getTypes(),
             'statuses'      => $model->getStatuses(),
             'model'         => $model,
-            'companies'     => (new Company())->options(),
+            'companies'     => $this->companyFilterOptions($filters),
             'contacts'      => $this->linkOptions('contacts', 'name'),
             'opportunities' => $this->linkOptions('opportunities', 'title'),
             'quotas'        => (new Quota())->activeOptions(),
@@ -49,6 +49,7 @@ final class ProposalController extends Controller
             'pages'         => $pages,
             'total'         => $total,
             'perPage'       => self::PER_PAGE,
+            'hasFilters'    => $this->hasActiveFilters($filters),
         ]);
     }
 
@@ -594,12 +595,63 @@ final class ProposalController extends Controller
             'proposal'        => $proposal,
             'types'           => $model->getTypes(),
             'statuses'        => $model->getStatuses(),
-            'companies'       => (new Company())->options(),
+            'companies'       => (new Company())->activeOptions(),
             'opportunities'   => $this->linkOptions('opportunities', 'title'),
             'quotas'          => (new Quota())->activeOptions(),
             'users'           => (new User())->activeList(),
             'companyContacts' => $companyContacts,
         ]);
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function companyFilterOptions(array $filters): array
+    {
+        $companies  = (new Company())->activeOptions();
+        $selectedId = (int) ($filters['company_id'] ?? 0);
+
+        if ($selectedId <= 0) {
+            return $companies;
+        }
+
+        foreach ($companies as $co) {
+            if ((int) ($co['id'] ?? 0) === $selectedId) {
+                return $companies;
+            }
+        }
+
+        $archived = (new Company())->findById($selectedId);
+        if ($archived !== null) {
+            $companies[] = [
+                'id'   => $selectedId,
+                'name' => (string) ($archived['name'] ?? '') . ' (arquivada)',
+            ];
+        }
+
+        return $companies;
+    }
+
+    /** @param array<string, mixed> $filters */
+    private function hasActiveFilters(array $filters): bool
+    {
+        foreach (['q', 'type', 'status', 'valid_from', 'valid_to'] as $k) {
+            if (trim((string) ($filters[$k] ?? '')) !== '') {
+                return true;
+            }
+        }
+
+        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'responsible_user_id'] as $k) {
+            if ((int) ($filters[$k] ?? 0) > 0) {
+                return true;
+            }
+        }
+
+        foreach (['sent', 'not_sent', 'expired', 'show_archived'] as $k) {
+            if (!empty($filters[$k])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @return array<string, mixed> */

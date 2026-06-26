@@ -121,6 +121,21 @@ final class Company extends Model
         )->fetchAll();
     }
 
+    /**
+     * Empresas ativas para selects de filtro/cadastro (exclui arquivadas).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function activeOptions(): array
+    {
+        return $this->query(
+            'SELECT `id`, `name`
+               FROM `companies`
+              WHERE `archived_at` IS NULL
+              ORDER BY `name` ASC'
+        )->fetchAll();
+    }
+
     // -----------------------------------------------------------------
     // CNPJ
     // -----------------------------------------------------------------

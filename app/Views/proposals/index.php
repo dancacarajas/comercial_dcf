@@ -1,17 +1,19 @@
 <?php
-$items    = $items ?? [];
-$filters  = $filters ?? [];
-$types    = $types ?? [];
-$statuses = $statuses ?? [];
-$model    = $model ?? null;
-$companies = $companies ?? [];
-$contacts = $contacts ?? [];
+$items       = $items ?? [];
+$filters     = $filters ?? [];
+$types       = $types ?? [];
+$statuses    = $statuses ?? [];
+$model       = $model ?? null;
+$companies   = $companies ?? [];
+$contacts    = $contacts ?? [];
 $opportunities = $opportunities ?? [];
-$quotas   = $quotas ?? [];
-$users    = $users ?? [];
-$page     = (int) ($page ?? 1);
-$pages    = (int) ($pages ?? 1);
-$total    = (int) ($total ?? 0);
+$quotas      = $quotas ?? [];
+$users       = $users ?? [];
+$page        = (int) ($page ?? 1);
+$pages       = (int) ($pages ?? 1);
+$total       = (int) ($total ?? 0);
+$hasFilters  = !empty($hasFilters);
+$canCreate   = can('proposals.create');
 
 $f = static fn (string $k, string $default = ''): string => (string) ($filters[$k] ?? $default);
 
@@ -30,22 +32,32 @@ $baseQuery = array_filter([
 ], static fn ($v): bool => $v !== '' && $v !== null);
 
 $pageUrl = static fn (int $p): string => app_url('/proposals') . '?' . http_build_query(array_merge($baseQuery, ['page' => $p]));
+$createUrl = app_url('/proposals/create');
 ?>
 
 <section class="section">
     <div class="container">
-        <div class="page-head">
+        <div class="page-head proposal-index-head">
             <div>
                 <span class="kicker kicker-dark">CRM · Captação</span>
                 <h1 class="h2-section">Propostas comerciais</h1>
                 <p class="page-sub"><?= $total ?> proposta(s) encontrada(s).</p>
             </div>
-            <div class="actions-row">
-                <?php if (can('proposals.create')): ?>
-                    <a href="<?= e(app_url('/proposals/create')) ?>" class="btn btn-yellow"><i data-lucide="plus"></i> Nova proposta</a>
-                <?php endif; ?>
-            </div>
+            <?php if ($canCreate): ?>
+                <div class="proposal-index-actions actions-row">
+                    <a href="<?= e($createUrl) ?>" class="btn btn-yellow proposal-create-btn"><i data-lucide="plus"></i> Nova proposta</a>
+                </div>
+            <?php endif; ?>
         </div>
+
+        <?php if ($hasFilters): ?>
+            <div class="notice notice-warn proposal-filter-notice" style="margin-bottom:14px;">
+                <p class="mb-0">
+                    <i data-lucide="filter"></i> Filtros ativos.
+                    <a href="<?= e(app_url('/proposals')) ?>" class="link-strong">Limpar filtros</a>
+                </p>
+            </div>
+        <?php endif; ?>
 
         <form method="get" action="<?= e(app_url('/proposals')) ?>" class="filter-box">
             <div class="filter-grid">
@@ -87,11 +99,22 @@ $pageUrl = static fn (int $p): string => app_url('/proposals') . '?' . http_buil
                     <label><input type="checkbox" name="show_archived" value="1" <?= !empty($filters['show_archived'])?'checked':'' ?>> Arquivadas</label>
                 </div>
             </div>
-            <div class="actions-row"><button type="submit" class="btn btn-sm btn-yellow">Filtrar</button><a href="<?= e(app_url('/proposals')) ?>" class="btn btn-sm btn-outline">Limpar</a></div>
+            <div class="actions-row">
+                <button type="submit" class="btn btn-sm btn-yellow">Filtrar</button>
+                <a href="<?= e(app_url('/proposals')) ?>" class="btn btn-sm btn-outline">Limpar</a>
+                <?php if ($canCreate): ?>
+                    <a href="<?= e($createUrl) ?>" class="btn btn-sm btn-yellow"><i data-lucide="plus"></i> Nova proposta</a>
+                <?php endif; ?>
+            </div>
         </form>
 
         <?php if ($items === []): ?>
-            <p class="empty-state">Nenhuma proposta encontrada.</p>
+            <div class="empty-state proposal-empty-state">
+                <p>Nenhuma proposta encontrada.</p>
+                <?php if ($canCreate): ?>
+                    <a href="<?= e($createUrl) ?>" class="btn btn-yellow"><i data-lucide="plus"></i> Criar primeira proposta</a>
+                <?php endif; ?>
+            </div>
         <?php else: ?>
             <div class="table-wrap">
                 <table>
