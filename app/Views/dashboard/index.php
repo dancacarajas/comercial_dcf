@@ -1,401 +1,561 @@
 <?php
 /**
- * Painel administrativo protegido — tela institucional inicial.
- *
- * Variaveis esperadas:
- * - $user        (array{id,name,email}|null)
- * - $roleNames   (array<int,string>)
- * - $adminActive (array<int,string>)
+ * Painel administrativo — central gerencial DCX.
  */
-$user           = $user ?? null;
-$userName       = $user['name'] ?? 'Usuário';
-$roleNames      = $roleNames ?? [];
-$adminActive    = $adminActive ?? [];
+$user                = $user ?? null;
+$userName            = $user['name'] ?? 'Usuário';
+$userEmail           = $user['email'] ?? '';
+$roleNames           = $roleNames ?? [];
+$primaryRole         = $primaryRole ?? ($roleNames[0] ?? 'Usuário');
+$appEnvLabel         = $appEnvLabel ?? 'Produção';
+$dashboardAlerts     = $dashboardAlerts ?? [];
+$criticalAlertsCount = (int) ($criticalAlertsCount ?? count($dashboardAlerts));
+$showAdminSection    = !empty($showAdminSection);
+
 $companiesCount     = $companiesCount ?? null;
 $contactsCount      = $contactsCount ?? null;
 $opportunitiesOpen  = $opportunitiesOpen ?? null;
 $opportunitiesValue = $opportunitiesValue ?? null;
-$quotasCount        = $quotasCount ?? null;
-$quotasAvailable    = $quotasAvailable ?? null;
-$tasksOpen          = $tasksOpen ?? null;
-$tasksOverdue       = $tasksOverdue ?? null;
-$tasksToday         = $tasksToday ?? null;
-$tasksMine          = $tasksMine ?? null;
-$leadsNew           = $leadsNew ?? null;
-$leadsTriagem       = $leadsTriagem ?? null;
-$leadsConverted     = $leadsConverted ?? null;
-$leadsDiscarded     = $leadsDiscarded ?? null;
-$proposalsTotal     = $proposalsTotal ?? null;
-$proposalsSent      = $proposalsSent ?? null;
 $proposalsOpen      = $proposalsOpen ?? null;
-$proposalsExpired   = $proposalsExpired ?? null;
 $proposalsOpenValue = $proposalsOpenValue ?? null;
-$documentsTotal     = $documentsTotal ?? null;
-$documentsActive    = $documentsActive ?? null;
-$documentsExpiring  = $documentsExpiring ?? null;
-$documentsExpired   = $documentsExpired ?? null;
-$sponsorsTotal           = $sponsorsTotal ?? null;
-$sponsorsConfirmed       = $sponsorsConfirmed ?? null;
-$sponsorsCommitted       = $sponsorsCommitted ?? null;
+$proposalsClosed    = $proposalsClosed ?? null;
+$sponsorsTotal      = $sponsorsTotal ?? null;
+$sponsorsConfirmed  = $sponsorsConfirmed ?? null;
+$sponsorsCommitted  = $sponsorsCommitted ?? null;
 $sponsorsConfirmedAmount = $sponsorsConfirmedAmount ?? null;
-$sponsorsAwaiting        = $sponsorsAwaiting ?? null;
-$sponsorsOverdue         = $sponsorsOverdue ?? null;
-$counterpartsTotal       = $counterpartsTotal ?? null;
-$counterpartsPending     = $counterpartsPending ?? null;
-$counterpartsDelivered   = $counterpartsDelivered ?? null;
-$counterpartsPartial     = $counterpartsPartial ?? null;
-$counterpartsOverdue     = $counterpartsOverdue ?? null;
-$contractsTotal          = $contractsTotal ?? null;
-$contractsSigned         = $contractsSigned ?? null;
-$contractsAwaiting       = $contractsAwaiting ?? null;
-$contractsVigente        = $contractsVigente ?? null;
-$contractsExpired        = $contractsExpired ?? null;
-$contractsFormalized     = $contractsFormalized ?? null;
-$financialsTotal         = $financialsTotal ?? null;
-$financialsPlanned       = $financialsPlanned ?? null;
-$financialsReceived      = $financialsReceived ?? null;
-$financialsRemaining     = $financialsRemaining ?? null;
-$financialsPartial       = $financialsPartial ?? null;
-$financialsOverdue       = $financialsOverdue ?? null;
-$financialsReconciled    = $financialsReconciled ?? null;
-$dossiersTotal           = $dossiersTotal ?? null;
-$dossiersApproved        = $dossiersApproved ?? null;
-$dossiersDelivered       = $dossiersDelivered ?? null;
-$dossiersPending         = $dossiersPending ?? null;
-$dossiersPendingCounterparts = $dossiersPendingCounterparts ?? null;
-$dossiersWithBalance     = $dossiersWithBalance ?? null;
-$reportsAvailable         = !empty($reportsAvailable);
-$reportTasksOverdue       = $reportTasksOverdue ?? null;
-$reportFinancialRemaining = $reportFinancialRemaining ?? null;
-$reportCounterpartsOverdue= $reportCounterpartsOverdue ?? null;
-$reportContractsAwaiting  = $reportContractsAwaiting ?? null;
+
+$financialsPlanned    = $financialsPlanned ?? null;
+$financialsReceived   = $financialsReceived ?? null;
+$financialsRemaining  = $financialsRemaining ?? null;
+$financialsPartial    = $financialsPartial ?? null;
+$financialsOverdue    = $financialsOverdue ?? null;
+$financialsReconciled = $financialsReconciled ?? null;
+
+$counterpartsTotal     = $counterpartsTotal ?? null;
+$counterpartsPending   = $counterpartsPending ?? null;
+$counterpartsDelivered = $counterpartsDelivered ?? null;
+$counterpartsPartial   = $counterpartsPartial ?? null;
+$counterpartsOverdue   = $counterpartsOverdue ?? null;
+
+$contractsTotal      = $contractsTotal ?? null;
+$contractsSigned     = $contractsSigned ?? null;
+$contractsAwaiting   = $contractsAwaiting ?? null;
+$contractsFormalized = $contractsFormalized ?? null;
+
+$documentsTotal    = $documentsTotal ?? null;
+$documentsActive   = $documentsActive ?? null;
+$documentsExpiring = $documentsExpiring ?? null;
+$documentsExpired  = $documentsExpired ?? null;
+
+$dossiersTotal     = $dossiersTotal ?? null;
+$dossiersDelivered = $dossiersDelivered ?? null;
+$dossiersPending   = $dossiersPending ?? null;
+
+$reportsAvailable = !empty($reportsAvailable);
+
+$hasCommercial = $companiesCount !== null
+    || $contactsCount !== null
+    || $opportunitiesOpen !== null
+    || $proposalsOpen !== null
+    || $sponsorsTotal !== null;
+
+$hasFinancial = $financialsPlanned !== null;
+$hasDeliveries = $counterpartsTotal !== null || $dossiersTotal !== null;
+$hasFormalization = $contractsTotal !== null || $documentsTotal !== null || $dossiersTotal !== null;
+
+$showKpiNegotiation = can('opportunities.view') || can('proposals.view');
+$showKpiCommitted   = can('sponsors.view');
+$showKpiFormalized  = can('contracts.view');
+$showKpiFinancial   = can('financials.view');
+
+$dateLabel = (new DateTime('now', new DateTimeZone('America/Belem')))->format('d/m/Y');
 ?>
 
-<section class="section section-dark">
-    <div class="container">
-        <div class="stack-md">
+<div class="dashboard-main">
+
+    <section class="dashboard-hero section-dark">
+        <div class="container dashboard-hero__content">
             <span class="kicker">Painel</span>
-            <h1 class="h2-section" style="color:#fff;">Painel Administrativo</h1>
-            <p class="lead" style="max-width:680px;color:rgba(255,255,255,.88);">
-                Ambiente autenticado instalado. Os módulos de CRM serão liberados
-                nas próximas etapas controladas.
+            <h1 class="h2-section dashboard-hero__title">Painel Administrativo</h1>
+            <p class="lead dashboard-hero__lead">
+                Visão geral da captação, contratos, financeiro, contrapartidas e dossiês do Dança Carajás.
             </p>
-            <p style="margin:0;">
+            <div class="dashboard-hero__meta">
                 <span class="badge-dcx badge-ok">
-                    <i data-lucide="user-check"></i> <?= e($userName) ?>
+                    <i data-lucide="user-check" aria-hidden="true"></i>
+                    <?= e($userName) ?>
                 </span>
-            </p>
+                <span class="badge-dcx badge-muted">
+                    <i data-lucide="shield" aria-hidden="true"></i>
+                    <?= e($primaryRole) ?>
+                </span>
+                <span class="badge-dcx badge-env">
+                    <i data-lucide="server" aria-hidden="true"></i>
+                    <?= e($appEnvLabel) ?>
+                </span>
+                <span class="badge-dcx badge-muted">
+                    <i data-lucide="calendar" aria-hidden="true"></i>
+                    Atualizado em <?= e($dateLabel) ?>
+                </span>
+            </div>
         </div>
-    </div>
-</section>
+    </section>
 
-<section class="section section-soft">
-    <div class="container stack-md">
-        <div class="grid">
-            <?php if ($companiesCount !== null): ?>
-                <article class="card card-accent">
-                    <span class="card-icon"><i data-lucide="building-2"></i></span>
-                    <h3>Empresas cadastradas</h3>
-                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $companiesCount ?></p>
-                    <p><a href="<?= e(app_url('/companies')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar empresas</a></p>
-                </article>
-            <?php endif; ?>
+    <section class="section section-soft dashboard-body">
+        <div class="container stack-md">
 
-            <?php if ($contactsCount !== null): ?>
-                <article class="card card-accent">
-                    <span class="card-icon"><i data-lucide="contact"></i></span>
-                    <h3>Contatos cadastrados</h3>
-                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $contactsCount ?></p>
-                    <p><a href="<?= e(app_url('/contacts')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar contatos</a></p>
-                </article>
-            <?php endif; ?>
-
-            <?php if ($opportunitiesOpen !== null): ?>
-                <article class="card card-accent">
-                    <span class="card-icon"><i data-lucide="handshake"></i></span>
-                    <h3>Oportunidades abertas</h3>
-                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $opportunitiesOpen ?></p>
-                    <p class="money-value" style="margin-bottom:6px;">Em negociação: <?= e(money_br($opportunitiesValue, 'R$ 0,00')) ?></p>
-                    <p>
-                        <a href="<?= e(app_url('/opportunities')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar oportunidades</a>
-                        &nbsp;·&nbsp;
-                        <a href="<?= e(app_url('/opportunities/pipeline')) ?>" class="link-strong"><i data-lucide="kanban-square"></i> Ver pipeline</a>
-                    </p>
-                </article>
-            <?php endif; ?>
-
-            <?php if ($quotasCount !== null): ?>
-                <article class="card card-accent">
-                    <span class="card-icon"><i data-lucide="ticket"></i></span>
-                    <h3>Cotas de patrocínio</h3>
-                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $quotasCount ?></p>
-                    <p style="margin-bottom:6px;"><span class="pill"><?= (int) $quotasAvailable ?> disponível(is)</span></p>
-                    <p>
-                        <a href="<?= e(app_url('/quotas')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar cotas</a>
-                    </p>
-                </article>
-            <?php endif; ?>
-
-            <?php if ($tasksOpen !== null): ?>
-                <article class="card card-accent">
-                    <span class="card-icon"><i data-lucide="list-checks"></i></span>
-                    <h3>Tarefas e follow-ups</h3>
-                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $tasksOpen ?> <span style="font-size:14px;font-weight:600;">abertas</span></p>
-                    <p style="margin-bottom:6px;">
-                        <span class="pill <?= (int) $tasksOverdue > 0 ? 'pill-danger' : '' ?>"><?= (int) $tasksOverdue ?> vencida(s)</span>
-                        <span class="pill"><?= (int) $tasksToday ?> hoje</span>
-                        <span class="pill"><?= (int) $tasksMine ?> minhas</span>
-                    </p>
-                    <p>
-                        <a href="<?= e(app_url('/tasks')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar tarefas</a>
-                        &nbsp;·&nbsp;
-                        <a href="<?= e(app_url('/tasks?mine=1')) ?>" class="link-strong"><i data-lucide="user"></i> Minhas tarefas</a>
-                    </p>
-                </article>
-            <?php endif; ?>
-
-            <?php if ($leadsNew !== null): ?>
-                <article class="card card-accent">
-                    <span class="card-icon"><i data-lucide="inbox"></i></span>
-                    <h3>Leads do site</h3>
-                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $leadsNew ?> <span style="font-size:14px;font-weight:600;">novos</span></p>
-                    <p style="margin-bottom:6px;">
-                        <span class="pill"><?= (int) $leadsTriagem ?> em triagem</span>
-                        <span class="pill"><?= (int) $leadsConverted ?> convertidos</span>
-                        <span class="pill"><?= (int) $leadsDiscarded ?> descartados</span>
-                    </p>
-                    <p>
-                        <a href="<?= e(app_url('/leads')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar leads</a>
-                        &nbsp;·&nbsp;
-                        <a href="<?= e(app_url('/leads?status=novo')) ?>" class="link-strong"><i data-lucide="sparkles"></i> Ver leads novos</a>
-                    </p>
-                </article>
-            <?php endif; ?>
-
-            <?php if ($proposalsTotal !== null): ?>
-                <article class="card card-accent">
-                    <span class="card-icon"><i data-lucide="file-text"></i></span>
-                    <h3>Propostas comerciais</h3>
-                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $proposalsTotal ?> <span style="font-size:14px;font-weight:600;">cadastradas</span></p>
-                    <p style="margin-bottom:6px;">
-                        <span class="pill"><?= (int) $proposalsSent ?> enviada(s)</span>
-                        <span class="pill"><?= (int) $proposalsOpen ?> em aberto</span>
-                        <span class="pill <?= (int) $proposalsExpired > 0 ? 'pill-danger' : '' ?>"><?= (int) $proposalsExpired ?> vencida(s)</span>
-                    </p>
-                    <p class="money-value" style="margin-bottom:6px;">Em aberto: <?= e(money_br($proposalsOpenValue, 'R$ 0,00')) ?></p>
-                    <p>
-                        <a href="<?= e(app_url('/proposals')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar propostas</a>
-                        <?php if (can('proposals.create')): ?>
-                            &nbsp;·&nbsp;
-                            <a href="<?= e(app_url('/proposals/create')) ?>" class="link-strong"><i data-lucide="plus"></i> Nova proposta</a>
+            <?php if ($showKpiNegotiation || $showKpiCommitted || $showKpiFormalized || $showKpiFinancial || $criticalAlertsCount > 0): ?>
+                <div class="dashboard-kpi-strip">
+                    <div class="dashboard-grid dashboard-grid--kpis">
+                        <?php if ($showKpiNegotiation): ?>
+                            <article class="dashboard-kpi-card">
+                                <span class="dashboard-kpi-card__icon"><i data-lucide="target" aria-hidden="true"></i></span>
+                                <div class="dashboard-kpi-card__body">
+                                    <h2 class="dashboard-kpi-card__title">Valor em negociação</h2>
+                                    <p class="dashboard-kpi-card__value money-value">
+                                        <?= e(money_br(
+                                            can('opportunities.view') ? $opportunitiesValue : $proposalsOpenValue,
+                                            'R$ 0,00'
+                                        )) ?>
+                                    </p>
+                                    <p class="dashboard-kpi-card__meta">Pipeline comercial ativo</p>
+                                    <?php if (can('opportunities.view')): ?>
+                                        <a href="<?= e(app_url('/opportunities/pipeline')) ?>" class="dashboard-kpi-card__link">
+                                            Ver pipeline <i data-lucide="arrow-right" aria-hidden="true"></i>
+                                        </a>
+                                    <?php elseif (can('proposals.view')): ?>
+                                        <a href="<?= e(app_url('/proposals')) ?>" class="dashboard-kpi-card__link">
+                                            Ver propostas <i data-lucide="arrow-right" aria-hidden="true"></i>
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
+                            </article>
                         <?php endif; ?>
-                    </p>
-                </article>
-            <?php endif; ?>
 
-            <?php if ($documentsTotal !== null): ?>
-                <article class="card card-accent">
-                    <span class="card-icon"><i data-lucide="folder"></i></span>
-                    <h3>Documentos e arquivos</h3>
-                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $documentsTotal ?> <span style="font-size:14px;font-weight:600;">cadastrados</span></p>
-                    <p style="margin-bottom:6px;">
-                        <span class="pill"><?= (int) $documentsActive ?> ativo(s)</span>
-                        <span class="pill"><?= (int) $documentsExpiring ?> vencendo (30d)</span>
-                        <span class="pill <?= (int) $documentsExpired > 0 ? 'pill-danger' : '' ?>"><?= (int) $documentsExpired ?> vencido(s)</span>
-                    </p>
-                    <p>
-                        <a href="<?= e(app_url('/documents')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar documentos</a>
-                        <?php if (can('documents.create')): ?>
-                            &nbsp;·&nbsp;
-                            <a href="<?= e(app_url('/documents/create')) ?>" class="link-strong"><i data-lucide="plus"></i> Novo documento</a>
+                        <?php if ($showKpiCommitted): ?>
+                            <article class="dashboard-kpi-card">
+                                <span class="dashboard-kpi-card__icon"><i data-lucide="handshake" aria-hidden="true"></i></span>
+                                <div class="dashboard-kpi-card__body">
+                                    <h2 class="dashboard-kpi-card__title">Valor comprometido</h2>
+                                    <p class="dashboard-kpi-card__value money-value"><?= e(money_br($sponsorsCommitted, 'R$ 0,00')) ?></p>
+                                    <p class="dashboard-kpi-card__meta">Fechamentos comerciais</p>
+                                    <a href="<?= e(app_url('/sponsors')) ?>" class="dashboard-kpi-card__link">
+                                        Ver patrocinadores <i data-lucide="arrow-right" aria-hidden="true"></i>
+                                    </a>
+                                </div>
+                            </article>
                         <?php endif; ?>
-                    </p>
-                </article>
-            <?php endif; ?>
 
-            <?php if ($sponsorsTotal !== null): ?>
-                <article class="card card-accent sponsor-card">
-                    <span class="card-icon"><i data-lucide="badge-dollar-sign"></i></span>
-                    <h3>Patrocinadores / Fechamentos</h3>
-                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $sponsorsTotal ?> <span style="font-size:14px;font-weight:600;">cadastrados</span></p>
-                    <p style="margin-bottom:6px;">
-                        <span class="pill"><?= (int) $sponsorsConfirmed ?> confirmado(s)</span>
-                        <span class="pill"><?= (int) $sponsorsAwaiting ?> aguardando aporte</span>
-                        <span class="pill <?= (int) $sponsorsOverdue > 0 ? 'pill-danger' : '' ?>"><?= (int) $sponsorsOverdue ?> em atraso</span>
-                    </p>
-                    <p class="money-value" style="margin-bottom:4px;">Comprometido: <?= e(money_br($sponsorsCommitted, 'R$ 0,00')) ?></p>
-                    <p class="money-value" style="margin-bottom:6px;">Confirmado: <?= e(money_br($sponsorsConfirmedAmount, 'R$ 0,00')) ?></p>
-                    <p>
-                        <a href="<?= e(app_url('/sponsors')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar patrocinadores</a>
-                        <?php if (can('sponsors.create')): ?>
-                            &nbsp;·&nbsp;
-                            <a href="<?= e(app_url('/sponsors/create')) ?>" class="link-strong"><i data-lucide="plus"></i> Novo fechamento</a>
+                        <?php if ($showKpiFormalized): ?>
+                            <article class="dashboard-kpi-card">
+                                <span class="dashboard-kpi-card__icon"><i data-lucide="file-signature" aria-hidden="true"></i></span>
+                                <div class="dashboard-kpi-card__body">
+                                    <h2 class="dashboard-kpi-card__title">Valor formalizado</h2>
+                                    <p class="dashboard-kpi-card__value money-value"><?= e(money_br($contractsFormalized, 'R$ 0,00')) ?></p>
+                                    <p class="dashboard-kpi-card__meta">Contratos registrados</p>
+                                    <a href="<?= e(app_url('/contracts')) ?>" class="dashboard-kpi-card__link">
+                                        Ver contratos <i data-lucide="arrow-right" aria-hidden="true"></i>
+                                    </a>
+                                </div>
+                            </article>
                         <?php endif; ?>
-                    </p>
-                </article>
-            <?php endif; ?>
 
-            <?php if ($counterpartsTotal !== null): ?>
-                <article class="card card-accent counterpart-card">
-                    <span class="card-icon"><i data-lucide="list-checks"></i></span>
-                    <h3>Contrapartidas</h3>
-                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $counterpartsTotal ?> <span style="font-size:14px;font-weight:600;">cadastradas</span></p>
-                    <p style="margin-bottom:6px;">
-                        <span class="pill"><?= (int) $counterpartsPending ?> pendente(s)</span>
-                        <span class="pill"><?= (int) $counterpartsDelivered ?> entregue(s)</span>
-                        <span class="pill"><?= (int) $counterpartsPartial ?> parcial(is)</span>
-                        <span class="pill <?= (int) $counterpartsOverdue > 0 ? 'pill-danger' : '' ?>"><?= (int) $counterpartsOverdue ?> atrasada(s)</span>
-                    </p>
-                    <p>
-                        <a href="<?= e(app_url('/counterparts')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar contrapartidas</a>
-                        <?php if (can('counterparts.create')): ?>
-                            &nbsp;·&nbsp;
-                            <a href="<?= e(app_url('/counterparts/create')) ?>" class="link-strong"><i data-lucide="plus"></i> Nova contrapartida</a>
+                        <?php if ($showKpiFinancial): ?>
+                            <article class="dashboard-kpi-card">
+                                <span class="dashboard-kpi-card__icon"><i data-lucide="wallet" aria-hidden="true"></i></span>
+                                <div class="dashboard-kpi-card__body">
+                                    <h2 class="dashboard-kpi-card__title">Valor recebido</h2>
+                                    <p class="dashboard-kpi-card__value money-value"><?= e(money_br($financialsReceived, 'R$ 0,00')) ?></p>
+                                    <p class="dashboard-kpi-card__meta">Financeiro confirmado</p>
+                                    <a href="<?= e(app_url('/financials')) ?>" class="dashboard-kpi-card__link">
+                                        Ver financeiro <i data-lucide="arrow-right" aria-hidden="true"></i>
+                                    </a>
+                                </div>
+                            </article>
+
+                            <article class="dashboard-kpi-card">
+                                <span class="dashboard-kpi-card__icon"><i data-lucide="circle-dollar-sign" aria-hidden="true"></i></span>
+                                <div class="dashboard-kpi-card__body">
+                                    <h2 class="dashboard-kpi-card__title">Saldo a receber</h2>
+                                    <p class="dashboard-kpi-card__value money-value"><?= e(money_br($financialsRemaining, 'R$ 0,00')) ?></p>
+                                    <p class="dashboard-kpi-card__meta">Previsto menos recebido</p>
+                                    <a href="<?= e(app_url('/financials')) ?>" class="dashboard-kpi-card__link">
+                                        Ver lançamentos <i data-lucide="arrow-right" aria-hidden="true"></i>
+                                    </a>
+                                </div>
+                            </article>
                         <?php endif; ?>
-                    </p>
-                </article>
+
+                        <article class="dashboard-kpi-card<?= $criticalAlertsCount > 0 ? ' dashboard-kpi-card--alert' : '' ?>">
+                            <span class="dashboard-kpi-card__icon"><i data-lucide="alert-triangle" aria-hidden="true"></i></span>
+                            <div class="dashboard-kpi-card__body">
+                                <h2 class="dashboard-kpi-card__title">Pendências críticas</h2>
+                                <p class="dashboard-kpi-card__value"><?= $criticalAlertsCount ?></p>
+                                <p class="dashboard-kpi-card__meta">Atrasos e vencimentos</p>
+                                <a href="#dashboard-alerts" class="dashboard-kpi-card__link">
+                                    Ver pendências <i data-lucide="arrow-right" aria-hidden="true"></i>
+                                </a>
+                            </div>
+                        </article>
+                    </div>
+                </div>
             <?php endif; ?>
 
-            <?php if ($contractsTotal !== null): ?>
-                <article class="card card-accent contract-card">
-                    <span class="card-icon"><i data-lucide="file-signature"></i></span>
-                    <h3>Contratos</h3>
-                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $contractsTotal ?> <span style="font-size:14px;font-weight:600;">cadastrados</span></p>
-                    <p style="margin-bottom:6px;">
-                        <span class="pill"><?= (int) $contractsSigned ?> assinado(s)</span>
-                        <span class="pill"><?= (int) $contractsAwaiting ?> aguardando assinatura</span>
-                        <span class="pill"><?= (int) $contractsVigente ?> vigente(s)</span>
-                        <span class="pill <?= (int) $contractsExpired > 0 ? 'pill-danger' : '' ?>"><?= (int) $contractsExpired ?> vencido(s)</span>
-                    </p>
-                    <p class="money-value" style="margin-bottom:6px;">Formalizado: <?= e(money_br($contractsFormalized, 'R$ 0,00')) ?></p>
-                    <p>
-                        <a href="<?= e(app_url('/contracts')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar contratos</a>
-                        <?php if (can('contracts.create')): ?>
-                            &nbsp;·&nbsp;
-                            <a href="<?= e(app_url('/contracts/create')) ?>" class="link-strong"><i data-lucide="plus"></i> Novo contrato</a>
-                        <?php endif; ?>
-                    </p>
-                </article>
-            <?php endif; ?>
-
-            <?php if ($financialsTotal !== null): ?>
-                <article class="card card-accent financial-card">
-                    <span class="card-icon"><i data-lucide="wallet"></i></span>
-                    <h3>Financeiro</h3>
-                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $financialsTotal ?> <span style="font-size:14px;font-weight:600;">cadastrados</span></p>
-                    <p style="margin-bottom:6px;">
-                        <span class="pill financial-value money-value">Previsto: <?= e(money_br($financialsPlanned, 'R$ 0,00')) ?></span>
-                        <span class="pill financial-received money-value">Recebido: <?= e(money_br($financialsReceived, 'R$ 0,00')) ?></span>
-                        <span class="pill financial-balance money-value">Saldo: <?= e(money_br($financialsRemaining, 'R$ 0,00')) ?></span>
-                    </p>
-                    <p style="margin-bottom:6px;">
-                        <span class="pill"><?= (int) $financialsPartial ?> parcial(is)</span>
-                        <span class="pill <?= (int) $financialsOverdue > 0 ? 'pill-danger' : '' ?>"><?= (int) $financialsOverdue ?> atraso</span>
-                        <span class="pill"><?= (int) $financialsReconciled ?> conciliado(s)</span>
-                    </p>
-                    <p>
-                        <a href="<?= e(app_url('/financials')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar financeiro</a>
-                        <?php if (can('financials.create')): ?>
-                            &nbsp;·&nbsp;
-                            <a href="<?= e(app_url('/financials/create')) ?>" class="link-strong"><i data-lucide="plus"></i> Novo lançamento</a>
-                        <?php endif; ?>
-                    </p>
-                </article>
-            <?php endif; ?>
-
-            <?php if ($dossiersTotal !== null): ?>
-                <article class="card card-accent dossier-card">
-                    <span class="card-icon"><i data-lucide="folder-check"></i></span>
-                    <h3>Dossiês</h3>
-                    <p style="font-size:32px;font-weight:900;color:var(--dcx-black);margin-bottom:6px;"><?= (int) $dossiersTotal ?> <span style="font-size:14px;font-weight:600;">cadastrados</span></p>
-                    <p style="margin-bottom:6px;">
-                        <span class="pill"><?= (int) $dossiersApproved ?> aprovado(s)</span>
-                        <span class="pill"><?= (int) $dossiersDelivered ?> entregue(s)</span>
-                        <span class="pill"><?= (int) $dossiersPending ?> pendente(s)</span>
-                    </p>
-                    <p style="margin-bottom:6px;">
-                        <span class="pill"><?= (int) $dossiersPendingCounterparts ?> c/ contrap. pendente(s)</span>
-                        <span class="pill"><?= (int) $dossiersWithBalance ?> c/ saldo</span>
-                    </p>
-                    <p>
-                        <a href="<?= e(app_url('/sponsor-dossiers')) ?>" class="link-strong"><i data-lucide="arrow-right"></i> Gerenciar dossiês</a>
-                        <?php if (can('dossiers.create')): ?>
-                            &nbsp;·&nbsp;
-                            <a href="<?= e(app_url('/sponsor-dossiers/create')) ?>" class="link-strong"><i data-lucide="plus"></i> Novo dossiê</a>
-                        <?php endif; ?>
-                    </p>
-                </article>
-            <?php endif; ?>
-
-            <?php if ($reportsAvailable): ?>
-                <article class="card card-accent report-card">
-                    <span class="card-icon"><i data-lucide="chart-no-axes-combined"></i></span>
-                    <h3>Indicadores Gerenciais</h3>
-                    <p style="font-size:14px;margin-bottom:12px;">Relatórios internos consolidados para tomada de decisão comercial.</p>
-                    <p style="margin-bottom:8px;">
-                        <?php if ($reportTasksOverdue !== null): ?><span class="pill"><?= (int) $reportTasksOverdue ?> tarefa(s) vencida(s)</span><?php endif; ?>
-                        <?php if ($reportCounterpartsOverdue !== null): ?><span class="pill"><?= (int) $reportCounterpartsOverdue ?> contrap. atrasada(s)</span><?php endif; ?>
-                        <?php if ($reportContractsAwaiting !== null): ?><span class="pill"><?= (int) $reportContractsAwaiting ?> contrato(s) aguard. assinatura</span><?php endif; ?>
-                    </p>
-                    <p style="display:flex;flex-wrap:wrap;gap:8px 14px;">
-                        <a href="<?= e(app_url('/reports')) ?>" class="link-strong"><i data-lucide="layout-dashboard"></i> Executivo</a>
-                        <a href="<?= e(app_url('/reports/pipeline')) ?>" class="link-strong">Funil</a>
-                        <a href="<?= e(app_url('/reports/financials')) ?>" class="link-strong">Financeiro</a>
-                        <a href="<?= e(app_url('/reports/counterparts')) ?>" class="link-strong">Contrapartidas</a>
-                        <a href="<?= e(app_url('/reports/contracts')) ?>" class="link-strong">Contratos</a>
-                        <a href="<?= e(app_url('/reports/dossiers')) ?>" class="link-strong">Dossiês</a>
-                        <a href="<?= e(app_url('/reports/tasks')) ?>" class="link-strong">Tarefas/Pendências</a>
-                    </p>
-                </article>
-            <?php endif; ?>
-
-            <article class="card card-accent">
-                <span class="card-icon"><i data-lucide="id-card"></i></span>
-                <h3>Usuário autenticado</h3>
-                <p><?= e($user['email'] ?? '') ?></p>
-            </article>
-
-            <article class="card card-accent">
-                <span class="card-icon"><i data-lucide="shield"></i></span>
-                <h3>Perfis vinculados</h3>
-                <p>
-                    <?php if ($roleNames === []): ?>
-                        Nenhum perfil vinculado.
+            <section class="dashboard-section" id="dashboard-alerts">
+                <header class="dashboard-section__header">
+                    <h2 class="dashboard-section__title"><i data-lucide="bell" aria-hidden="true"></i> Atenção agora</h2>
+                    <p class="dashboard-section__subtitle">Alertas operacionais que exigem ação imediata</p>
+                </header>
+                <article class="dashboard-card dashboard-card--wide dashboard-alerts">
+                    <?php if ($dashboardAlerts === []): ?>
+                        <div class="dashboard-empty-state">
+                            <i data-lucide="check-circle" aria-hidden="true"></i>
+                            <p>Nenhuma pendência crítica encontrada.</p>
+                        </div>
                     <?php else: ?>
-                        <?php foreach ($roleNames as $rn): ?>
-                            <span class="pill"><?= e($rn) ?></span>
-                        <?php endforeach; ?>
+                        <ul class="dashboard-alerts__list">
+                            <?php foreach ($dashboardAlerts as $alert): ?>
+                                <li class="dashboard-alert-item">
+                                    <a href="<?= e($alert['url']) ?>">
+                                        <i data-lucide="<?= e($alert['icon']) ?>" aria-hidden="true"></i>
+                                        <span><?= e($alert['label']) ?></span>
+                                        <i data-lucide="chevron-right" class="dashboard-alert-item__chev" aria-hidden="true"></i>
+                                    </a>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
                     <?php endif; ?>
-                </p>
-            </article>
+                </article>
+            </section>
 
-            <article class="card card-accent">
-                <span class="card-icon"><i data-lucide="key-round"></i></span>
-                <h3>Permissões administrativas</h3>
+            <?php if ($hasCommercial): ?>
+                <section class="dashboard-section">
+                    <header class="dashboard-section__header">
+                        <h2 class="dashboard-section__title"><i data-lucide="trending-up" aria-hidden="true"></i> Captação comercial</h2>
+                        <p class="dashboard-section__subtitle">Funil de empresas, oportunidades, propostas e fechamentos</p>
+                    </header>
+                    <article class="dashboard-card dashboard-card--wide">
+                        <div class="dashboard-funnel">
+                            <?php if ($companiesCount !== null): ?>
+                                <div class="dashboard-funnel__item">
+                                    <span class="dashboard-funnel__label">Empresas</span>
+                                    <strong class="dashboard-funnel__value"><?= (int) $companiesCount ?></strong>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($contactsCount !== null): ?>
+                                <div class="dashboard-funnel__item">
+                                    <span class="dashboard-funnel__label">Contatos</span>
+                                    <strong class="dashboard-funnel__value"><?= (int) $contactsCount ?></strong>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($opportunitiesOpen !== null): ?>
+                                <div class="dashboard-funnel__item">
+                                    <span class="dashboard-funnel__label">Oportunidades</span>
+                                    <strong class="dashboard-funnel__value"><?= (int) $opportunitiesOpen ?></strong>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($proposalsOpen !== null): ?>
+                                <div class="dashboard-funnel__item">
+                                    <span class="dashboard-funnel__label">Propostas abertas</span>
+                                    <strong class="dashboard-funnel__value"><?= (int) $proposalsOpen ?></strong>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($proposalsClosed !== null): ?>
+                                <div class="dashboard-funnel__item">
+                                    <span class="dashboard-funnel__label">Propostas fechadas</span>
+                                    <strong class="dashboard-funnel__value"><?= (int) $proposalsClosed ?></strong>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($sponsorsConfirmed !== null): ?>
+                                <div class="dashboard-funnel__item">
+                                    <span class="dashboard-funnel__label">Patroc. confirmados</span>
+                                    <strong class="dashboard-funnel__value"><?= (int) $sponsorsConfirmed ?></strong>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <?php if ((int) ($opportunitiesOpen ?? 0) === 0 && can('opportunities.create')): ?>
+                            <div class="dashboard-empty-state dashboard-empty-state--inline">
+                                <p>Nenhuma oportunidade aberta. Crie uma oportunidade para iniciar o acompanhamento comercial.</p>
+                                <a href="<?= e(app_url('/opportunities/create')) ?>" class="btn btn-primary btn-sm">
+                                    <i data-lucide="plus" aria-hidden="true"></i> Nova oportunidade
+                                </a>
+                            </div>
+                        <?php endif; ?>
+
+                        <div class="dashboard-actions">
+                            <?php if (can('companies.create')): ?>
+                                <a href="<?= e(app_url('/companies/create')) ?>" class="dashboard-action-link">
+                                    <i data-lucide="building-2" aria-hidden="true"></i> Nova empresa
+                                </a>
+                            <?php endif; ?>
+                            <?php if (can('opportunities.create')): ?>
+                                <a href="<?= e(app_url('/opportunities/create')) ?>" class="dashboard-action-link">
+                                    <i data-lucide="target" aria-hidden="true"></i> Nova oportunidade
+                                </a>
+                            <?php endif; ?>
+                            <?php if (can('opportunities.view')): ?>
+                                <a href="<?= e(app_url('/opportunities/pipeline')) ?>" class="dashboard-action-link">
+                                    <i data-lucide="kanban-square" aria-hidden="true"></i> Ver pipeline
+                                </a>
+                            <?php endif; ?>
+                            <?php if (can('proposals.view')): ?>
+                                <a href="<?= e(app_url('/proposals')) ?>" class="dashboard-action-link">
+                                    <i data-lucide="file-text" aria-hidden="true"></i> Ver propostas
+                                </a>
+                            <?php endif; ?>
+                            <?php if ($reportsAvailable): ?>
+                                <a href="<?= e(app_url('/reports/pipeline')) ?>" class="dashboard-action-link">
+                                    <i data-lucide="chart-no-axes-combined" aria-hidden="true"></i> Relatório funil
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    </article>
+                </section>
+            <?php endif; ?>
+
+            <div class="dashboard-grid dashboard-grid--two">
+                <?php if ($hasFinancial): ?>
+                    <section class="dashboard-section">
+                        <header class="dashboard-section__header">
+                            <h2 class="dashboard-section__title"><i data-lucide="wallet" aria-hidden="true"></i> Financeiro</h2>
+                        </header>
+                        <article class="dashboard-card">
+                            <div class="dashboard-metrics-row">
+                                <div class="dashboard-metric">
+                                    <span class="dashboard-metric__label">Previsto</span>
+                                    <strong class="dashboard-metric__value money-value"><?= e(money_br($financialsPlanned, 'R$ 0,00')) ?></strong>
+                                </div>
+                                <div class="dashboard-metric">
+                                    <span class="dashboard-metric__label">Recebido</span>
+                                    <strong class="dashboard-metric__value money-value dashboard-metric__value--ok"><?= e(money_br($financialsReceived, 'R$ 0,00')) ?></strong>
+                                </div>
+                                <div class="dashboard-metric">
+                                    <span class="dashboard-metric__label">Saldo</span>
+                                    <strong class="dashboard-metric__value money-value"><?= e(money_br($financialsRemaining, 'R$ 0,00')) ?></strong>
+                                </div>
+                            </div>
+                            <p class="dashboard-card__meta">
+                                <span class="pill"><?= (int) $financialsPartial ?> parcial(is)</span>
+                                <span class="pill<?= (int) $financialsOverdue > 0 ? ' pill-danger' : '' ?>"><?= (int) $financialsOverdue ?> em atraso</span>
+                                <span class="pill"><?= (int) $financialsReconciled ?> conciliado(s)</span>
+                            </p>
+                            <div class="dashboard-actions">
+                                <a href="<?= e(app_url('/financials')) ?>" class="dashboard-action-link">Gerenciar financeiro</a>
+                                <?php if ($reportsAvailable): ?>
+                                    <a href="<?= e(app_url('/reports/financials')) ?>" class="dashboard-action-link">Relatório financeiro</a>
+                                <?php endif; ?>
+                            </div>
+                        </article>
+                    </section>
+                <?php endif; ?>
+
+                <?php if ($hasDeliveries): ?>
+                    <section class="dashboard-section">
+                        <header class="dashboard-section__header">
+                            <h2 class="dashboard-section__title"><i data-lucide="clipboard-check" aria-hidden="true"></i> Entregas e contrapartidas</h2>
+                        </header>
+                        <article class="dashboard-card">
+                            <?php if ($counterpartsTotal !== null): ?>
+                                <div class="dashboard-metrics-row dashboard-metrics-row--compact">
+                                    <div class="dashboard-metric">
+                                        <span class="dashboard-metric__label">Cadastradas</span>
+                                        <strong class="dashboard-metric__value"><?= (int) $counterpartsTotal ?></strong>
+                                    </div>
+                                    <div class="dashboard-metric">
+                                        <span class="dashboard-metric__label">Entregues</span>
+                                        <strong class="dashboard-metric__value"><?= (int) $counterpartsDelivered ?></strong>
+                                    </div>
+                                    <div class="dashboard-metric">
+                                        <span class="dashboard-metric__label">Pendentes</span>
+                                        <strong class="dashboard-metric__value"><?= (int) $counterpartsPending ?></strong>
+                                    </div>
+                                    <div class="dashboard-metric">
+                                        <span class="dashboard-metric__label">Atrasadas</span>
+                                        <strong class="dashboard-metric__value<?= (int) $counterpartsOverdue > 0 ? ' dashboard-metric__value--danger' : '' ?>"><?= (int) $counterpartsOverdue ?></strong>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($dossiersTotal !== null): ?>
+                                <p class="dashboard-card__meta">
+                                    Dossiês: <?= (int) $dossiersTotal ?> cadastrados ·
+                                    <?= (int) $dossiersDelivered ?> entregues ·
+                                    <?= (int) $dossiersPending ?> pendentes
+                                </p>
+                            <?php endif; ?>
+                            <div class="dashboard-actions">
+                                <?php if (can('counterparts.view')): ?>
+                                    <a href="<?= e(app_url('/counterparts')) ?>" class="dashboard-action-link">Contrapartidas</a>
+                                <?php endif; ?>
+                                <?php if (can('dossiers.view')): ?>
+                                    <a href="<?= e(app_url('/sponsor-dossiers')) ?>" class="dashboard-action-link">Dossiês</a>
+                                <?php endif; ?>
+                                <?php if ($reportsAvailable && can('counterparts.view')): ?>
+                                    <a href="<?= e(app_url('/reports/counterparts')) ?>" class="dashboard-action-link">Relatório</a>
+                                <?php endif; ?>
+                            </div>
+                        </article>
+                    </section>
+                <?php endif; ?>
+            </div>
+
+            <?php if ($hasFormalization): ?>
+                <section class="dashboard-section">
+                    <header class="dashboard-section__header">
+                        <h2 class="dashboard-section__title"><i data-lucide="folder-check" aria-hidden="true"></i> Formalização e documentação</h2>
+                        <p class="dashboard-section__subtitle">Contratos, documentos e dossiês de patrocínio</p>
+                    </header>
+                    <article class="dashboard-card dashboard-card--wide">
+                        <div class="dashboard-grid dashboard-grid--three dashboard-grid--inner">
+                            <?php if ($contractsTotal !== null): ?>
+                                <div class="dashboard-card dashboard-card--compact">
+                                    <h3 class="dashboard-card__title">Contratos</h3>
+                                    <p class="dashboard-card__value"><?= (int) $contractsTotal ?></p>
+                                    <p class="dashboard-card__meta">
+                                        <?= (int) $contractsSigned ?> assinados ·
+                                        <?= (int) $contractsAwaiting ?> aguardando
+                                    </p>
+                                    <a href="<?= e(app_url('/contracts')) ?>" class="dashboard-kpi-card__link">Gerenciar</a>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($documentsTotal !== null): ?>
+                                <div class="dashboard-card dashboard-card--compact">
+                                    <h3 class="dashboard-card__title">Documentos</h3>
+                                    <p class="dashboard-card__value"><?= (int) $documentsTotal ?></p>
+                                    <p class="dashboard-card__meta">
+                                        <?= (int) $documentsActive ?> ativos ·
+                                        <?= (int) $documentsExpiring ?> vencendo (30d)
+                                    </p>
+                                    <a href="<?= e(app_url('/documents')) ?>" class="dashboard-kpi-card__link">Gerenciar</a>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($dossiersTotal !== null): ?>
+                                <div class="dashboard-card dashboard-card--compact">
+                                    <h3 class="dashboard-card__title">Dossiês</h3>
+                                    <p class="dashboard-card__value"><?= (int) $dossiersTotal ?></p>
+                                    <p class="dashboard-card__meta">
+                                        <?= (int) $dossiersDelivered ?> entregues ·
+                                        <?= (int) $dossiersPending ?> pendentes
+                                    </p>
+                                    <a href="<?= e(app_url('/sponsor-dossiers')) ?>" class="dashboard-kpi-card__link">Gerenciar</a>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </article>
+                </section>
+            <?php endif; ?>
+
+            <section class="dashboard-section">
+                <header class="dashboard-section__header">
+                    <h2 class="dashboard-section__title"><i data-lucide="zap" aria-hidden="true"></i> Ações rápidas</h2>
+                    <p class="dashboard-section__subtitle">Atalhos operacionais conforme suas permissões</p>
+                </header>
+                <div class="dashboard-actions dashboard-actions--grid">
+                    <?php if (can('companies.create')): ?>
+                        <a href="<?= e(app_url('/companies/create')) ?>" class="dashboard-action-link dashboard-action-link--pill">
+                            <i data-lucide="building-2" aria-hidden="true"></i> Nova empresa
+                        </a>
+                    <?php endif; ?>
+                    <?php if (can('contacts.create')): ?>
+                        <a href="<?= e(app_url('/contacts/create')) ?>" class="dashboard-action-link dashboard-action-link--pill">
+                            <i data-lucide="contact" aria-hidden="true"></i> Novo contato
+                        </a>
+                    <?php endif; ?>
+                    <?php if (can('opportunities.create')): ?>
+                        <a href="<?= e(app_url('/opportunities/create')) ?>" class="dashboard-action-link dashboard-action-link--pill">
+                            <i data-lucide="target" aria-hidden="true"></i> Nova oportunidade
+                        </a>
+                    <?php endif; ?>
+                    <?php if (can('proposals.create')): ?>
+                        <a href="<?= e(app_url('/proposals/create')) ?>" class="dashboard-action-link dashboard-action-link--pill">
+                            <i data-lucide="file-text" aria-hidden="true"></i> Nova proposta
+                        </a>
+                    <?php endif; ?>
+                    <?php if (can('sponsors.create')): ?>
+                        <a href="<?= e(app_url('/sponsors/create')) ?>" class="dashboard-action-link dashboard-action-link--pill">
+                            <i data-lucide="handshake" aria-hidden="true"></i> Novo patrocinador
+                        </a>
+                    <?php endif; ?>
+                    <?php if (can('contracts.create')): ?>
+                        <a href="<?= e(app_url('/contracts/create')) ?>" class="dashboard-action-link dashboard-action-link--pill">
+                            <i data-lucide="file-signature" aria-hidden="true"></i> Novo contrato
+                        </a>
+                    <?php endif; ?>
+                    <?php if (can('financials.create')): ?>
+                        <a href="<?= e(app_url('/financials/create')) ?>" class="dashboard-action-link dashboard-action-link--pill">
+                            <i data-lucide="wallet" aria-hidden="true"></i> Novo lançamento
+                        </a>
+                    <?php endif; ?>
+                    <?php if (can('dossiers.create')): ?>
+                        <a href="<?= e(app_url('/sponsor-dossiers/create')) ?>" class="dashboard-action-link dashboard-action-link--pill">
+                            <i data-lucide="folder-check" aria-hidden="true"></i> Novo dossiê
+                        </a>
+                    <?php endif; ?>
+                    <?php if ($reportsAvailable): ?>
+                        <a href="<?= e(app_url('/reports')) ?>" class="dashboard-action-link dashboard-action-link--pill">
+                            <i data-lucide="chart-no-axes-combined" aria-hidden="true"></i> Ver relatórios
+                        </a>
+                    <?php endif; ?>
+                </div>
+            </section>
+
+            <?php if ($showAdminSection): ?>
+                <section class="dashboard-section dashboard-admin-section">
+                    <header class="dashboard-section__header">
+                        <h2 class="dashboard-section__title"><i data-lucide="settings" aria-hidden="true"></i> Administração do sistema</h2>
+                    </header>
+                    <div class="dashboard-grid dashboard-grid--three">
+                        <article class="dashboard-card dashboard-card--compact dashboard-card--admin">
+                            <h3 class="dashboard-card__title">Sessão atual</h3>
+                            <p class="dashboard-card__meta"><?= e($userName) ?></p>
+                            <p class="dashboard-card__meta dashboard-card__meta--small"><?= e($userEmail) ?></p>
+                            <?php if ($roleNames !== []): ?>
+                                <p class="dashboard-card__meta">
+                                    <?php foreach ($roleNames as $rn): ?>
+                                        <span class="pill"><?= e($rn) ?></span>
+                                    <?php endforeach; ?>
+                                </p>
+                            <?php endif; ?>
+                        </article>
+                        <?php if (can('users.view')): ?>
+                            <article class="dashboard-card dashboard-card--compact">
+                                <span class="dashboard-card__icon"><i data-lucide="users" aria-hidden="true"></i></span>
+                                <h3 class="dashboard-card__title">Usuários</h3>
+                                <p class="dashboard-card__meta">Gerenciar acessos e perfis vinculados</p>
+                                <a href="<?= e(app_url('/users')) ?>" class="dashboard-kpi-card__link">Abrir módulo</a>
+                            </article>
+                        <?php endif; ?>
+                        <?php if (can('roles.view')): ?>
+                            <article class="dashboard-card dashboard-card--compact">
+                                <span class="dashboard-card__icon"><i data-lucide="shield" aria-hidden="true"></i></span>
+                                <h3 class="dashboard-card__title">Perfis</h3>
+                                <p class="dashboard-card__meta">Papéis e permissões por perfil</p>
+                                <a href="<?= e(app_url('/roles')) ?>" class="dashboard-kpi-card__link">Abrir módulo</a>
+                            </article>
+                        <?php endif; ?>
+                        <?php if (can('permissions.view')): ?>
+                            <article class="dashboard-card dashboard-card--compact">
+                                <span class="dashboard-card__icon"><i data-lucide="lock-keyhole" aria-hidden="true"></i></span>
+                                <h3 class="dashboard-card__title">Permissões</h3>
+                                <p class="dashboard-card__meta">Matriz de permissões do sistema</p>
+                                <a href="<?= e(app_url('/permissions')) ?>" class="dashboard-kpi-card__link">Abrir módulo</a>
+                            </article>
+                        <?php endif; ?>
+                    </div>
+                </section>
+            <?php endif; ?>
+
+            <div class="notice dashboard-notice">
+                <h3 class="h3-card flex items-center gap-12">
+                    <i data-lucide="info" aria-hidden="true"></i>
+                    Sistema comercial integrado
+                </h3>
                 <p>
-                    <?php if ($adminActive === []): ?>
-                        Sem permissões administrativas ativas.
-                    <?php else: ?>
-                        <?php foreach ($adminActive as $perm): ?>
-                            <span class="pill"><?= e($perm) ?></span>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                    O sistema registra o ciclo comercial completo da captação: empresas, oportunidades,
+                    propostas, contratos, financeiro, contrapartidas, dossiês e relatórios gerenciais.
                 </p>
-            </article>
+            </div>
 
-            <article class="card card-accent">
-                <span class="card-icon"><i data-lucide="arrow-right-circle"></i></span>
-                <h3>Próxima etapa</h3>
-                <p>Patrocinadores / Fechamentos Comerciais ativos. Contrapartidas, contratos, assinatura digital e portal externo continuam para etapas futuras.</p>
-            </article>
         </div>
-
-        <div class="notice">
-            <h3 class="h3-card flex items-center gap-12"><i data-lucide="info"></i> Módulos ativos: Empresas, Contatos, Oportunidades, Cotas, Tarefas, Leads, Propostas, Documentos e Patrocinadores</h3>
-            <p>
-                O CRM comercial registra fechamentos de patrocínio com vínculos a empresa, proposta, cota e documentos.
-                Assinatura digital integrada, portal externo, BI externo, exportação Excel global, envio automático e automações externas continuam para etapas futuras. Relatórios internos e indicadores gerenciais estão disponíveis em Relatórios.
-            </p>
-        </div>
-    </div>
-</section>
+    </section>
+</div>

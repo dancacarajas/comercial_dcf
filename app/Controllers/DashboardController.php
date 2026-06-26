@@ -206,6 +206,93 @@ final class DashboardController extends Controller
         $reportCounterpartsOverdue = $counterpartsOverdue;
         $reportContractsAwaiting = $contractsAwaiting;
 
+        $proposalsClosed = null;
+        if (can('proposals.view')) {
+            $proposalsClosed = (new Proposal())->count(['show_archived' => 0, 'status' => 'fechada']);
+        }
+
+        $appConfig   = require dirname(__DIR__, 2) . '/config/app.php';
+        $appEnvLabel = ($appConfig['env'] ?? 'production') === 'production'
+            ? 'Produção'
+            : ucfirst((string) ($appConfig['env'] ?? 'local'));
+        $sessionRoles = $_SESSION['role_names'] ?? [];
+        $primaryRole  = is_array($sessionRoles) && $sessionRoles !== []
+            ? (string) $sessionRoles[0]
+            : 'Usuário';
+
+        $dashboardAlerts = [];
+
+        if ($tasksOverdue !== null && (int) $tasksOverdue > 0) {
+            $dashboardAlerts[] = [
+                'label' => sprintf('%d tarefa(s) vencida(s)', (int) $tasksOverdue),
+                'url'   => app_url('/tasks?overdue=1'),
+                'icon'  => 'list-checks',
+            ];
+        }
+
+        if ($contractsAwaiting !== null && (int) $contractsAwaiting > 0) {
+            $dashboardAlerts[] = [
+                'label' => sprintf('%d contrato(s) aguardando assinatura', (int) $contractsAwaiting),
+                'url'   => app_url('/contracts'),
+                'icon'  => 'file-signature',
+            ];
+        }
+
+        if ($counterpartsOverdue !== null && (int) $counterpartsOverdue > 0) {
+            $dashboardAlerts[] = [
+                'label' => sprintf('%d contrapartida(s) atrasada(s)', (int) $counterpartsOverdue),
+                'url'   => app_url('/counterparts'),
+                'icon'  => 'clipboard-check',
+            ];
+        }
+
+        if ($financialsOverdue !== null && (int) $financialsOverdue > 0) {
+            $dashboardAlerts[] = [
+                'label' => sprintf('%d lançamento(s) financeiro(s) em atraso', (int) $financialsOverdue),
+                'url'   => app_url('/financials'),
+                'icon'  => 'wallet',
+            ];
+        }
+
+        if ($dossiersPending !== null && (int) $dossiersPending > 0) {
+            $dashboardAlerts[] = [
+                'label' => sprintf('%d dossiê(s) pendente(s)', (int) $dossiersPending),
+                'url'   => app_url('/sponsor-dossiers'),
+                'icon'  => 'folder-check',
+            ];
+        }
+
+        if ($leadsNew !== null && ((int) $leadsNew + (int) ($leadsTriagem ?? 0)) > 0) {
+            $dashboardAlerts[] = [
+                'label' => sprintf(
+                    '%d lead(s) aguardando tratamento',
+                    (int) $leadsNew + (int) ($leadsTriagem ?? 0)
+                ),
+                'url'   => app_url('/leads?status=novo'),
+                'icon'  => 'inbox',
+            ];
+        }
+
+        if ($proposalsExpired !== null && (int) $proposalsExpired > 0) {
+            $dashboardAlerts[] = [
+                'label' => sprintf('%d proposta(s) vencida(s)', (int) $proposalsExpired),
+                'url'   => app_url('/proposals'),
+                'icon'  => 'file-text',
+            ];
+        }
+
+        if ($documentsExpired !== null && (int) $documentsExpired > 0) {
+            $dashboardAlerts[] = [
+                'label' => sprintf('%d documento(s) vencido(s)', (int) $documentsExpired),
+                'url'   => app_url('/documents'),
+                'icon'  => 'folder',
+            ];
+        }
+
+        $criticalAlertsCount = count($dashboardAlerts);
+
+        $showAdminSection = can('users.view') || can('roles.view') || can('permissions.view');
+
         $this->view('dashboard/index', [
             'title'              => 'Painel Administrativo',
             'user'               => $this->currentUser(),
@@ -269,6 +356,12 @@ final class DashboardController extends Controller
             'reportFinancialRemaining'=> $reportFinancialRemaining,
             'reportCounterpartsOverdue'=> $reportCounterpartsOverdue,
             'reportContractsAwaiting' => $reportContractsAwaiting,
+            'proposalsClosed'         => $proposalsClosed,
+            'appEnvLabel'             => $appEnvLabel,
+            'primaryRole'             => $primaryRole,
+            'dashboardAlerts'         => $dashboardAlerts,
+            'criticalAlertsCount'     => $criticalAlertsCount,
+            'showAdminSection'        => $showAdminSection,
         ], 'layouts/admin');
     }
 }
