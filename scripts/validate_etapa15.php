@@ -209,6 +209,30 @@ function postFinancial(HttpClient $http, array $fields): array
     return $http->post('/financials', $fields);
 }
 
+function ctPayload(array $overrides = []): array
+{
+    return array_merge([
+        'sponsor_id' => '', 'company_id' => '', 'contact_id' => '', 'opportunity_id' => '',
+        'proposal_id' => '', 'quota_id' => '', 'draft_document_id' => '', 'final_document_id' => '',
+        'signed_document_id' => '', 'contract_number' => '', 'title' => '',
+        'contract_type' => 'termo_patrocinio', 'formalized_value' => '', 'funding_mechanism' => 'nao_definido',
+        'status' => 'minuta', 'review_status' => 'nao_revisado', 'signature_status' => 'nao_enviado',
+        'start_date' => '', 'end_date' => '', 'sent_for_signature_at' => '', 'signed_at' => '',
+        'effective_at' => '', 'ended_at' => '', 'sponsor_signatory_name' => '', 'sponsor_signatory_email' => '',
+        'sponsor_signatory_position' => '', 'sponsor_signatory_document' => '',
+        'organization_signatory_name' => '', 'organization_signatory_email' => '', 'organization_signatory_position' => '',
+        'approval_notes' => '', 'signature_notes' => '', 'legal_notes' => '', 'notes' => '', 'internal_notes' => '',
+        'responsible_user_id' => '1',
+    ], $overrides);
+}
+
+function postContract(HttpClient $http, array $fields): array
+{
+    $page = $http->get('/contracts/create');
+    $fields['_csrf'] = HttpClient::extractCsrf($page['body']) ?? '';
+    return $http->post('/contracts', $fields);
+}
+
 function findSponsorId(): int
 {
     $row = dbq("SELECT id FROM sponsors WHERE archived_at IS NULL ORDER BY id DESC LIMIT 1");
@@ -330,7 +354,24 @@ function ensureFullTestChain(HttpClient $http, Report $R): array
         : (int) (dbq("SELECT id FROM sponsors WHERE sponsor_display_name LIKE ? ORDER BY id DESC LIMIT 1", ['%' . $prefix . ' PATROCINADOR%'])['id'] ?? 0);
     $sponsorId > 0 ? $R->pass('dados', 'Patrocinador cadeia completa', 'id=' . $sponsorId) : $R->fail('dados', 'Patrocinador cadeia');
 
-    return compact('companyId', 'contactId', 'quotaId', 'oppId', 'propId', 'sponsorId');
+    $contractTitle = 'CONTRATO TESTE — ETAPA 15 FECHAMENTO';
+    $rCt = postContract($http, ctPayload([
+        'sponsor_id' => (string) $sponsorId,
+        'company_id' => (string) $companyId,
+        'contact_id' => (string) $contactId,
+        'opportunity_id' => (string) $oppId,
+        'proposal_id' => (string) $propId,
+        'quota_id' => (string) $quotaId,
+        'title' => $contractTitle,
+        'formalized_value' => '50000',
+        'start_date' => date('Y-m-d'),
+        'end_date' => date('Y-m-d', strtotime('+365 days')),
+    ]));
+    $contractId = preg_match('#/contracts/(\d+)#', (string) ($rCt['location'] ?? ''), $m) ? (int) $m[1]
+        : (int) (dbq('SELECT id FROM contracts WHERE title = ? ORDER BY id DESC LIMIT 1', [$contractTitle])['id'] ?? 0);
+    $contractId > 0 ? $R->pass('dados', 'Contrato teste', 'id=' . $contractId) : $R->fail('dados', 'Contrato teste');
+
+    return compact('companyId', 'contactId', 'quotaId', 'oppId', 'propId', 'sponsorId', 'contractId');
 }
 
 function archiveTestData(Report $R): void
@@ -708,7 +749,7 @@ $filters = [
     'oportunidade' => '/financials?opportunity_id=' . (int) ($chain['oppId'] ?? 0),
     'proposta' => '/financials?proposal_id=' . (int) ($chain['propId'] ?? 0),
     'cota' => '/financials?quota_id=' . (int) ($chain['quotaId'] ?? 0),
-    'contrato' => '/financials?contract_id=' . $contractId,
+    'contrato' => '/financials?contract_id=' . (int) ($chain['contractId'] ?? $contractId),
     'tipo' => '/financials?entry_type=parcela_patrocinio',
     'mecanismo' => '/financials?funding_mechanism=lei_rouanet',
     'pagamento' => '/financials?payment_method=pix',
@@ -742,7 +783,7 @@ foreach ($filters as $name => $url) {
 echo PHP_EOL . "9. BLOCOS CONTEXTUAIS E DASHBOARD" . PHP_EOL;
 foreach ([
     'sponsors' => $sponsorId,
-    'contracts' => $contractId,
+    'contracts' => (int) ($chain['contractId'] ?? $contractId),
     'companies' => (int) ($chain['companyId'] ?? 0),
     'contacts' => (int) ($chain['contactId'] ?? 0),
     'opportunities' => (int) ($chain['oppId'] ?? 0),
