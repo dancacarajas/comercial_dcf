@@ -310,4 +310,53 @@ final class CollectorApplicationDocument extends Model
             ['status' => $status, 'notes' => $notes, 'uid' => $userId, 'id' => $slotId]
         );
     }
+
+    /** @return array<string, mixed>|null */
+    public function findForApplication(int $applicationId, int $documentId): ?array
+    {
+        $slot = $this->findById($documentId);
+        if ($slot === null || (int) ($slot['collector_application_id'] ?? 0) !== $applicationId) {
+            return null;
+        }
+
+        return $slot;
+    }
+
+    /**
+     * @param array<string, mixed> $slot
+     * @return array{path:string,original_name:string,mime_type:string,size_bytes:int,extension:string}|null
+     */
+    public function resolveFileForServing(array $slot): ?array
+    {
+        if (!empty($slot['archived_at'])) {
+            return null;
+        }
+
+        if (empty($slot['uploaded_at'])) {
+            return null;
+        }
+
+        $path = (string) ($slot['file_path'] ?? '');
+        if ($path === '') {
+            return null;
+        }
+
+        $baseReal = realpath(dirname(__DIR__, 2) . '/storage/uploads/collector_applications');
+        if ($baseReal === false) {
+            return null;
+        }
+
+        $fileReal = realpath($path);
+        if ($fileReal === false || !is_file($fileReal) || !str_starts_with($fileReal, $baseReal)) {
+            return null;
+        }
+
+        return [
+            'path'          => $fileReal,
+            'original_name' => (string) ($slot['uploaded_original_name'] ?? 'documento'),
+            'mime_type'     => (string) ($slot['file_mime'] ?? 'application/octet-stream'),
+            'size_bytes'    => (int) ($slot['file_size'] ?? 0),
+            'extension'     => strtolower((string) ($slot['file_extension'] ?? '')),
+        ];
+    }
 }

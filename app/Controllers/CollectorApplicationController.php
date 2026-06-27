@@ -263,6 +263,71 @@ final class CollectorApplicationController extends Controller
         $this->redirect('/collector-applications/' . (int) $app['id']);
     }
 
+    public function viewDocument(array $params): void
+    {
+        AuthMiddleware::requirePermission('collector_applications.view');
+        [, $slot, $file] = $this->resolveDocumentFile($params);
+        (new ActivityLog())->record(
+            'collector_document_viewed',
+            $_SESSION['user_id'] ?? null,
+            'collector_application_document',
+            (int) ($slot['id'] ?? 0)
+        );
+        $this->sendDocumentFile($file, inline: true);
+    }
+
+    public function downloadDocument(array $params): void
+    {
+        AuthMiddleware::requirePermission('collector_applications.view');
+        [, $slot, $file] = $this->resolveDocumentFile($params);
+        (new ActivityLog())->record(
+            'collector_document_downloaded',
+            $_SESSION['user_id'] ?? null,
+            'collector_application_document',
+            (int) ($slot['id'] ?? 0)
+        );
+        $this->sendDocumentFile($file, inline: false);
+    }
+
+    /**
+     * @param array<string, mixed> $params
+     * @return array{0:array<string,mixed>,1:array<string,mixed>,2:array<string,mixed>}
+     */
+    private function resolveDocumentFile(array $params): array
+    {
+        $app = $this->findOr404($params['id'] ?? null);
+        $documentId = (int) ($params['documentId'] ?? 0);
+        $docModel = new CollectorApplicationDocument();
+        $slot = $docModel->findForApplication((int) $app['id'], $documentId);
+        if ($slot === null) {
+            $this->abort(404, 'Documento não encontrado.');
+        }
+        if (!empty($slot['archived_at'])) {
+            $this->abort(404, 'Documento arquivado.');
+        }
+
+        $file = $docModel->resolveFileForServing($slot);
+        if ($file === null) {
+            $this->abort(404, 'Arquivo não encontrado.');
+        }
+
+        return [$app, $slot, $file];
+    }
+
+    /** @param array{path:string,original_name:string,mime_type:string,size_bytes:int,extension:string} $file */
+    private function sendDocumentFile(array $file, bool $inline): void
+    {
+        $name = (string) ($file['original_name'] ?? 'documento');
+        header('Content-Type: ' . (string) ($file['mime_type'] ?? 'application/octet-stream'));
+        header(
+            'Content-Disposition: ' . ($inline ? 'inline' : 'attachment') . '; filename="' . rawurlencode($name) . '"'
+        );
+        header('Content-Length: ' . (string) ((int) ($file['size_bytes'] ?? 0)));
+        header('X-Content-Type-Options: nosniff');
+        readfile((string) $file['path']);
+        exit;
+    }
+
     public function approve(array $params): void
     {
         AuthMiddleware::requirePermission('collector_applications.approve');

@@ -99,28 +99,62 @@ $totalRequired = (int) ($signatureProgress['total_required'] ?? 0);
 
 <div class="card" style="margin-top:18px;">
     <h3 class="h3-card">Documentos do credenciamento</h3>
+    <?php if (can('collector_applications.review')): ?>
+        <p class="text-sm text-muted-dcx" style="margin-bottom:12px;">Visualize ou baixe cada anexo antes de aprovar, reprovar ou solicitar substituição.</p>
+    <?php endif; ?>
     <?php if ($documents === []): ?>
         <p class="mb-0">Nenhum documento solicitado ainda.</p>
     <?php else: ?>
         <div class="table-wrap"><table>
-            <thead><tr><th>Tipo</th><th>Status</th><th>Enviado</th><th>Ações</th></tr></thead>
+            <thead><tr><th>Documento</th><th>Arquivo</th><th>Status</th><th>Enviado em</th><th>Análise</th></tr></thead>
             <tbody>
-            <?php foreach ($documents as $doc): ?>
+            <?php foreach ($documents as $doc):
+                $docId = (int) ($doc['id'] ?? 0);
+                $docSt = (string) ($doc['status'] ?? '');
+                $hasFile = !empty($doc['uploaded_at']) && !empty($doc['file_path']);
+                $fileName = (string) ($doc['uploaded_original_name'] ?? '');
+                $fileSize = (int) ($doc['file_size'] ?? 0);
+                $fileExt = strtoupper((string) ($doc['file_extension'] ?? ''));
+                $fileMime = (string) ($doc['file_mime'] ?? '');
+                $sizeLabel = $fileSize >= 1048576
+                    ? number_format($fileSize / 1048576, 2, ',', '.') . ' MB'
+                    : ($fileSize >= 1024 ? number_format($fileSize / 1024, 1, ',', '.') . ' KB' : $fileSize . ' B');
+            ?>
                 <tr>
-                    <td><?= e($doc['title'] ?? '') ?></td>
-                    <td><?= e($docStatuses[$doc['status'] ?? ''] ?? $doc['status'] ?? '') ?></td>
+                    <td><strong><?= e($doc['title'] ?? '') ?></strong></td>
+                    <td>
+                        <?php if ($hasFile): ?>
+                            <div><?= e($fileName) ?></div>
+                            <div class="text-sm text-muted-dcx"><?= e($fileExt) ?><?= $fileMime !== '' ? ' · ' . e($fileMime) : '' ?> · <?= e($sizeLabel) ?></div>
+                            <?php if (can('collector_applications.view')): ?>
+                                <div class="actions-row" style="margin-top:6px;">
+                                    <a href="<?= e(app_url('/collector-applications/' . $id . '/documents/' . $docId . '/view')) ?>" class="btn btn-sm btn-outline" target="_blank" rel="noopener">Visualizar</a>
+                                    <a href="<?= e(app_url('/collector-applications/' . $id . '/documents/' . $docId . '/download')) ?>" class="btn btn-sm btn-outline">Baixar</a>
+                                </div>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <span class="text-muted-dcx">Aguardando envio pelo captador.</span>
+                        <?php endif; ?>
+                    </td>
+                    <td><?= e($docStatuses[$docSt] ?? $docSt) ?></td>
                     <td><?= e($doc['uploaded_at'] ?? '—') ?></td>
                     <td>
-                        <?php if (can('collector_applications.review') && !empty($doc['id'])): ?>
-                        <form method="post" action="<?= e(app_url('/collector-applications/' . $id . '/review-document')) ?>" class="inline-form" style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <?php if (can('collector_applications.review') && $docId > 0): ?>
+                        <form method="post" action="<?= e(app_url('/collector-applications/' . $id . '/review-document')) ?>" class="inline-form" style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;">
                             <?= csrf_field() ?>
-                            <input type="hidden" name="document_id" value="<?= (int) $doc['id'] ?>">
+                            <input type="hidden" name="document_id" value="<?= $docId ?>">
                             <select name="document_status" class="input input-sm">
-                                <?php foreach ($docStatuses as $k => $label): ?><option value="<?= e($k) ?>"><?= e($label) ?></option><?php endforeach; ?>
+                                <?php foreach ($docStatuses as $k => $label): ?>
+                                    <option value="<?= e($k) ?>" <?= $docSt === $k ? 'selected' : '' ?>><?= e($label) ?></option>
+                                <?php endforeach; ?>
                             </select>
-                            <input type="text" name="review_notes" class="input input-sm" placeholder="Observação">
-                            <button type="submit" class="btn btn-sm btn-outline">Salvar</button>
+                            <input type="text" name="review_notes" class="input input-sm" placeholder="Observação" value="<?= e((string) ($doc['review_notes'] ?? '')) ?>">
+                            <button type="submit" class="btn btn-sm btn-yellow">Salvar análise</button>
                         </form>
+                        <?php elseif (!empty($doc['review_notes'])): ?>
+                            <span class="text-sm"><?= e((string) $doc['review_notes']) ?></span>
+                        <?php else: ?>
+                            <span class="text-muted-dcx">—</span>
                         <?php endif; ?>
                     </td>
                 </tr>

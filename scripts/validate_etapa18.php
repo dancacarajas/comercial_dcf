@@ -723,6 +723,34 @@ $uploadOk = static function (ValidateHttp $h, string $token, int $slotId, string
 $pdfPath = makeMinimalPdf();
 assertTrue($uploadOk($http, $testToken, $testSlotId, $pdfPath, 'application/pdf', 'PDF'), 'Upload PDF permitido', 'Upload PDF falhou');
 
+$viewDoc = $http->request('/collector-applications/' . $testAppId . '/documents/' . $testSlotId . '/view');
+assertTrue($viewDoc['code'] === 200, 'Visualizar anexo interno → 200', "View doc → {$viewDoc['code']}");
+assertTrue(str_contains($viewDoc['headers'], 'Content-Type: application/pdf') || str_contains($viewDoc['body'], '%PDF'), 'View retorna PDF', 'View não retornou PDF');
+$downloadDoc = $http->request('/collector-applications/' . $testAppId . '/documents/' . $testSlotId . '/download');
+assertTrue($downloadDoc['code'] === 200, 'Baixar anexo interno → 200', "Download doc → {$downloadDoc['code']}");
+assertTrue(str_contains($downloadDoc['headers'], 'Content-Disposition: attachment'), 'Download usa attachment', 'Download sem attachment');
+
+$showDocPage = $http->request('/collector-applications/' . $testAppId);
+assertTrue(str_contains($showDocPage['body'], 'Visualizar') && str_contains($showDocPage['body'], 'Baixar'), 'Detalhe interno com botões Visualizar/Baixar', 'Botões de anexo ausentes no detalhe');
+
+$otherAppId = (int) $model->create([
+    'name' => 'Outra Candidatura Doc', 'email' => 'outra.doc.etapa18@example.com',
+    'phone_whatsapp' => '94999999998', 'document_number' => '39053344705',
+    'city_state' => 'PA', 'rouanet_experience' => 'nenhuma', 'consent_contact' => 1,
+    'source' => 'manual', 'status' => 'manifestacao_recebida',
+]);
+$wrongAppView = $http->request('/collector-applications/' . $otherAppId . '/documents/' . $testSlotId . '/view');
+assertTrue($wrongAppView['code'] === 404, 'Documento de outra candidatura → 404', "Cross-app view → {$wrongAppView['code']}");
+
+$missingView = $http->request('/collector-applications/' . $testAppId . '/documents/999999/view');
+assertTrue($missingView['code'] === 404, 'Documento inexistente → 404', "Missing doc view → {$missingView['code']}");
+
+$httpCaptadorDoc = new ValidateHttp($base);
+assertTrue($httpCaptadorDoc->login('captador.externo.etapa18@example.com', $testPassword), 'Login Captador para teste doc', 'Login Captador doc falhou');
+$capView = $httpCaptadorDoc->request('/collector-applications/' . $testAppId . '/documents/' . $testSlotId . '/view');
+assertTrue($capView['code'] === 403, 'Captador externo não visualiza anexo interno → 403', "Captador view doc → {$capView['code']}");
+$httpCaptadorDoc->logout();
+
 $slot2 = (int) ($slots[1]['id'] ?? $testSlotId);
 $jpgPath = makeMinimalJpg();
 assertTrue($uploadOk($http, $testToken, $slot2, $jpgPath, 'image/jpeg', 'JPG'), 'Upload JPG permitido', 'Upload JPG falhou');

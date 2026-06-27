@@ -367,6 +367,8 @@ return function (Router $router): void {
     $router->post('/collector-applications/{id}/status',                'CollectorApplicationController@status',        ['AuthMiddleware']);
     $router->post('/collector-applications/{id}/request-documents',     'CollectorApplicationController@requestDocuments', ['AuthMiddleware']);
     $router->post('/collector-applications/{id}/review-document',       'CollectorApplicationController@reviewDocument', ['AuthMiddleware']);
+    $router->get('/collector-applications/{id}/documents/{documentId}/view',     'CollectorApplicationController@viewDocument', ['AuthMiddleware']);
+    $router->get('/collector-applications/{id}/documents/{documentId}/download', 'CollectorApplicationController@downloadDocument', ['AuthMiddleware']);
     $router->post('/collector-applications/{id}/approve',               'CollectorApplicationController@approve',         ['AuthMiddleware']);
     $router->post('/collector-applications/{id}/reject',                'CollectorApplicationController@reject',          ['AuthMiddleware']);
     $router->post('/collector-applications/{id}/generate-contract',     'CollectorApplicationController@generateContract', ['AuthMiddleware']);
