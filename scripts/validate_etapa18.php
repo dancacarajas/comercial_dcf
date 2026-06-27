@@ -322,6 +322,7 @@ $lintFiles = [
     'app/Views/dashboard/index.php',
     'app/Views/layouts/admin.php',
     'scripts/validate_etapa18.php',
+    'integrations/wordpress/dcx-crm-collectors-integration.php',
     'integrations/wordpress/dcx-collector-applications-integration.php',
 ];
 
@@ -339,8 +340,9 @@ foreach ($lintFiles as $rel) {
 $secretPatterns = [
     $root . '/config/app.php' => ['password_hash', 'BEGIN PRIVATE'],
     $root . '/.env.example'   => ['dcf-local-collector-token-2026', 'sk_live', 'AKIA'],
-    $root . '/integrations/wordpress/dcx-collector-applications-integration.php' => ['define(\'DCX_COLLECTOR_CRM_TOKEN\', \'real'],
-    $root . '/integrations/wordpress/dcx-collector-applications.js' => ['X-DCF-Collector-Token', 'Bearer '],
+    $root . '/integrations/wordpress/dcx-crm-collectors-integration.php' => ['DCF_2026_', 'sk_live', 'AKIA'],
+    $root . '/integrations/wordpress/dcx-crm-collectors.js' => ['X-DCF-Collector-Token', 'Bearer '],
+    $root . '/integrations/wordpress/dcx-crm-leads.js' => ['X-DCF-Lead-Token', 'X-DCF-Collector-Token'],
 ];
 foreach ($secretPatterns as $file => $forbidden) {
     $content = is_file($file) ? (string) file_get_contents($file) : '';
@@ -357,12 +359,15 @@ ok('Script validate_etapa18.php não versiona tokens (usa .env local)');
 $gi = (string) file_get_contents($root . '/.gitignore');
 assertTrue(str_contains($gi, '.env'), '.gitignore contém .env', '.gitignore não contém .env');
 
-$wpPhp = (string) file_get_contents($root . '/integrations/wordpress/dcx-collector-applications-integration.php');
-assertTrue(str_contains($wpPhp, 'DCX_COLLECTOR_CRM_TOKEN') && str_contains($wpPhp, 'seu-token-secreto'), 'WP integration usa constante, não token hardcoded', 'WP integration com token hardcoded');
-$wpJs = (string) file_get_contents($root . '/integrations/wordpress/dcx-collector-applications.js');
-assertTrue(!str_contains($wpJs, 'X-DCF-Collector-Token') && !str_contains($wpJs, 'collector_token'), 'WP JS não expõe token API', 'WP JS expõe token');
-assertTrue(str_contains($wpJs, 'wp-json/dcx-crm/v1/collector-application'), 'WP JS usa relay server-side', 'WP JS não usa relay');
-assertTrue(!str_contains($wpJs, 'upload') || str_contains($wpJs, 'FormData'), 'WP JS sem upload documental direto', 'WP JS pode fazer upload documental');
+$wpPhp = (string) file_get_contents($root . '/integrations/wordpress/dcx-crm-collectors-integration.php');
+assertTrue(str_contains($wpPhp, 'dcx_crm_collectors_settings') && str_contains($wpPhp, 'X-DCF-Collector-Token'), 'WP collectors integration usa option + header server-side', 'WP collectors integration insegura');
+$wpJs = (string) file_get_contents($root . '/integrations/wordpress/dcx-crm-collectors.js');
+assertTrue(!str_contains($wpJs, 'X-DCF-Collector-Token') && !str_contains($wpJs, 'collector_token'), 'WP collectors JS não expõe token API', 'WP collectors JS expõe token');
+assertTrue(str_contains($wpJs, 'DCX_CRM_COLLECTORS') || str_contains($wpJs, 'proxyUrl'), 'WP collectors JS usa relay server-side', 'WP collectors JS não usa relay');
+$wpLeadsJs = (string) file_get_contents($root . '/integrations/wordpress/dcx-crm-leads.js');
+assertTrue(str_contains($wpLeadsJs, 'isCollectorForm'), 'WP leads JS ignora formulários de captadores', 'WP leads JS sem exclusão de captadores');
+$wpLegacy = (string) file_get_contents($root . '/integrations/wordpress/dcx-collector-applications-integration.php');
+assertTrue(str_contains($wpLegacy, '@deprecated') && str_contains($wpLegacy, 'dcx-crm-collectors-integration.php'), 'Wrapper legacy aponta para integração nova', 'Wrapper legacy desatualizado');
 
 // ── Migration idempotente ───────────────────────────────────────────────────
 $migration = $root . '/database/migrations/2026_captadores_credenciamento.sql';
