@@ -17,6 +17,7 @@ require BASE_PATH . '/app/Core/App.php';
 
 use App\Core\App;
 use App\Core\Database;
+use App\Services\ContractTemplateSeeder;
 
 $app = new App(BASE_PATH);
 $app->boot();
@@ -54,8 +55,13 @@ foreach ($migrations as $file) {
 }
 
 echo "\n[RUN] Seed modelo captador externo ... ";
-require BASE_PATH . '/scripts/seed_captador_externo_contract.php';
-echo "OK\n";
+try {
+    $tplId = ContractTemplateSeeder::upsertCaptadorExternoDefault($pdo);
+    echo "OK (id={$tplId})\n";
+} catch (Throwable $e) {
+    echo "ERRO: " . $e->getMessage() . "\n";
+    exit(1);
+}
 
 $dirs = [
     BASE_PATH . '/storage/uploads/signatures',
