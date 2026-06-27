@@ -130,6 +130,19 @@ final class ContractTemplate extends Model
         );
     }
 
+    public function countSignatureRequests(int|string $id): int
+    {
+        return (int) ($this->query(
+            'SELECT COUNT(*) FROM `signature_requests` WHERE `contract_template_id` = :id AND `archived_at` IS NULL',
+            ['id' => $id]
+        )->fetchColumn() ?: 0);
+    }
+
+    public function canArchive(int|string $id): bool
+    {
+        return $this->countSignatureRequests($id) === 0;
+    }
+
     /** @param array<string, mixed> $data */
     public function validate(array $data, string $mode = 'create'): array
     {

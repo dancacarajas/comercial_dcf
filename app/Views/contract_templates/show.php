@@ -40,11 +40,18 @@ $id = (int) ($item['id'] ?? 0);
 </div>
 <?php if (can('contract_templates.archive')): ?>
 <div class="card" style="margin-top:18px;">
+    <h3 class="h3-card">Ações</h3>
     <div class="actions-row">
         <?php if (empty($item['archived_at'])): ?>
-            <form method="post" action="<?= e(app_url('/contract-templates/' . $id . '/archive')) ?>"><?= csrf_field() ?><button type="submit" class="btn btn-sm btn-outline">Arquivar</button></form>
+            <form method="post" action="<?= e(app_url('/contract-templates/' . $id . '/archive')) ?>" class="inline-form">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-danger" data-confirm="Excluir este modelo? Ele sairá da listagem padrão."><i data-lucide="trash-2"></i> Excluir</button>
+            </form>
         <?php else: ?>
-            <form method="post" action="<?= e(app_url('/contract-templates/' . $id . '/restore')) ?>"><?= csrf_field() ?><button type="submit" class="btn btn-sm btn-outline">Restaurar</button></form>
+            <form method="post" action="<?= e(app_url('/contract-templates/' . $id . '/restore')) ?>" class="inline-form">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-yellow"><i data-lucide="archive-restore"></i> Restaurar</button>
+            </form>
         <?php endif; ?>
     </div>
 </div>

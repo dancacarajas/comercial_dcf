@@ -55,6 +55,19 @@ $pages = (int) ($pages ?? 1);
                         <?php if (can('contract_templates.preview')): ?>
                             <a href="<?= e(app_url('/contract-templates/' . (int) $item['id'] . '/preview')) ?>" class="btn btn-sm btn-outline">Preview</a>
                         <?php endif; ?>
+                        <?php if (can('contract_templates.archive')): ?>
+                            <?php if (empty($item['archived_at'])): ?>
+                                <form method="post" action="<?= e(app_url('/contract-templates/' . (int) $item['id'] . '/archive')) ?>" class="inline-form">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="btn btn-sm btn-danger" data-confirm="Excluir este modelo? Ele sairá da listagem padrão.">Excluir</button>
+                                </form>
+                            <?php else: ?>
+                                <form method="post" action="<?= e(app_url('/contract-templates/' . (int) $item['id'] . '/restore')) ?>" class="inline-form">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="btn btn-sm btn-outline">Restaurar</button>
+                                </form>
+                            <?php endif; ?>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>

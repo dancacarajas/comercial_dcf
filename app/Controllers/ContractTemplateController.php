@@ -124,9 +124,16 @@ final class ContractTemplateController extends Controller
         csrf_verify();
         $item = $this->findOr404($params['id'] ?? null);
         $id   = (int) $item['id'];
-        (new ContractTemplate())->archive($id, $_SESSION['user_id'] ?? null);
+
+        $model = new ContractTemplate();
+        if (!$model->canArchive($id)) {
+            flash('error', 'Não é possível excluir: este modelo está vinculado a solicitações de assinatura.');
+            $this->redirect('/contract-templates/' . $id);
+        }
+
+        $model->archive($id, $_SESSION['user_id'] ?? null);
         (new ActivityLog())->record('contract_template_archived', $_SESSION['user_id'] ?? null, 'contract_template', $id);
-        flash('success', 'Modelo arquivado.');
+        flash('success', 'Modelo excluído.');
         $this->redirect('/contract-templates');
     }
 
