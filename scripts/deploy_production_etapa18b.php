@@ -11,7 +11,7 @@ declare(strict_types=1);
  *   php scripts/deploy_production_etapa18b.php
  */
 
-const BASE_PATH = dirname(__DIR__);
+define('BASE_PATH', dirname(__DIR__));
 
 require BASE_PATH . '/app/Core/App.php';
 
