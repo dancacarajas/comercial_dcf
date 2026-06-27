@@ -14,7 +14,9 @@ final class ContractTemplate extends Model
     private const FILLABLE = [
         'template_key', 'title', 'description', 'template_type', 'status',
         'content_html', 'content_text', 'available_placeholders_json',
-        'default_signer_role', 'version', 'is_default', 'created_by', 'updated_by',
+        'default_signer_role', 'version', 'is_default',
+        'collector_signature_stage_enabled', 'collector_signature_required', 'collector_signature_order',
+        'created_by', 'updated_by',
     ];
 
     /** @return array<string, string> */
@@ -159,6 +161,87 @@ final class ContractTemplate extends Model
         }
 
         return $errors;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function findForCollectorSignatureStage(): array
+    {
+        if (!$this->hasCollectorStageColumns()) {
+            return $this->fallbackCollectorSignatureTemplates();
+        }
+
+        $rows = $this->query(
+            "SELECT * FROM `contract_templates`
+              WHERE `archived_at` IS NULL AND `status` = 'ativo'
+                AND `collector_signature_stage_enabled` = 1
+              ORDER BY `collector_signature_order` ASC, `id` ASC"
+        )->fetchAll();
+
+        if ($rows === []) {
+            return $this->fallbackCollectorSignatureTemplates();
+        }
+
+        return array_map(
+            static fn (array $row): array => ContractDocumentHelper::normalizeTemplate($row),
+            $rows
+        );
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function findRequiredForCollectorSignatureStage(): array
+    {
+        return array_values(array_filter(
+            $this->findForCollectorSignatureStage(),
+            static fn (array $row): bool => (int) ($row['collector_signature_required'] ?? 1) === 1
+        ));
+    }
+
+    public function hasCollectorSignatureStageConfigured(): bool
+    {
+        if (!$this->hasCollectorStageColumns()) {
+            return false;
+        }
+
+        $count = (int) ($this->query(
+            "SELECT COUNT(*) FROM `contract_templates`
+              WHERE `archived_at` IS NULL AND `status` = 'ativo'
+                AND `collector_signature_stage_enabled` = 1"
+        )->fetchColumn() ?: 0);
+
+        return $count > 0;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function fallbackCollectorSignatureTemplates(): array
+    {
+        $out = [];
+        foreach (['contrato_captador', 'autorizacao_captador'] as $type) {
+            $template = $this->findDefaultForType($type);
+            if ($template !== null) {
+                $out[] = $template;
+            }
+        }
+
+        return $out;
+    }
+
+    private function hasCollectorStageColumns(): bool
+    {
+        static $cached = null;
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        try {
+            $row = $this->query(
+                "SHOW COLUMNS FROM `contract_templates` LIKE 'collector_signature_stage_enabled'"
+            )->fetch();
+            $cached = $row !== false;
+        } catch (\Throwable) {
+            $cached = false;
+        }
+
+        return $cached;
     }
 
     /** @param array<string, mixed> $filters @return array{0:string,1:array<string,mixed>} */

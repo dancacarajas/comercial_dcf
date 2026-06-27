@@ -119,14 +119,8 @@ final class CollectorPublicController extends Controller
         $docProgress = $model->documentProgress($appId);
 
         $sigModel = new \App\Models\SignatureRequest();
-        $activeSignature = $sigModel->activeForCollectorApplication($appId);
-        $signatureLink = null;
-        if ($activeSignature !== null) {
-            $signers = $sigModel->signersForRequest((int) $activeSignature['id']);
-            if ($signers !== [] && !empty($signers[0]['public_token'])) {
-                $signatureLink = app_url('/assinatura/' . rawurlencode((string) $signers[0]['public_token']));
-            }
-        }
+        $signatureProgress = $model->signatureStageProgress($appId);
+        $signatureStageItems = $signatureProgress['items'];
 
         $this->view('collector_applications/public/journey', [
 
@@ -156,11 +150,9 @@ final class CollectorPublicController extends Controller
 
             'showRegistrationForm' => $model->canSelfRegister($app),
 
-            'signatureLink'        => $signatureLink,
+            'signatureStageItems'  => $signatureStageItems,
 
-            'activeSignature'      => $activeSignature,
-
-            'signaturePdfUrl'      => $this->signaturePdfUrlForApplication($activeSignature),
+            'signatureProgress'    => $signatureProgress,
 
         ], 'layouts/admin');
 
@@ -259,6 +251,25 @@ final class CollectorPublicController extends Controller
         if ($model->canSelfRegister($app)) {
 
             flash('error', 'A fase documental foi encerrada. Conclua o cadastro de acesso abaixo.');
+
+            $this->redirect('/captadores/credenciamento/' . rawurlencode($token));
+
+            return;
+
+        }
+
+        $postDocumental = in_array((string) ($app['status'] ?? ''), [
+            'aprovado',
+            'aguardando_assinatura_contratual',
+            'contrato_assinado',
+            'acesso_preparado',
+            'acesso_liberado',
+            'reprovado',
+        ], true);
+
+        if ($postDocumental) {
+
+            flash('error', 'A fase documental foi encerrada. Não é possível enviar novos documentos por este link.');
 
             $this->redirect('/captadores/credenciamento/' . rawurlencode($token));
 

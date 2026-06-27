@@ -90,18 +90,17 @@ final class CollectorApplicationController extends Controller
         }
 
         $sigModel = new SignatureRequest();
-        $activeSignature = $sigModel->activeForCollectorApplication($id);
+        $signatureProgress = $model->signatureStageProgress($id);
+        $signatureStageItems = $signatureProgress['items'];
+        $activeSignatures = $sigModel->activeForCollectorApplicationList($id);
+        $activeSignature = $activeSignatures[0] ?? null;
         $signatureSigners = $activeSignature ? $sigModel->signersForRequest((int) $activeSignature['id']) : [];
-        $signatureLink = null;
-        foreach ($signatureSigners as $signerRow) {
-            if (($signerRow['signer_role'] ?? '') === 'captador' && !empty($signerRow['public_token'])) {
-                $signatureLink = app_url('/assinatura/' . rawurlencode((string) $signerRow['public_token']));
-                break;
-            }
-        }
+        $signatureLink = $this->captadorSignatureLink($signatureSigners);
         $contractTemplates = (new ContractTemplate())->paginate(['status' => 'ativo'], 1, 50);
         $defaultContractTemplate = (new ContractTemplate())->findDefaultForType('contrato_captador')
             ?? (new ContractTemplate())->findDefaultForType('autorizacao_captador');
+        $collectorStageTemplatesConfigured = (new ContractTemplate())->hasCollectorSignatureStageConfigured();
+        $hasAllRequiredSignatures = $model->hasCompletedRequiredCollectorSignatures($app);
 
         $this->view('collector_applications/show', [
             'title'            => $app['name'] ?? 'Candidatura',
@@ -123,8 +122,13 @@ final class CollectorApplicationController extends Controller
             'allDocumentsSubmitted' => $model->allDocumentsSubmitted($id),
             'linkedUser'       => !empty($app['user_created_id']) ? (new User())->find((int) $app['user_created_id']) : null,
             'activeSignature'  => $activeSignature,
+            'activeSignatures' => $activeSignatures,
             'signatureSigners' => $signatureSigners,
             'signatureLink'    => $signatureLink,
+            'signatureStageItems' => $signatureStageItems,
+            'signatureProgress' => $signatureProgress,
+            'collectorStageTemplatesConfigured' => $collectorStageTemplatesConfigured,
+            'hasAllRequiredSignatures' => $hasAllRequiredSignatures,
             'contractTemplates'=> $contractTemplates,
             'defaultContractTemplateId' => (int) ($defaultContractTemplate['id'] ?? 0),
             'hasSignedContract'=> $model->hasSignedContract($app),
@@ -284,19 +288,17 @@ final class CollectorApplicationController extends Controller
 
         $updated = (new CollectorApplication())->findById($id) ?? $app;
         if (can('signature_requests.create')) {
-            $requestId = $this->createCollectorContract($id, $updated);
-            if ($requestId !== null) {
-                $signers = (new SignatureRequest())->signersForRequest($requestId);
-                $captadorLink = $this->captadorSignatureLink($signers);
-                flash('success', 'Candidatura aprovada. Contrato gerado e JA Produções já assinou automaticamente.');
-                if ($captadorLink !== null) {
-                    flash('info', 'Envie o link de assinatura ao captador: ' . $captadorLink);
-                }
+            $result = $this->createRequiredCollectorSignatures($id, $updated);
+            if ($result['created'] !== []) {
+                flash('success', 'Candidatura aprovada. Documentos de assinatura gerados — JA Produções já assinou automaticamente.');
+            } elseif ($result['skipped'] !== []) {
+                flash('success', 'Candidatura aprovada. Documentos de assinatura já gerados.');
             } else {
                 flash('success', 'Candidatura aprovada.');
+                flash('warning', 'Nenhum modelo obrigatório configurado para a Etapa 5 dos captadores.');
             }
         } else {
-            flash('success', 'Candidatura aprovada. Gere o contrato na seção Contrato e assinatura.');
+            flash('success', 'Candidatura aprovada. Gere os documentos de assinatura na seção Contrato e assinatura.');
         }
 
         $this->redirect('/collector-applications/' . $id);
@@ -329,29 +331,27 @@ final class CollectorApplicationController extends Controller
         $app = $this->findOr404($params['id'] ?? null);
         $id  = (int) $app['id'];
 
-        if ((string) ($app['status'] ?? '') !== 'aprovado') {
-            flash('error', 'Só é possível gerar contrato após aprovação da candidatura.');
+        if (!in_array((string) ($app['status'] ?? ''), ['aprovado', 'aguardando_assinatura_contratual'], true)) {
+            flash('error', 'Só é possível gerar documentos de assinatura após aprovação da candidatura.');
             $this->redirect('/collector-applications/' . $id);
             return;
         }
 
-        $templateId = (int) input('contract_template_id', 0);
-        $template = $this->resolveContractTemplate($templateId);
-        if ($template === null) {
-            flash('error', 'Modelo de contrato não encontrado.');
-            $this->redirect('/collector-applications/' . $id);
-            return;
+        $updated = (new CollectorApplication())->findById($id) ?? $app;
+        $result = $this->createRequiredCollectorSignatures($id, $updated);
+        if ($result['created'] === [] && $result['skipped'] === []) {
+            flash('warning', 'Nenhum modelo obrigatório configurado para a Etapa 5 dos captadores.');
+        } elseif ($result['created'] === []) {
+            flash('info', 'Documentos de assinatura já gerados.');
+        } else {
+            flash('success', 'Documentos de assinatura gerados com assinatura automática da JA Produções.');
         }
-
-        $requestId = $this->createCollectorContract($id, $app, $template);
-        if ($requestId === null) {
-            flash('warning', 'Já existe um processo de assinatura ativo para esta candidatura.');
-            $this->redirect('/collector-applications/' . $id);
-            return;
-        }
-
-        flash('success', 'Contrato gerado com assinatura automática da JA Produções. Envie o link de assinatura ao captador.');
         $this->redirect('/collector-applications/' . $id);
+    }
+
+    public function generateSignatures(array $params): void
+    {
+        $this->generateContract($params);
     }
 
     public function prepareAccess(array $params): void
@@ -362,9 +362,12 @@ final class CollectorApplicationController extends Controller
         $id  = (int) $app['id'];
         $model = new CollectorApplication();
 
-        if (!$model->hasSignedContract($app)) {
+        if (!$model->hasCompletedRequiredCollectorSignatures($app)) {
+            $pending = $model->signatureStageProgress($id);
+            $titles = implode(', ', $pending['pending_required_titles']);
+            $detail = $titles !== '' ? ' Pendentes: ' . $titles . '.' : '';
             (new ActivityLog())->record('collector_access_blocked_pending_signature', $_SESSION['user_id'] ?? null, 'collector_application', $id);
-            flash('error', 'O acesso só poderá ser preparado após assinatura contratual concluída.');
+            flash('error', 'O acesso só poderá ser preparado após assinatura de todos os documentos contratuais obrigatórios.' . $detail);
             $this->redirect('/collector-applications/' . $id);
             return;
         }
@@ -394,9 +397,12 @@ final class CollectorApplicationController extends Controller
         $id  = (int) $app['id'];
         $model = new CollectorApplication();
 
-        if (!$model->hasSignedContract($app)) {
+        if (!$model->hasCompletedRequiredCollectorSignatures($app)) {
+            $pending = $model->signatureStageProgress($id);
+            $titles = implode(', ', $pending['pending_required_titles']);
+            $detail = $titles !== '' ? ' Pendentes: ' . $titles . '.' : '';
             (new ActivityLog())->record('collector_access_blocked_pending_signature', $_SESSION['user_id'] ?? null, 'collector_application', $id);
-            flash('error', 'O acesso só poderá ser liberado após assinatura contratual concluída.');
+            flash('error', 'O acesso só poderá ser liberado após assinatura de todos os documentos contratuais obrigatórios.' . $detail);
             $this->redirect('/collector-applications/' . $id);
             return;
         }
@@ -531,27 +537,41 @@ final class CollectorApplicationController extends Controller
 
     /**
      * @param array<string, mixed> $application
-     * @param array<string, mixed>|null $template
+     * @return array{created: list<int>, skipped: list<int>}
      */
-    private function createCollectorContract(int $applicationId, array $application, ?array $template = null, int|string|null $userId = null): ?int
+    private function createRequiredCollectorSignatures(int $applicationId, array $application, int|string|null $userId = null): array
     {
-        $existing = (new SignatureRequest())->activeForCollectorApplication($applicationId);
-        if ($existing !== null && !in_array((string) ($existing['status'] ?? ''), ['cancelado', 'expirado'], true)) {
-            return null;
-        }
-
-        $template ??= $this->resolveContractTemplate(0);
-        if ($template === null) {
-            return null;
-        }
-
         $userId ??= $_SESSION['user_id'] ?? null;
-        $requestId = (new SignatureRequest())->createForCollectorApplication($application, $template, $userId);
-        (new ActivityLog())->record('collector_contract_generated', $userId, 'collector_application', $applicationId);
-        (new ActivityLog())->record('collector_signature_requested', $userId, 'collector_application', $applicationId);
-        (new ActivityLog())->record('signature_request_created', $userId, 'signature_request', $requestId);
+        $templateModel = new ContractTemplate();
+        $sigModel = new SignatureRequest();
+        $templates = $templateModel->findForCollectorSignatureStage();
+        $created = [];
+        $skipped = [];
 
-        return $requestId;
+        foreach ($templates as $template) {
+            $templateId = (int) ($template['id'] ?? 0);
+            if ($templateId <= 0) {
+                continue;
+            }
+
+            $existing = $sigModel->activeForCollectorApplicationByTemplate($applicationId, $templateId);
+            if ($existing !== null) {
+                $skipped[] = (int) ($existing['id'] ?? 0);
+                continue;
+            }
+
+            $requestId = $sigModel->createForCollectorApplication($application, $template, $userId);
+            $created[] = $requestId;
+            (new ActivityLog())->record('collector_contract_generated', $userId, 'collector_application', $applicationId);
+            (new ActivityLog())->record('collector_signature_requested', $userId, 'collector_application', $applicationId);
+            (new ActivityLog())->record('signature_request_created', $userId, 'signature_request', $requestId);
+        }
+
+        if ($created !== [] || $skipped !== []) {
+            $sigModel->syncCollectorApplicationSignatureStage($applicationId);
+        }
+
+        return ['created' => $created, 'skipped' => $skipped];
     }
 
     /** @return array<string, mixed>|null */

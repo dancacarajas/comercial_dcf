@@ -460,19 +460,190 @@ final class CollectorApplication extends Model
 
     public function hasSignedContract(array $application): bool
     {
-        if (in_array((string) ($application['status'] ?? ''), ['contrato_assinado', 'acesso_preparado', 'acesso_liberado'], true)) {
-            return true;
+        return $this->hasCompletedRequiredCollectorSignatures($application);
+    }
+
+    public function hasCompletedRequiredCollectorSignatures(array $application): bool
+    {
+        $appId = (int) ($application['id'] ?? 0);
+        if ($appId <= 0) {
+            return false;
         }
 
-        $active = (new SignatureRequest())->activeForCollectorApplication((int) ($application['id'] ?? 0));
+        $templateModel = new ContractTemplate();
+        $requiredTemplates = $templateModel->findRequiredForCollectorSignatureStage();
+        $sigModel = new SignatureRequest();
 
-        return $active !== null && (new SignatureRequest())->isFullySigned($active);
+        if ($requiredTemplates === []) {
+            $active = $sigModel->activeForCollectorApplication($appId);
+
+            return $active !== null && $sigModel->isFullySigned($active);
+        }
+
+        foreach ($requiredTemplates as $template) {
+            $request = $sigModel->activeForCollectorApplicationByTemplate($appId, (int) ($template['id'] ?? 0));
+            if ($request === null || !$sigModel->isFullySigned($request)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @return array{
+     *   items: list<array<string, mixed>>,
+     *   signed_required: int,
+     *   total_required: int,
+     *   signed_total: int,
+     *   total_enabled: int,
+     *   all_required_signed: bool,
+     *   pending_required_titles: list<string>
+     * }
+     */
+    public function signatureStageProgress(int $applicationId): array
+    {
+        $templateModel = new ContractTemplate();
+        $sigModel = new SignatureRequest();
+        $enabledTemplates = $templateModel->findForCollectorSignatureStage();
+        $items = [];
+        $signedRequired = 0;
+        $signedTotal = 0;
+        $totalRequired = 0;
+        $pendingTitles = [];
+
+        foreach ($enabledTemplates as $template) {
+            $templateId = (int) ($template['id'] ?? 0);
+            $isRequired = (int) ($template['collector_signature_required'] ?? 1) === 1;
+            if ($isRequired) {
+                ++$totalRequired;
+            }
+
+            $request = $sigModel->activeForCollectorApplicationByTemplate($applicationId, $templateId);
+            $signers = $request ? $sigModel->signersForRequest((int) ($request['id'] ?? 0)) : [];
+            $captadorLink = null;
+            $pdfUrl = null;
+            $captadorSigned = false;
+            $contratanteSigned = false;
+
+            foreach ($signers as $signer) {
+                $role = (string) ($signer['signer_role'] ?? '');
+                if ($role === 'captador') {
+                    if (!empty($signer['public_token'])) {
+                        $captadorLink = app_url('/assinatura/' . rawurlencode((string) $signer['public_token']));
+                    }
+                    $captadorSigned = (string) ($signer['status'] ?? '') === 'assinado';
+                    if ($captadorSigned && !empty($signer['public_token'])) {
+                        $pdfUrl = app_url('/assinatura/' . rawurlencode((string) $signer['public_token']) . '/pdf');
+                    }
+                }
+                if ($role === 'contratante') {
+                    $contratanteSigned = (string) ($signer['status'] ?? '') === 'assinado';
+                }
+            }
+
+            $isSigned = $request !== null && $sigModel->isFullySigned($request);
+            if ($isSigned) {
+                ++$signedTotal;
+                if ($isRequired) {
+                    ++$signedRequired;
+                }
+            } elseif ($isRequired) {
+                $pendingTitles[] = (string) ($template['title'] ?? 'Documento contratual');
+            }
+
+            $items[] = [
+                'template_id'         => $templateId,
+                'title'               => (string) ($request['title'] ?? $template['title'] ?? 'Documento'),
+                'description'         => (string) ($template['description'] ?? ''),
+                'is_required'         => $isRequired,
+                'is_signed'           => $isSigned,
+                'request_id'          => (int) ($request['id'] ?? 0),
+                'request_status'      => (string) ($request['status'] ?? ''),
+                'sent_at'             => (string) ($request['sent_at'] ?? ''),
+                'signed_at'           => (string) ($request['signed_at'] ?? ''),
+                'captador_link'       => $captadorLink,
+                'pdf_url'             => $pdfUrl,
+                'captador_signed'     => $captadorSigned,
+                'contratante_signed'  => $contratanteSigned,
+                'signers'             => $signers,
+                'template'            => $template,
+                'request'             => $request,
+            ];
+        }
+
+        if ($items === []) {
+            foreach ($sigModel->activeForCollectorApplicationList($applicationId) as $request) {
+                $signers = $sigModel->signersForRequest((int) ($request['id'] ?? 0));
+                $captadorLink = null;
+                $pdfUrl = null;
+                $captadorSigned = false;
+                $contratanteSigned = false;
+                foreach ($signers as $signer) {
+                    $role = (string) ($signer['signer_role'] ?? '');
+                    if ($role === 'captador') {
+                        if (!empty($signer['public_token'])) {
+                            $captadorLink = app_url('/assinatura/' . rawurlencode((string) $signer['public_token']));
+                        }
+                        $captadorSigned = (string) ($signer['status'] ?? '') === 'assinado';
+                        if ($captadorSigned && !empty($signer['public_token'])) {
+                            $pdfUrl = app_url('/assinatura/' . rawurlencode((string) $signer['public_token']) . '/pdf');
+                        }
+                    }
+                    if ($role === 'contratante') {
+                        $contratanteSigned = (string) ($signer['status'] ?? '') === 'assinado';
+                    }
+                }
+                $isSigned = $sigModel->isFullySigned($request);
+                if ($isSigned) {
+                    ++$signedTotal;
+                    ++$signedRequired;
+                } else {
+                    $pendingTitles[] = (string) ($request['title'] ?? 'Documento contratual');
+                }
+                ++$totalRequired;
+                $items[] = [
+                    'template_id'        => (int) ($request['contract_template_id'] ?? 0),
+                    'title'              => (string) ($request['title'] ?? 'Documento'),
+                    'description'        => '',
+                    'is_required'        => true,
+                    'is_signed'          => $isSigned,
+                    'request_id'         => (int) ($request['id'] ?? 0),
+                    'request_status'     => (string) ($request['status'] ?? ''),
+                    'sent_at'            => (string) ($request['sent_at'] ?? ''),
+                    'signed_at'          => (string) ($request['signed_at'] ?? ''),
+                    'captador_link'      => $captadorLink,
+                    'pdf_url'            => $pdfUrl,
+                    'captador_signed'    => $captadorSigned,
+                    'contratante_signed' => $contratanteSigned,
+                    'signers'            => $signers,
+                    'template'           => null,
+                    'request'            => $request,
+                ];
+            }
+        }
+
+        return [
+            'items'                   => $items,
+            'signed_required'         => $signedRequired,
+            'total_required'          => $totalRequired,
+            'signed_total'            => $signedTotal,
+            'total_enabled'           => count($items),
+            'all_required_signed'     => $totalRequired > 0 && $signedRequired === $totalRequired,
+            'pending_required_titles' => $pendingTitles,
+        ];
     }
 
     /** @return array<string, mixed>|null */
     public function activeSignatureRequest(int $applicationId): ?array
     {
         return (new SignatureRequest())->activeForCollectorApplication($applicationId);
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function activeSignatureRequests(int $applicationId): array
+    {
+        return (new SignatureRequest())->activeForCollectorApplicationList($applicationId);
     }
 
     /**

@@ -391,6 +391,20 @@ try {
     fail('Migration reexecução: ' . $e->getMessage());
 }
 
+$stageMigration = $root . '/database/migrations/2026_collector_signature_stage_templates.sql';
+if (is_file($stageMigration)) {
+    try {
+        $pdo->exec((string) file_get_contents($stageMigration));
+        $pdo->exec((string) file_get_contents($stageMigration));
+        ok('Migration Etapa 5 captadores idempotente (2x)');
+    } catch (Throwable $e) {
+        fail('Migration Etapa 5: ' . $e->getMessage());
+    }
+}
+
+$col = $pdo->query("SHOW COLUMNS FROM contract_templates LIKE 'collector_signature_stage_enabled'");
+assertTrue($col && $col->fetch(), 'Coluna collector_signature_stage_enabled', 'Coluna Etapa 5 ausente em contract_templates');
+
 foreach (['collector_applications', 'collector_application_documents'] as $table) {
     $st = $pdo->query("SHOW TABLES LIKE " . $pdo->quote($table));
     assertTrue($st && $st->fetch(), "Tabela {$table} existe", "Tabela {$table} ausente");
@@ -658,7 +672,14 @@ $cnpjDefaults = array_keys($model->defaultDocumentTypesFor(['document_number' =>
 assertTrue(in_array('cartao_cnpj', $cnpjDefaults, true), 'Default CNPJ inclui cartão CNPJ', 'Default CNPJ sem cartão');
 assertTrue(in_array('contrato_social_ou_mei', $cnpjDefaults, true), 'Default CNPJ inclui ato de constituição', 'Default CNPJ sem ato');
 assertTrue(in_array('comprovante_bancario', $cnpjDefaults, true), 'Default CNPJ inclui comprovante bancário', 'Default CNPJ sem bancário');
-assertTrue(in_array('identidade', $cnpjDefaults, true), 'Default CNPJ inclui doc PF representante', 'Default CNPJ sem identidade');
+assertTrue(in_array('documento_representante', $cnpjDefaults, true), 'Default CNPJ inclui documento do representante', 'Default CNPJ sem doc representante');
+assertTrue(in_array('apresentacao_institucional', $cnpjDefaults, true), 'Default CNPJ inclui apresentação institucional', 'Default CNPJ sem apresentação');
+assertTrue(!in_array('termo_confidencialidade', $pfDefaults, true), 'Default PF não inclui termo de confidencialidade', 'Termo confidencialidade indevido na Etapa 2 PF');
+assertTrue(!in_array('termo_autorizacao_captacao', $pfDefaults, true), 'Default PF não inclui termo de autorização', 'Termo autorização indevido na Etapa 2 PF');
+assertTrue(!in_array('termo_confidencialidade', $cnpjDefaults, true), 'Default CNPJ não inclui termo de confidencialidade', 'Termo confidencialidade indevido na Etapa 2 PJ');
+assertTrue(!in_array('termo_autorizacao_captacao', $cnpjDefaults, true), 'Default CNPJ não inclui termo de autorização', 'Termo autorização indevido na Etapa 2 PJ');
+$optionalPf = array_keys($model->optionalDocumentTypesFor(['document_number' => '52998224725']));
+assertTrue(in_array('termo_confidencialidade', $optionalPf, true), 'Termo confidencialidade disponível como opcional PF', 'Termo confidencialidade não opcional PF');
 
 // Token inválido / expirado / revogado
 $badTok = $http->request('/captadores/credenciamento/token-invalido-xyz');
@@ -846,7 +867,7 @@ $http->request('/collector-applications/' . $testAppId . '/approve', [
     'post'   => ['_csrf' => $csrf, 'approval_notes' => 'Aprovado teste'],
 ]);
 $approved = $model->findById($testAppId);
-assertTrue((string) ($approved['status'] ?? '') === 'aprovado', 'Candidatura aprovada', 'Aprovação falhou');
+assertTrue(in_array((string) ($approved['status'] ?? ''), ['aprovado', 'aguardando_assinatura_contratual'], true), 'Candidatura aprovada (com ou sem geração imediata de assinaturas)', 'Aprovação falhou');
 assertTrue((string) ($approved['review_status'] ?? '') === 'aprovado', 'review_status aprovado', 'review_status incorreto');
 assertTrue(!empty($approved['approved_at']) && !empty($approved['approved_by']), 'approved_at/by preenchidos', 'Metadados aprovação ausentes');
 
@@ -880,21 +901,74 @@ $csrf = $http->csrfFrom($show['body']);
 $prepBlocked = $http->request('/collector-applications/' . $testAppId . '/prepare-access', ['method' => 'POST', 'post' => ['_csrf' => $csrf]]);
 assertTrue(in_array($prepBlocked['code'], [302, 303], true), 'Prepare sem assinatura → redirect com erro', 'Prepare sem assinatura HTTP falhou');
 $stillApproved = $model->findById($testAppId);
-assertTrue((string) ($stillApproved['status'] ?? '') === 'aprovado', 'Permanece aprovado sem assinatura', 'Status mudou sem assinatura');
+assertTrue(in_array((string) ($stillApproved['status'] ?? ''), ['aprovado', 'aguardando_assinatura_contratual'], true), 'Permanece sem acesso antes de assinaturas completas', 'Status mudou indevidamente sem assinatura');
 
-// Gerar contrato + assinar
+// Gerar documentos de assinatura + assinar
 $http->request('/collector-applications/' . $testAppId . '/generate-contract', [
     'method' => 'POST',
     'post'   => ['_csrf' => $csrf],
 ]);
 $waiting = $model->findById($testAppId);
-assertTrue((string) ($waiting['status'] ?? '') === 'aguardando_assinatura_contratual', 'Status aguardando_assinatura_contratual', 'Status pós-contrato incorreto');
+assertTrue((string) ($waiting['status'] ?? '') === 'aguardando_assinatura_contratual', 'Status aguardando_assinatura_contratual', 'Status pós-geração incorreto');
 $sigModel = new \App\Models\SignatureRequest();
-$sigReq = $sigModel->activeForCollectorApplication($testAppId);
-assertTrue(is_array($sigReq), 'signature_request criada', 'signature_request ausente');
-$signers = $sigModel->signersForRequest((int) ($sigReq['id'] ?? 0));
-$signerToken = (string) ($signers[0]['public_token'] ?? '');
-assertTrue(strlen($signerToken) >= 32, 'Token assinatura longo', 'Token assinatura curto');
+$sigRequests = $sigModel->activeForCollectorApplicationList($testAppId);
+assertTrue($sigRequests !== [], 'Pelo menos uma signature_request criada', 'Nenhuma signature_request');
+if (count($sigRequests) >= 2) {
+    ok('Múltiplas signature_requests geradas para Etapa 5');
+}
+
+$signAllCaptadorTokens = static function (ValidateHttp $http, \App\Models\SignatureRequest $sigModel, int $appId, string $confirmedName) use (&$passes): void {
+    foreach ($sigModel->activeForCollectorApplicationList($appId) as $req) {
+        if ((string) ($req['status'] ?? '') === 'assinado') {
+            continue;
+        }
+        $signers = $sigModel->signersForRequest((int) ($req['id'] ?? 0));
+        $token = '';
+        foreach ($signers as $signerRow) {
+            if (($signerRow['signer_role'] ?? '') === 'captador' && !empty($signerRow['public_token'])) {
+                $token = (string) $signerRow['public_token'];
+                break;
+            }
+        }
+        if ($token === '') {
+            continue;
+        }
+        $signPage = $http->request('/assinatura/' . rawurlencode($token));
+        $signCsrf = $http->csrfFrom($signPage['body']);
+        if ($signCsrf === null) {
+            continue;
+        }
+        $http->request('/assinatura/' . rawurlencode($token) . '/sign', [
+            'method' => 'POST',
+            'post'   => [
+                '_csrf' => $signCsrf,
+                'accept_terms' => '1',
+                'confirmed_name' => $confirmedName,
+            ],
+        ]);
+    }
+};
+
+$firstReq = $sigRequests[0];
+$signers = $sigModel->signersForRequest((int) ($firstReq['id'] ?? 0));
+$signerToken = '';
+foreach ($signers as $signerRow) {
+    if (($signerRow['signer_role'] ?? '') === 'captador' && !empty($signerRow['public_token'])) {
+        $signerToken = (string) $signerRow['public_token'];
+        break;
+    }
+}
+assertTrue(strlen($signerToken) >= 32, 'Token assinatura captador longo', 'Token assinatura captador curto');
+
+// Duplicidade: repetir geração não deve criar novas requests
+$countBefore = count($sigModel->activeForCollectorApplicationList($testAppId));
+$http->request('/collector-applications/' . $testAppId . '/generate-contract', [
+    'method' => 'POST',
+    'post'   => ['_csrf' => $csrf],
+]);
+$countAfter = count($sigModel->activeForCollectorApplicationList($testAppId));
+assertTrue($countAfter === $countBefore, 'Regerar documentos não duplica signature_requests', "Duplicou: {$countBefore} → {$countAfter}");
+
 $signPage = $http->request('/assinatura/' . rawurlencode($signerToken));
 assertTrue($signPage['code'] === 200 && str_contains($signPage['body'], 'Assinar eletronicamente'), 'Página assinatura 200', 'Página assinatura falhou');
 $signCsrf = $http->csrfFrom($signPage['body']);
@@ -911,15 +985,39 @@ $signOk = $http->request('/assinatura/' . rawurlencode($signerToken) . '/sign', 
         'confirmed_name' => (string) ($waiting['name'] ?? 'Captador Fluxo Editado'),
     ],
 ]);
-assertTrue(in_array($signOk['code'], [200, 302, 303], true), 'Assinatura concluída', "Assinatura → {$signOk['code']}");
+assertTrue(in_array($signOk['code'], [200, 302, 303], true), 'Primeira assinatura concluída', "Assinatura → {$signOk['code']}");
+
+if (count($sigRequests) >= 2) {
+    $partial = $model->findById($testAppId);
+    assertTrue((string) ($partial['status'] ?? '') === 'aguardando_assinatura_contratual', 'Parcialmente assinado permanece aguardando', 'Status avançou com assinatura parcial');
+    $showPartial = $http->request('/collector-applications/' . $testAppId);
+    $csrfPartial = $http->csrfFrom($showPartial['body']);
+    $prepPartial = $http->request('/collector-applications/' . $testAppId . '/prepare-access', ['method' => 'POST', 'post' => ['_csrf' => $csrfPartial]]);
+    assertTrue(in_array($prepPartial['code'], [302, 303], true), 'Prepare bloqueado com assinatura parcial', 'Prepare liberado com assinatura parcial');
+    $signAllCaptadorTokens($http, $sigModel, $testAppId, (string) ($waiting['name'] ?? 'Captador Fluxo Editado'));
+}
+
 $signed = $model->findById($testAppId);
 assertTrue((string) ($signed['status'] ?? '') === 'contrato_assinado', 'Status contrato_assinado', 'Status pós-assinatura incorreto');
-$sigAfter = $sigModel->findById((int) ($sigReq['id'] ?? 0));
+$sigAfter = $sigModel->findById((int) ($firstReq['id'] ?? 0));
 assertTrue((string) ($sigAfter['status'] ?? '') === 'assinado', 'signature_request assinado', 'Request não assinado');
-$signerRow = $pdo->prepare('SELECT status, signed_ip, signature_hash FROM signature_signers WHERE id = ?');
-$signerRow->execute([(int) ($signers[0]['id'] ?? 0)]);
+$signerRow = $pdo->prepare('SELECT status, signed_ip, signature_hash FROM signature_signers WHERE public_token = ?');
+$signerRow->execute([$signerToken]);
 $sr = $signerRow->fetch(PDO::FETCH_ASSOC);
-assertTrue(($sr['status'] ?? '') === 'assinado' && !empty($sr['signed_ip']) && !empty($sr['signature_hash']), 'Signer assinado com IP/hash', 'Metadados assinatura ausentes');
+assertTrue(($sr['status'] ?? '') === 'assinado' && !empty($sr['signed_ip']) && !empty($sr['signature_hash']), 'Signer captador assinado com IP/hash', 'Metadados assinatura ausentes');
+
+$progress = $model->signatureStageProgress($testAppId);
+assertTrue($progress['all_required_signed'] === true, 'Todas assinaturas obrigatórias concluídas', 'Assinaturas obrigatórias incompletas');
+assertTrue($model->hasCompletedRequiredCollectorSignatures($signed), 'hasCompletedRequiredCollectorSignatures=true', 'Bloqueio assinatura incorreto');
+
+$pubSign = $http->request('/captadores/credenciamento/' . rawurlencode($testToken));
+if ($progress['total_enabled'] > 0) {
+    assertTrue(
+        str_contains($pubSign['body'], 'Documentos para assinatura') || str_contains($pubSign['body'], 'Documentos assinados'),
+        'Página pública Etapa 5 com seção de documentos',
+        'Seção Etapa 5 ausente na página pública'
+    );
+}
 
 // Preparar + liberar acesso (admin) — após contrato assinado
 $show = $http->request('/collector-applications/' . $testAppId);
@@ -1036,7 +1134,7 @@ if ($csrf) {
 ok('Integração automática com tabela documents: PENDÊNCIA PLANEJADA (upload usa collector_application_documents)');
 
 // Confirmações finais estáticas
-ok('Sem assinatura digital implementada');
+ok('Assinatura eletrônica Etapa 5 validada');
 ok('Sem portal amplo para captador externo');
 ok('Sem upload documental no WordPress');
 ok('Sem deploy produção nesta validação');

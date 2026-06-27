@@ -65,14 +65,101 @@ final class SignatureRequest extends Model
     /** @return array<string, mixed>|null */
     public function activeForCollectorApplication(int $applicationId): ?array
     {
+        $rows = $this->activeForCollectorApplicationList($applicationId);
+
+        return $rows[0] ?? null;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function activeForCollectorApplicationList(int $applicationId): array
+    {
         $rows = $this->findBySource('collector_application', $applicationId);
+        $active = [];
         foreach ($rows as $row) {
             if (!in_array((string) ($row['status'] ?? ''), ['cancelado', 'arquivado', 'expirado'], true)) {
+                $active[] = $row;
+            }
+        }
+
+        return $active;
+    }
+
+    /** @return array<string, mixed>|null */
+    public function activeForCollectorApplicationByTemplate(int $applicationId, int $templateId): ?array
+    {
+        foreach ($this->activeForCollectorApplicationList($applicationId) as $row) {
+            if ((int) ($row['contract_template_id'] ?? 0) === $templateId) {
                 return $row;
             }
         }
 
         return null;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function requiredCollectorSignaturesPending(int $applicationId): array
+    {
+        $pending = [];
+        $templateModel = new ContractTemplate();
+        foreach ($templateModel->findRequiredForCollectorSignatureStage() as $template) {
+            $templateId = (int) ($template['id'] ?? 0);
+            $request = $this->activeForCollectorApplicationByTemplate($applicationId, $templateId);
+            if ($request === null || !$this->isFullySigned($request)) {
+                $pending[] = [
+                    'template' => $template,
+                    'request'  => $request,
+                ];
+            }
+        }
+
+        return $pending;
+    }
+
+    public function syncCollectorApplicationSignatureStage(int $applicationId): void
+    {
+        $appModel = new CollectorApplication();
+        $app = $appModel->findById($applicationId);
+        if ($app === null) {
+            return;
+        }
+
+        $requiredTemplates = (new ContractTemplate())->findRequiredForCollectorSignatureStage();
+        if ($requiredTemplates === []) {
+            return;
+        }
+
+        $allGenerated = true;
+        $allSigned = true;
+        foreach ($requiredTemplates as $template) {
+            $request = $this->activeForCollectorApplicationByTemplate($applicationId, (int) ($template['id'] ?? 0));
+            if ($request === null) {
+                $allGenerated = false;
+                $allSigned = false;
+                continue;
+            }
+            if (!$this->isFullySigned($request)) {
+                $allSigned = false;
+            }
+        }
+
+        $currentStatus = (string) ($app['status'] ?? '');
+        if (!$allGenerated || !$allSigned) {
+            if (in_array($currentStatus, ['aprovado', 'aguardando_assinatura_contratual', 'contrato_assinado', 'acesso_preparado'], true)) {
+                $appModel->update($applicationId, [
+                    'status'        => 'aguardando_assinatura_contratual',
+                    'access_status' => 'nao_liberado',
+                ]);
+            }
+
+            return;
+        }
+
+        $appModel->update($applicationId, [
+            'status'        => 'contrato_assinado',
+            'access_status' => 'pendente_criacao',
+        ]);
     }
 
     public function isFullySigned(array $request): bool
@@ -114,6 +201,12 @@ final class SignatureRequest extends Model
         int $daysValid = 30
     ): int {
         $appId = (int) ($application['id'] ?? 0);
+        $templateId = (int) ($template['id'] ?? 0);
+        $existing = $this->activeForCollectorApplicationByTemplate($appId, $templateId);
+        if ($existing !== null) {
+            return (int) ($existing['id'] ?? 0);
+        }
+
         $template = ContractDocumentHelper::normalizeTemplate($template);
         $renderer = new ContractTemplateRenderer();
         $config = require dirname(__DIR__, 2) . '/config/app.php';
@@ -191,13 +284,8 @@ final class SignatureRequest extends Model
             ]
         );
 
-        (new CollectorApplication())->update($appId, [
-            'status'        => 'aguardando_assinatura_contratual',
-            'access_status' => 'nao_liberado',
-            'updated_by'    => $userId,
-        ]);
-
         $this->autoSignContratante($requestId, $userId);
+        $this->syncCollectorApplicationSignatureStage($appId);
 
         return $requestId;
     }
@@ -353,10 +441,7 @@ final class SignatureRequest extends Model
         );
 
         if ($newStatus === 'assinado' && (string) ($request['source_type'] ?? '') === 'collector_application') {
-            (new CollectorApplication())->update((int) $request['source_id'], [
-                'status'        => 'contrato_assinado',
-                'access_status' => 'pendente_criacao',
-            ]);
+            $this->syncCollectorApplicationSignatureStage((int) $request['source_id']);
         }
 
         if ($newStatus === 'assinado') {

@@ -210,6 +210,9 @@ final class ContractTemplateController extends Controller
             'content_html'        => (string) input('content_html', ''),
             'default_signer_role' => trim((string) input('default_signer_role', 'captador')),
             'is_default'          => input('is_default') === '1' ? 1 : 0,
+            'collector_signature_stage_enabled' => input('collector_signature_stage_enabled') === '1' ? 1 : 0,
+            'collector_signature_required' => input('collector_signature_required') === '1' ? 1 : 0,
+            'collector_signature_order' => (int) input('collector_signature_order', 0),
         ];
     }
 

@@ -70,8 +70,6 @@ final class CollectorApplicationDocument extends Model
             'comprovante_bancario',
             'curriculo_portfolio',
             'comprovacao_experiencia',
-            'termo_confidencialidade',
-            'termo_autorizacao_captacao',
         ];
     }
 
@@ -81,14 +79,11 @@ final class CollectorApplicationDocument extends Model
         return [
             'cartao_cnpj',
             'contrato_social_ou_mei',
-            'comprovante_bancario',
             'documento_representante',
-            'identidade',
             'comprovante_endereco',
-            'curriculo_portfolio',
-            'comprovacao_experiencia',
-            'termo_confidencialidade',
-            'termo_autorizacao_captacao',
+            'comprovante_bancario',
+            'apresentacao_institucional',
+            'portfolio_cases',
         ];
     }
 

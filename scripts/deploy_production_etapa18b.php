@@ -30,6 +30,7 @@ $migrations = [
     '2026_captadores_credenciamento.sql',
     '2026_etapa18b_contratos_assinaturas.sql',
     '2026_etapa18b_signature_pdf.sql',
+    '2026_collector_signature_stage_templates.sql',
 ];
 
 foreach ($migrations as $file) {

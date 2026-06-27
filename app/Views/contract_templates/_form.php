@@ -47,6 +47,29 @@ $err = static fn (string $k): string => isset($errors[$k]) ? '<p class="field-er
         </div>
     </div>
 
+    <h3 class="h3-card form-section-title"><i data-lucide="file-signature"></i> Etapa 5 — Credenciamento de captadores</h3>
+    <p class="text-sm text-muted-dcx" style="margin-bottom:12px;">
+        Configure se este modelo aparece na etapa de assinatura contratual dos captadores, após aprovação da candidatura.
+    </p>
+    <div class="form-grid">
+        <div class="col-span-2">
+            <label class="check-inline">
+                <input type="checkbox" name="collector_signature_stage_enabled" value="1" <?= $val('collector_signature_stage_enabled') === '1' ? 'checked' : '' ?>>
+                Usar este modelo na Etapa 5 dos captadores
+            </label>
+        </div>
+        <div>
+            <label class="check-inline">
+                <input type="checkbox" name="collector_signature_required" value="1" <?= $val('collector_signature_required', '1') === '1' ? 'checked' : '' ?>>
+                Assinatura obrigatória para liberação de acesso
+            </label>
+        </div>
+        <div>
+            <label for="collector_signature_order">Ordem na etapa de assinatura</label>
+            <input type="number" id="collector_signature_order" name="collector_signature_order" value="<?= e($val('collector_signature_order', '0')) ?>" min="0" step="1">
+        </div>
+    </div>
+
     <h3 class="h3-card form-section-title"><i data-lucide="file-text"></i> Conteúdo do modelo</h3>
     <div class="contract-editor-wrap">
         <div class="contract-editor-toolbar" role="toolbar" aria-label="Formatação">

@@ -19,14 +19,18 @@ $entityTypeLabel = $entityTypeLabel ?? 'Pessoa física (CPF)';
 $isLegalEntity = !empty($isLegalEntity);
 
 $showRegistrationForm = !empty($showRegistrationForm);
-$signatureLink = $signatureLink ?? null;
-$activeSignature = $activeSignature ?? null;
-$signaturePdfUrl = $signaturePdfUrl ?? null;
+$signatureStageItems = $signatureStageItems ?? [];
+$signatureProgress = $signatureProgress ?? ['signed_required' => 0, 'total_required' => 0, 'signed_total' => 0, 'total_enabled' => 0, 'all_required_signed' => false];
 $docProgress = $docProgress ?? ['total' => 0, 'submitted' => 0, 'pending' => 0, 'approved' => 0];
 $allDocumentsSubmitted = !empty($allDocumentsSubmitted);
 $docTotal = (int) ($docProgress['total'] ?? 0);
 $docSubmitted = (int) ($docProgress['submitted'] ?? 0);
 $docPending = (int) ($docProgress['pending'] ?? 0);
+$sigSigned = (int) ($signatureProgress['signed_total'] ?? 0);
+$sigTotal = (int) ($signatureProgress['total_enabled'] ?? 0);
+$sigSignedRequired = (int) ($signatureProgress['signed_required'] ?? 0);
+$sigTotalRequired = (int) ($signatureProgress['total_required'] ?? 0);
+$allSignaturesSigned = !empty($signatureProgress['all_required_signed']);
 
 
 
@@ -170,19 +174,56 @@ $docBadgeClass = static function (string $st): string {
 
 
 
-        <?php if ($rawStatus === 'aguardando_assinatura_contratual' && $signatureLink): ?>
+        <?php if (in_array($rawStatus, ['aguardando_assinatura_contratual', 'aprovado'], true) && $signatureStageItems !== []): ?>
 
             <div class="card" style="margin:18px 0;">
 
-                <h3 class="h3-card"><i data-lucide="file-signature"></i> Assinatura contratual</h3>
+                <h3 class="h3-card"><i data-lucide="file-signature"></i> Documentos para assinatura</h3>
 
-                <p class="page-sub" style="margin-bottom:16px;">
+                <p class="page-sub" style="margin-bottom:12px;">
 
-                    Sua candidatura foi aprovada. Para continuar, leia e assine eletronicamente o contrato/autorização de captação.
+                    Sua candidatura foi aprovada. Para continuar, leia e assine todos os documentos abaixo.
 
                 </p>
 
-                <a href="<?= e($signatureLink) ?>" class="btn btn-yellow">Acessar contrato para assinatura</a>
+                <?php if ($sigTotalRequired > 0): ?>
+                    <p class="text-sm mb-3"><strong><?= $sigSignedRequired ?> de <?= $sigTotalRequired ?></strong> documento(s) obrigatório(s) assinado(s).</p>
+                <?php elseif ($sigTotal > 0): ?>
+                    <p class="text-sm mb-3"><strong><?= $sigSigned ?> de <?= $sigTotal ?></strong> documento(s) assinado(s).</p>
+                <?php endif; ?>
+
+                <div class="collector-signature-cards">
+                    <?php foreach ($signatureStageItems as $item):
+                        $isSigned = !empty($item['is_signed']);
+                        $captadorLink = (string) ($item['captador_link'] ?? '');
+                        $pdfUrl = (string) ($item['pdf_url'] ?? '');
+                    ?>
+                        <div class="card collector-signature-card" style="margin-bottom:12px;padding:16px;">
+                            <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start;">
+                                <div>
+                                    <h4 class="h4-card" style="margin:0 0 6px;"><?= e($item['title'] ?? 'Documento') ?></h4>
+                                    <?php if (!empty($item['description'])): ?>
+                                        <p class="text-sm text-muted-dcx mb-2"><?= e($item['description']) ?></p>
+                                    <?php endif; ?>
+                                    <p class="text-sm mb-0">
+                                        Status: <span class="badge"><?= e($item['request_status'] ?? 'pendente') ?></span>
+                                        <?php if (!empty($item['sent_at'])): ?> · Enviado em <?= e($item['sent_at']) ?><?php endif; ?>
+                                        <?php if (!empty($item['signed_at'])): ?> · Assinado em <?= e($item['signed_at']) ?><?php endif; ?>
+                                    </p>
+                                </div>
+                                <div class="actions-row">
+                                    <?php if (!$isSigned && $captadorLink !== ''): ?>
+                                        <a href="<?= e($captadorLink) ?>" class="btn btn-yellow">Ler e assinar</a>
+                                    <?php elseif ($isSigned && $pdfUrl !== ''): ?>
+                                        <a href="<?= e($pdfUrl) ?>" class="btn btn-outline" download>Baixar PDF</a>
+                                    <?php elseif ($isSigned): ?>
+                                        <span class="badge badge-document badge-document-aprovado">Assinado</span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
 
             </div>
 
@@ -190,22 +231,30 @@ $docBadgeClass = static function (string $st): string {
 
             <div class="card" style="margin:18px 0;">
 
-                <h3 class="h3-card"><i data-lucide="file-check"></i> Contrato assinado</h3>
+                <h3 class="h3-card"><i data-lucide="file-check"></i> Documentos assinados</h3>
 
                 <p class="page-sub" style="margin-bottom:16px;">
 
-                    Seu contrato foi assinado. Aguardando liberação de acesso pelo administrador.
+                    <?php if ($allSignaturesSigned || $signatureStageItems === []): ?>
+                        Todos os documentos foram assinados. Aguarde a liberação de acesso pela equipe.
+                    <?php else: ?>
+                        Seus documentos contratuais foram assinados. Aguarde a liberação de acesso pelo administrador.
+                    <?php endif; ?>
 
                 </p>
 
-                <?php if ($signaturePdfUrl): ?>
-
-                    <a href="<?= e($signaturePdfUrl) ?>" class="btn btn-yellow" download>
-
-                        <i data-lucide="download"></i> Baixar contrato em PDF
-
-                    </a>
-
+                <?php if ($signatureStageItems !== []): ?>
+                    <div class="collector-signature-cards">
+                        <?php foreach ($signatureStageItems as $item):
+                            if (empty($item['is_signed']) || empty($item['pdf_url'])) {
+                                continue;
+                            }
+                        ?>
+                            <a href="<?= e((string) $item['pdf_url']) ?>" class="btn btn-outline btn-sm" style="margin-right:8px;margin-bottom:8px;" download>
+                                Baixar: <?= e($item['title'] ?? 'Documento') ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
                 <?php endif; ?>
 
             </div>
@@ -288,7 +337,7 @@ $docBadgeClass = static function (string $st): string {
 
                 <p><i data-lucide="shield-check" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px;"></i>
 
-                    Seus dados pessoais são tratados conforme a LGPD. Envie apenas os documentos solicitados abaixo.</p>
+                    Seus dados pessoais são tratados conforme a LGPD. Esta etapa é destinada ao envio de documentos cadastrais, bancários e comprobatórios de experiência. Documentos contratuais serão assinados apenas após aprovação, na etapa de assinatura contratual.</p>
 
             </div>
 
