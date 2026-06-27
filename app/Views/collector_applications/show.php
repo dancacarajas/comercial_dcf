@@ -19,6 +19,10 @@ $hasAllRequiredSignatures = !empty($hasAllRequiredSignatures);
 $journeySteps = $journeySteps ?? [];
 $currentStep = $currentStep ?? 'manifestacao';
 $docProgress = $docProgress ?? ['total' => 0, 'submitted' => 0, 'pending' => 0, 'approved' => 0];
+$collector = $collector ?? null;
+$collectorMissing = $collectorMissing ?? [];
+$collectorReady = !empty($collectorReady);
+$collectorRegistrationStatuses = $collectorRegistrationStatuses ?? [];
 
 $id = (int) ($application['id'] ?? 0);
 $appStatus = (string) ($application['status'] ?? '');
@@ -192,6 +196,81 @@ $isArchived = !empty($application['archived_at']) || $appStatus === 'arquivado';
         <?php endif; ?>
     </div>
 </div>
+
+<?php if (can('collectors.view')): ?>
+<?php
+    $regStatus = $collector ? (string) ($collector['registration_status'] ?? 'incompleto') : '';
+    $regBadgeClass = match ($regStatus) {
+        'validado' => 'collector-doc-badge collector-doc-badge--aprovado',
+        'completo' => 'collector-doc-badge collector-doc-badge--enviado',
+        default    => 'collector-doc-badge collector-doc-badge--pendente',
+    };
+?>
+<div class="card collector-app-stage-card collector-master-card">
+    <div class="collector-app-stage-card__head">
+        <div>
+            <h3 class="h3-card mb-1">Cadastro do captador</h3>
+            <p class="text-sm text-muted-dcx mb-0">
+                Cadastro mestre usado na geração dos contratos. A aprovação e a geração de documentos exigem cadastro <strong>completo e validado</strong>.
+            </p>
+        </div>
+        <?php if ($collector): ?>
+            <span class="<?= e($regBadgeClass) ?>"><?= e($collectorRegistrationStatuses[$regStatus] ?? $regStatus) ?></span>
+        <?php else: ?>
+            <span class="collector-doc-badge collector-doc-badge--pendente">Sem cadastro</span>
+        <?php endif; ?>
+    </div>
+
+    <?php if (!$collector): ?>
+        <div class="alert alert-warning" style="margin:14px 0;">
+            Este captador ainda não possui cadastro mestre. Crie o cadastro com dados completos (identificação, endereço, banco, regras comerciais) antes de aprovar.
+        </div>
+        <?php if (can('collectors.manage')): ?>
+            <a href="<?= e(app_url('/collector-applications/' . $id . '/collector/create')) ?>" class="btn btn-sm btn-yellow">Criar cadastro do captador</a>
+        <?php endif; ?>
+    <?php else: ?>
+        <dl class="detail-list" style="margin-top:12px;">
+            <dt>Código</dt><dd><?= e($collector['collector_code'] ?? '—') ?></dd>
+            <dt>Tipo</dt><dd><?= e((string) ($collector['type'] ?? '') === 'pessoa_juridica' ? 'Pessoa jurídica' : 'Pessoa física') ?></dd>
+            <dt>Documento</dt><dd><?= e($collector['document_number'] ?? '—') ?></dd>
+            <dt>Comissão</dt><dd><?= $collector['commission_percentage'] !== null && $collector['commission_percentage'] !== '' ? e(rtrim(rtrim(number_format((float) $collector['commission_percentage'], 3, ',', '.'), '0'), ',')) . '%' : '—' ?></dd>
+            <?php if (!empty($collector['validated_at'])): ?>
+                <dt>Validado em</dt><dd><?= e(format_datetime_br($collector['validated_at'])) ?><?= !empty($collector['validated_by_name']) ? ' · ' . e($collector['validated_by_name']) : '' ?></dd>
+            <?php endif; ?>
+        </dl>
+
+        <?php if ($collectorMissing !== []): ?>
+            <div class="alert alert-warning" style="margin:12px 0;">
+                <strong>Cadastro incompleto.</strong> Pendências para liberar a geração de documentos:
+                <ul style="margin:8px 0 0;padding-left:18px;">
+                    <?php foreach ($collectorMissing as $m): ?><li><?= e($m) ?></li><?php endforeach; ?>
+                </ul>
+            </div>
+        <?php elseif ($regStatus !== 'validado'): ?>
+            <div class="alert alert-info" style="margin:12px 0;">
+                Cadastro completo. Falta apenas <strong>validar</strong> para liberar a geração de documentos de assinatura.
+            </div>
+        <?php else: ?>
+            <div class="alert alert-info" style="margin:12px 0;">
+                Cadastro completo e validado. Geração de documentos liberada.
+            </div>
+        <?php endif; ?>
+
+        <div class="actions-row">
+            <a href="<?= e(app_url('/collectors/' . (int) $collector['id'])) ?>" class="btn btn-sm btn-outline">Ver cadastro</a>
+            <?php if (can('collectors.manage')): ?>
+                <a href="<?= e(app_url('/collector-applications/' . $id . '/collector/edit')) ?>" class="btn btn-sm btn-outline">Editar cadastro</a>
+            <?php endif; ?>
+            <?php if (can('collectors.validate') && $collectorMissing === [] && $regStatus !== 'validado'): ?>
+                <form method="post" action="<?= e(app_url('/collector-applications/' . $id . '/collector/validate')) ?>" class="inline-form">
+                    <?= csrf_field() ?>
+                    <button type="submit" class="btn btn-sm btn-yellow">Validar cadastro</button>
+                </form>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
 
 <div class="card collector-app-stage-card">
     <div class="collector-app-stage-card__head">
@@ -435,14 +514,18 @@ $isArchived = !empty($application['archived_at']) || $appStatus === 'arquivado';
     <div class="collector-actions-group">
         <h4 class="collector-actions-group__title">Análise da candidatura</h4>
         <div class="collector-actions-group__body">
+            <?php $approveBlocked = !$allDocumentsSubmitted || !$collectorReady; ?>
             <?php if ($showRejectActions): ?>
                 <?php if (!$allDocumentsSubmitted): ?>
                     <p class="text-sm text-muted-dcx">Aprovação disponível após envio completo de todos os documentos cadastrais.</p>
                 <?php endif; ?>
+                <?php if ($allDocumentsSubmitted && !$collectorReady): ?>
+                    <p class="text-sm text-muted-dcx">Aprovação bloqueada: o cadastro do captador precisa estar completo e validado (seção <strong>Cadastro do captador</strong>).</p>
+                <?php endif; ?>
                 <form method="post" action="<?= e(app_url('/collector-applications/' . $id . '/approve')) ?>" class="collector-action-form">
                     <?= csrf_field() ?>
                     <input type="hidden" name="approval_notes" value="Aprovado pela equipe comercial.">
-                    <button type="submit" class="btn btn-sm btn-yellow" <?= !$allDocumentsSubmitted ? 'disabled' : '' ?>><?= can('signature_requests.create') ? 'Aprovar e gerar documentos de assinatura' : 'Aprovar' ?></button>
+                    <button type="submit" class="btn btn-sm btn-yellow" <?= $approveBlocked ? 'disabled' : '' ?>><?= can('signature_requests.create') ? 'Aprovar e gerar documentos de assinatura' : 'Aprovar' ?></button>
                 </form>
                 <form method="post" action="<?= e(app_url('/collector-applications/' . $id . '/reject')) ?>" class="collector-action-form collector-reject-form">
                     <?= csrf_field() ?>

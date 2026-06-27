@@ -112,6 +112,24 @@ final class ContractTemplateRenderer
 
             'collector.segments'                => 'Segmentos',
 
+            'collector.legal_name'              => 'Razão social',
+
+            'collector.trade_name'              => 'Nome fantasia',
+
+            'collector.address_full'            => 'Endereço completo',
+
+            'collector.address_city_state'      => 'Cidade/UF (cadastro)',
+
+            'collector.bank_summary'            => 'Resumo bancário',
+
+            'collector.pix_key'                 => 'Chave PIX',
+
+            'collector.representative_name'     => 'Representante legal',
+
+            'collector.representative_document' => 'Documento do representante',
+
+            'collector.representative_role'     => 'Cargo do representante',
+
             'application.application_number'    => 'Nº candidatura',
 
             'application.approved_at'           => 'Data aprovação',
@@ -335,6 +353,114 @@ final class ContractTemplateRenderer
     }
 
 
+
+    /**
+     * Contexto de contrato a partir do CADASTRO MESTRE do captador (Etapa 18C).
+     * Usa a candidatura apenas como complemento (número, datas do processo).
+     *
+     * @param array<string, mixed> $collector
+     * @param array<string, mixed> $application
+     * @param array<string, mixed> $orgConfig
+     * @param array<string, mixed> $options
+     * @return array<string, mixed>
+     */
+    public static function contextFromCollector(
+        array $collector,
+        array $application = [],
+        array $orgConfig = [],
+        array $options = []
+    ): array {
+        $base = self::contextFromCollectorApplication(
+            $application !== [] ? $application : $collector,
+            $orgConfig,
+            $options
+        );
+
+        $isPj = (string) ($collector['type'] ?? '') === 'pessoa_juridica'
+            || strlen(preg_replace('/\D+/', '', (string) ($collector['document_number'] ?? '')) ?? '') === 14;
+
+        $name = (string) ($collector['name'] ?? $base['collector']['name'] ?? '');
+        $doc = (string) ($collector['document_number'] ?? $base['collector']['document_number'] ?? '');
+
+        $base['collector'] = array_merge($base['collector'], [
+            'name'                    => $name,
+            'legal_type'              => $isPj ? 'pessoa jurídica' : 'pessoa física',
+            'document_number'         => $doc,
+            'email'                   => (string) ($collector['email'] ?? $base['collector']['email'] ?? ''),
+            'phone_whatsapp'          => (string) ($collector['phone_whatsapp'] ?? $base['collector']['phone_whatsapp'] ?? ''),
+            'legal_name'              => (string) ($collector['legal_name'] ?? ''),
+            'trade_name'              => (string) ($collector['trade_name'] ?? ''),
+            'address_full'            => self::formatAddress($collector),
+            'address_city_state'      => trim(((string) ($collector['address_city'] ?? '')) . (($collector['address_state'] ?? '') !== '' ? '/' . (string) $collector['address_state'] : '')),
+            'city_state'              => trim(((string) ($collector['address_city'] ?? '')) . (($collector['address_state'] ?? '') !== '' ? '/' . (string) $collector['address_state'] : '')) ?: (string) ($base['collector']['city_state'] ?? ''),
+            'bank_summary'            => self::formatBank($collector),
+            'pix_key'                 => trim((string) ($collector['pix_key'] ?? '')),
+            'representative_name'     => (string) ($collector['representative_name'] ?? ''),
+            'representative_document' => (string) ($collector['representative_document'] ?? ''),
+            'representative_role'     => (string) ($collector['representative_role'] ?? ''),
+            'segments'                => (string) ($collector['segments'] ?? $base['collector']['segments'] ?? ''),
+        ]);
+
+        $pct = $collector['commission_percentage'] ?? null;
+        if ($pct !== null && $pct !== '') {
+            $base['compensation']['percentage'] = rtrim(rtrim(number_format((float) $pct, 3, ',', '.'), '0'), ',');
+        }
+        if (trim((string) ($collector['commission_payment_rule'] ?? '')) !== '') {
+            $base['compensation']['payment_term'] = (string) $collector['commission_payment_rule'];
+        }
+        if (trim((string) ($collector['commission_limit_rule'] ?? '')) !== '') {
+            $base['compensation']['notes'] = (string) $collector['commission_limit_rule'];
+        }
+
+        if (trim((string) ($collector['contract_start_date'] ?? '')) !== '') {
+            $base['contract']['start_date'] = self::formatDateBr((string) $collector['contract_start_date']);
+        }
+        if (trim((string) ($collector['contract_end_date'] ?? '')) !== '') {
+            $base['contract']['end_date'] = self::formatDateBr((string) $collector['contract_end_date']);
+        }
+        if (trim((string) ($collector['exclusivity_type'] ?? '')) !== '') {
+            $base['exclusivity']['type'] = (string) $collector['exclusivity_type'];
+        }
+        if (trim((string) ($collector['exclusivity_scope'] ?? '')) !== '') {
+            $base['exclusivity']['scope'] = (string) $collector['exclusivity_scope'];
+        }
+
+        return $base;
+    }
+
+    /** @param array<string, mixed> $c */
+    private static function formatAddress(array $c): string
+    {
+        $line = trim(implode(', ', array_filter([
+            trim(((string) ($c['address_street'] ?? '')) . (($c['address_number'] ?? '') !== '' ? ', ' . (string) $c['address_number'] : '')),
+            trim((string) ($c['address_complement'] ?? '')),
+            trim((string) ($c['address_district'] ?? '')),
+            trim(((string) ($c['address_city'] ?? '')) . (($c['address_state'] ?? '') !== '' ? '/' . (string) $c['address_state'] : '')),
+            ($c['address_zipcode'] ?? '') !== '' ? 'CEP ' . (string) $c['address_zipcode'] : '',
+        ], static fn ($v) => $v !== '')));
+
+        return $line;
+    }
+
+    /** @param array<string, mixed> $c */
+    private static function formatBank(array $c): string
+    {
+        if (trim((string) ($c['bank_name'] ?? '')) === '' && trim((string) ($c['pix_key'] ?? '')) !== '') {
+            $type = (string) ($c['pix_key_type'] ?? '');
+
+            return 'PIX' . ($type !== '' ? ' (' . $type . ')' : '') . ': ' . (string) $c['pix_key'];
+        }
+
+        $parts = array_filter([
+            trim((string) ($c['bank_name'] ?? '')),
+            ($c['agency'] ?? '') !== '' ? 'Ag. ' . (string) $c['agency'] : '',
+            ($c['account'] ?? '') !== '' ? 'Conta ' . (string) $c['account'] . (($c['account_digit'] ?? '') !== '' ? '-' . (string) $c['account_digit'] : '') : '',
+            trim((string) ($c['account_type'] ?? '')),
+            ($c['bank_holder_name'] ?? '') !== '' ? 'Titular: ' . (string) $c['bank_holder_name'] : '',
+        ], static fn ($v) => $v !== '');
+
+        return implode(' · ', $parts);
+    }
 
     private static function inferLegalType(string $document): string
 

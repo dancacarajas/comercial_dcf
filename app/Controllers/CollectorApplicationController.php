@@ -7,6 +7,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Middlewares\AuthMiddleware;
 use App\Models\ActivityLog;
+use App\Models\Collector;
 use App\Models\CollectorApplication;
 use App\Models\CollectorApplicationDocument;
 use App\Models\ContractTemplate;
@@ -102,7 +103,16 @@ final class CollectorApplicationController extends Controller
         $collectorStageTemplatesConfigured = (new ContractTemplate())->hasCollectorSignatureStageConfigured();
         $hasAllRequiredSignatures = $model->hasCompletedRequiredCollectorSignatures($app);
 
+        $collectorModel = new Collector();
+        $collector = $collectorModel->findByApplication($id);
+        $collectorMissing = $collector !== null ? $collectorModel->missingRequirements($collector) : [];
+        $collectorReady = $collector !== null && $collectorModel->isReadyForDocuments($collector);
+
         $this->view('collector_applications/show', [
+            'collector'            => $collector,
+            'collectorMissing'     => $collectorMissing,
+            'collectorReady'       => $collectorReady,
+            'collectorRegistrationStatuses' => $collectorModel->getRegistrationStatuses(),
             'title'            => $app['name'] ?? 'Candidatura',
             'application'      => $app,
             'journeySteps'     => $model->getJourneySteps(),
@@ -343,6 +353,12 @@ final class CollectorApplicationController extends Controller
             return;
         }
 
+        if (($block = $this->collectorRegistrationBlock($id)) !== null) {
+            flash('error', $block);
+            $this->redirect('/collector-applications/' . $id);
+            return;
+        }
+
         (new CollectorApplication())->update($id, [
             'status'          => 'aprovado',
             'review_status'   => 'aprovado',
@@ -400,6 +416,12 @@ final class CollectorApplicationController extends Controller
 
         if (!in_array((string) ($app['status'] ?? ''), ['aprovado', 'aguardando_assinatura_contratual'], true)) {
             flash('error', 'Só é possível gerar documentos de assinatura após aprovação da candidatura.');
+            $this->redirect('/collector-applications/' . $id);
+            return;
+        }
+
+        if (($block = $this->collectorRegistrationBlock($id)) !== null) {
+            flash('error', $block);
             $this->redirect('/collector-applications/' . $id);
             return;
         }
@@ -600,6 +622,31 @@ final class CollectorApplicationController extends Controller
             'source_page'                 => trim((string) input('source_page', '')),
             'source_url'                  => trim((string) input('source_url', '')),
         ];
+    }
+
+    /**
+     * Etapa 18C — bloqueia aprovação/geração de documentos quando o cadastro mestre
+     * do captador está ausente, incompleto ou ainda não validado.
+     * Retorna a mensagem de bloqueio ou null quando liberado.
+     */
+    private function collectorRegistrationBlock(int $applicationId): ?string
+    {
+        $collectorModel = new Collector();
+        $collector = $collectorModel->findByApplication($applicationId);
+        if ($collector === null) {
+            return 'Não é possível gerar documentos de assinatura. Crie o cadastro do captador (Cadastro do captador) antes de aprovar.';
+        }
+
+        $missing = $collectorModel->missingRequirements($collector);
+        if ($missing !== []) {
+            return 'Não é possível gerar documentos de assinatura. Complete o cadastro do captador. Pendências: ' . implode('; ', $missing) . '.';
+        }
+
+        if ((string) ($collector['registration_status'] ?? '') !== 'validado') {
+            return 'Não é possível gerar documentos de assinatura. Valide o cadastro do captador antes de aprovar.';
+        }
+
+        return null;
     }
 
     /**

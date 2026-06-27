@@ -212,6 +212,14 @@ $navIsActive = static function (string $base) use ($navPath): bool {
                                 <span>Captadores</span>
                             </a>
                         <?php endif; ?>
+                        <?php if (can('collectors.view')): ?>
+                            <?php $active = $navIsActive('/collectors'); ?>
+                            <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/collectors')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="contact" aria-hidden="true"></i>
+                                <span>Cadastro de captadores</span>
+                            </a>
+                        <?php endif; ?>
                         <?php if (can('contract_templates.view')): ?>
                             <?php $active = $navIsActive('/contract-templates'); ?>
                             <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"

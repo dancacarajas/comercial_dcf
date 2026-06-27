@@ -377,6 +377,17 @@ return function (Router $router): void {
     $router->post('/collector-applications/{id}/archive',               'CollectorApplicationController@archive',       ['AuthMiddleware']);
     $router->post('/collector-applications/{id}/restore',               'CollectorApplicationController@restore',       ['AuthMiddleware']);
 
+    // Etapa 18C — Cadastro mestre do captador (nested na candidatura)
+    $router->get('/collector-applications/{id}/collector/create',       'CollectorController@create',                   ['AuthMiddleware']);
+    $router->post('/collector-applications/{id}/collector',             'CollectorController@store',                    ['AuthMiddleware']);
+    $router->get('/collector-applications/{id}/collector/edit',         'CollectorController@edit',                     ['AuthMiddleware']);
+    $router->post('/collector-applications/{id}/collector/update',      'CollectorController@update',                   ['AuthMiddleware']);
+    $router->post('/collector-applications/{id}/collector/validate',    'CollectorController@validateRegistration',     ['AuthMiddleware']);
+
+    // Etapa 18C — Cadastro mestre de captadores (listagem)
+    $router->get('/collectors',                                         'CollectorController@index',                    ['AuthMiddleware']);
+    $router->get('/collectors/{id}',                                    'CollectorController@show',                     ['AuthMiddleware']);
+
     // Perfis
     $router->get('/roles',              'RoleController@index',  ['AuthMiddleware']);
     $router->get('/roles/{id}',         'RoleController@show',   ['AuthMiddleware']);

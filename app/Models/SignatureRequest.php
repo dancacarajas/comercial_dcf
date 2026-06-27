@@ -211,11 +211,23 @@ final class SignatureRequest extends Model
         $renderer = new ContractTemplateRenderer();
         $config = require dirname(__DIR__, 2) . '/config/app.php';
         $org = (array) ($config['organization'] ?? []);
-        $context = ContractTemplateRenderer::contextFromCollectorApplication(
-            $application,
-            $org,
-            ['contract_title' => (string) ($template['title'] ?? '')]
-        );
+
+        // Etapa 18C: prioriza o cadastro mestre do captador; candidatura é fallback legado.
+        $collector = (new Collector())->findByApplication($appId);
+        if ($collector !== null) {
+            $context = ContractTemplateRenderer::contextFromCollector(
+                $collector,
+                $application,
+                $org,
+                ['contract_title' => (string) ($template['title'] ?? '')]
+            );
+        } else {
+            $context = ContractTemplateRenderer::contextFromCollectorApplication(
+                $application,
+                $org,
+                ['contract_title' => (string) ($template['title'] ?? '')]
+            );
+        }
         $rendered = $renderer->render((string) ($template['content_html'] ?? ''), $context);
         $hash = hash('sha256', $rendered);
 
@@ -245,6 +257,23 @@ final class SignatureRequest extends Model
         );
         $requestId = (int) $this->db->lastInsertId();
 
+        // Dados do signatário captador: usa representante legal (PJ) ou titular do cadastro mestre quando houver.
+        $signerName = (string) ($application['name'] ?? '');
+        $signerEmail = (string) ($application['email'] ?? '');
+        $signerDoc = (string) ($application['document_number'] ?? '');
+        if ($collector !== null) {
+            $isPj = (string) ($collector['type'] ?? '') === 'pessoa_juridica';
+            if ($isPj && trim((string) ($collector['representative_name'] ?? '')) !== '') {
+                $signerName = (string) $collector['representative_name'];
+                $signerEmail = (string) ($collector['representative_email'] ?? $collector['email'] ?? $signerEmail);
+                $signerDoc = (string) ($collector['representative_document'] ?? $signerDoc);
+            } else {
+                $signerName = (string) ($collector['name'] ?? $signerName);
+                $signerEmail = (string) ($collector['email'] ?? $signerEmail);
+                $signerDoc = (string) ($collector['document_number'] ?? $signerDoc);
+            }
+        }
+
         $signerToken = bin2hex(random_bytes(32));
         $this->query(
             'INSERT INTO `signature_signers`
@@ -253,9 +282,9 @@ final class SignatureRequest extends Model
              VALUES (:rid, :name, :email, :doc, :role, :status, :token, NOW())',
             [
                 'rid'    => $requestId,
-                'name'   => (string) ($application['name'] ?? ''),
-                'email'  => (string) ($application['email'] ?? ''),
-                'doc'    => (string) ($application['document_number'] ?? ''),
+                'name'   => $signerName,
+                'email'  => $signerEmail,
+                'doc'    => $signerDoc,
                 'role'   => 'captador',
                 'status' => 'pendente',
                 'token'  => $signerToken,
