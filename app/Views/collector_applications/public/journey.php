@@ -207,8 +207,8 @@ $docBadgeClass = static function (string $st): string {
                                     <?php endif; ?>
                                     <p class="text-sm mb-0">
                                         Status: <span class="badge"><?= e($item['request_status'] ?? 'pendente') ?></span>
-                                        <?php if (!empty($item['sent_at'])): ?> · Enviado em <?= e($item['sent_at']) ?><?php endif; ?>
-                                        <?php if (!empty($item['signed_at'])): ?> · Assinado em <?= e($item['signed_at']) ?><?php endif; ?>
+                                        <?php if (!empty($item['sent_at'])): ?> · Enviado em <?= e(format_datetime_br($item['sent_at'])) ?><?php endif; ?>
+                                        <?php if (!empty($item['signed_at'])): ?> · Assinado em <?= e(format_datetime_br($item['signed_at'])) ?><?php endif; ?>
                                     </p>
                                 </div>
                                 <div class="actions-row">
@@ -433,7 +433,7 @@ $docBadgeClass = static function (string $st): string {
 
                                         <td><span class="<?= e($docBadgeClass($docSt)) ?>"><?= e($docLabel) ?></span></td>
 
-                                        <td><?= e($doc['uploaded_at'] ?? '—') ?></td>
+                                        <td><?= e(format_datetime_br($doc['uploaded_at'] ?? null)) ?></td>
 
                                         <td>
 

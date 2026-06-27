@@ -43,7 +43,7 @@ $ipDisplay = $signedIp !== '' && $signedIp !== '0.0.0.0' ? $signedIp : 'Registra
         </div>
         <div>
             <small>Assinado em</small>
-            <strong><?= e($signedAt) ?></strong>
+            <strong><?= e(format_datetime_br($proofSigner['signed_at'] ?? null)) ?></strong>
         </div>
         <div>
             <small>Código de verificação</small>

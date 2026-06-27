@@ -75,6 +75,7 @@ final class Database
 
         $collation = (string) ($config['collation'] ?? 'utf8mb4_unicode_ci');
         self::$instance->exec('SET NAMES utf8mb4 COLLATE ' . $collation);
+        self::$instance->exec("SET time_zone = '+00:00'");
 
         return self::$instance;
     }

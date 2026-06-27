@@ -23,8 +23,8 @@ return [
     // URL base do sistema (sem barra final). Ex.: https://captacao.seudominio.com
     'url' => rtrim((string) env('APP_URL', ''), '/'),
 
-    // Fuso horario padrao.
-    'timezone' => env('APP_TIMEZONE', 'America/Belem'),
+    // Fuso horario padrao (exibicao e regras de negocio — horario de Brasilia).
+    'timezone' => env('APP_TIMEZONE', 'America/Sao_Paulo'),
 
     // Idioma padrao.
     'locale' => env('APP_LOCALE', 'pt_BR'),

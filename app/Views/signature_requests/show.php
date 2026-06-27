@@ -122,11 +122,11 @@ $roleLabels = [
 
             <dt>Hash conteúdo</dt><dd><code style="word-break:break-all;"><?= e($item['content_hash'] ?? '—') ?></code></dd>
 
-            <dt>Enviado em</dt><dd><?= e($item['sent_at'] ?? '—') ?></dd>
+            <dt>Enviado em</dt><dd><?= e(format_datetime_br($item['sent_at'] ?? null)) ?></dd>
 
-            <dt>Assinado em</dt><dd><?= e($item['signed_at'] ?? '—') ?></dd>
+            <dt>Assinado em</dt><dd><?= e(format_datetime_br($item['signed_at'] ?? null)) ?></dd>
 
-            <dt>Expira em</dt><dd><?= e($item['public_token_expires_at'] ?? '—') ?></dd>
+            <dt>Expira em</dt><dd><?= e(format_datetime_br($item['public_token_expires_at'] ?? null)) ?></dd>
 
         </dl>
 
@@ -162,7 +162,7 @@ $roleLabels = [
 
                 <?php if (!empty($signer['signed_at'])): ?>
 
-                    <small>Assinado: <?= e($signer['signed_at']) ?> · IP: <?= e($signer['signed_ip'] ?? '—') ?></small>
+                    <small>Assinado: <?= e(format_datetime_br($signer['signed_at'] ?? null)) ?> · IP: <?= e($signer['signed_ip'] ?? '—') ?></small>
 
                     <?php if (!empty($signer['signature_hash'])): ?><br><small>Hash: <code><?= e($signer['signature_hash']) ?></code></small><?php endif; ?>
 

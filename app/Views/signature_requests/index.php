@@ -32,8 +32,8 @@ $statuses = $statuses ?? [];
                 <td><a href="<?= e(app_url('/signature-requests/' . (int) $item['id'])) ?>"><?= e($item['title'] ?? '') ?></a></td>
                 <td><?= e($item['source_type'] ?? '') ?> #<?= (int) ($item['source_id'] ?? 0) ?></td>
                 <td><span class="badge badge-sig-<?= e($item['status'] ?? '') ?>"><?= e($statuses[$item['status'] ?? ''] ?? $item['status'] ?? '') ?></span></td>
-                <td><?= e($item['sent_at'] ?? '—') ?></td>
-                <td><?= e($item['signed_at'] ?? '—') ?></td>
+                <td><?= e(format_datetime_br($item['sent_at'] ?? null)) ?></td>
+                <td><?= e(format_datetime_br($item['signed_at'] ?? null)) ?></td>
             </tr>
         <?php endforeach; ?>
         </tbody>

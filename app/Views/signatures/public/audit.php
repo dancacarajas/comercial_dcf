@@ -152,7 +152,7 @@ $signedIpDisplay = $signedIp !== '' && $signedIp !== '0.0.0.0' ? $signedIp : 'Re
 
                 <small>Assinado em</small>
 
-                <strong><?= e($signer['signed_at'] ?? '') ?></strong>
+                <strong><?= e(format_datetime_br($signer['signed_at'] ?? null)) ?></strong>
 
             </div>
 

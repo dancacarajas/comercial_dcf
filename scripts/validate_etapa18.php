@@ -723,6 +723,12 @@ $uploadOk = static function (ValidateHttp $h, string $token, int $slotId, string
 $pdfPath = makeMinimalPdf();
 assertTrue($uploadOk($http, $testToken, $testSlotId, $pdfPath, 'application/pdf', 'PDF'), 'Upload PDF permitido', 'Upload PDF falhou');
 
+$uploadedSlot = $docModel->findById($testSlotId);
+$uploadedAtRaw = (string) ($uploadedSlot['uploaded_at'] ?? '');
+$uploadedAtBr = format_datetime_br($uploadedAtRaw);
+assertTrue($uploadedAtRaw !== '' && $uploadedAtBr !== '—', 'uploaded_at gravado e formatado', 'uploaded_at ausente');
+assertTrue(preg_match('/^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2}$/', $uploadedAtBr) === 1, 'uploaded_at exibido em dd/mm/aaaa HH:mm:ss', 'Formato BR inválido: ' . $uploadedAtBr);
+
 $viewDoc = $http->request('/collector-applications/' . $testAppId . '/documents/' . $testSlotId . '/view');
 assertTrue($viewDoc['code'] === 200, 'Visualizar anexo interno → 200', "View doc → {$viewDoc['code']}");
 assertTrue(str_contains($viewDoc['headers'], 'Content-Type: application/pdf') || str_contains($viewDoc['body'], '%PDF'), 'View retorna PDF', 'View não retornou PDF');
@@ -732,6 +738,7 @@ assertTrue(str_contains($downloadDoc['headers'], 'Content-Disposition: attachmen
 
 $showDocPage = $http->request('/collector-applications/' . $testAppId);
 assertTrue(str_contains($showDocPage['body'], 'Visualizar') && str_contains($showDocPage['body'], 'Baixar'), 'Detalhe interno com botões Visualizar/Baixar', 'Botões de anexo ausentes no detalhe');
+assertTrue(str_contains($showDocPage['body'], $uploadedAtBr), 'Detalhe interno exibe horário BR', 'Horário BR ausente no detalhe');
 
 $otherAppId = (int) $model->create([
     'name' => 'Outra Candidatura Doc', 'email' => 'outra.doc.etapa18@example.com',

@@ -137,7 +137,7 @@ $totalRequired = (int) ($signatureProgress['total_required'] ?? 0);
                         <?php endif; ?>
                     </td>
                     <td><?= e($docStatuses[$docSt] ?? $docSt) ?></td>
-                    <td><?= e($doc['uploaded_at'] ?? '—') ?></td>
+                    <td><?= e(format_datetime_br($doc['uploaded_at'] ?? null)) ?></td>
                     <td>
                         <?php if (can('collector_applications.review') && $docId > 0): ?>
                         <form method="post" action="<?= e(app_url('/collector-applications/' . $id . '/review-document')) ?>" class="inline-form" style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;">
@@ -205,8 +205,8 @@ $totalRequired = (int) ($signatureProgress['total_required'] ?? 0);
                         <?php if (empty($item['is_required'])): ?><span class="badge">Opcional</span><?php endif; ?>
                     </td>
                     <td><?= e($item['request_status'] ?? '—') ?></td>
-                    <td><?= e($item['sent_at'] ?? '—') ?></td>
-                    <td><?= e($item['signed_at'] ?? '—') ?></td>
+                    <td><?= e(format_datetime_br($item['sent_at'] ?? null)) ?></td>
+                    <td><?= e(format_datetime_br($item['signed_at'] ?? null)) ?></td>
                     <td>
                         JA Produções: <?= !empty($item['contratante_signed']) ? 'assinado' : 'pendente' ?><br>
                         Captador: <?= !empty($item['captador_signed']) ? 'assinado' : 'pendente' ?>
