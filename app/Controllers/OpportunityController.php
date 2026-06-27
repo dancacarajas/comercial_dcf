@@ -255,6 +255,9 @@ final class OpportunityController extends Controller
             'dossiers'           => $dossiers,
             'dossierSummary'     => $dossierSummary,
             'dossierModel'       => $dossierModel,
+            'collectorTrace'     => can('collector_deals.view')
+                ? (new \App\Models\CollectorDeal())->findByFunnelEntity('opportunity', $id)
+                : null,
         ]));
     }
 

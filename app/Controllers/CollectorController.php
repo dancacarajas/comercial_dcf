@@ -9,6 +9,8 @@ use App\Middlewares\AuthMiddleware;
 use App\Models\ActivityLog;
 use App\Models\Collector;
 use App\Models\CollectorApplication;
+use App\Models\CollectorAssignment;
+use App\Models\CollectorDeal;
 use App\Models\User;
 
 /**
@@ -56,6 +58,10 @@ final class CollectorController extends Controller
             $this->abort(404, 'Captador não encontrado.');
         }
 
+        $assignmentModel = new CollectorAssignment();
+        $dealModel = new CollectorDeal();
+        $collectorId = (int) $collector['id'];
+
         $this->view('collectors/show', [
             'title'                => $collector['name'] ?? 'Captador',
             'collector'            => $collector,
@@ -63,6 +69,11 @@ final class CollectorController extends Controller
             'statuses'             => $model->getStatuses(),
             'registrationStatuses' => $model->getRegistrationStatuses(),
             'missing'              => $model->missingRequirements($collector),
+            'assignments'          => $assignmentModel->forCollector($collectorId),
+            'assignmentTypes'      => $assignmentModel->getTypes(),
+            'assignmentStatuses'   => $assignmentModel->getStatuses(),
+            'deals'                => $dealModel->forCollector($collectorId),
+            'dealStatuses'         => $dealModel->getStatuses(),
         ]);
     }
 

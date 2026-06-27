@@ -91,6 +91,8 @@ $dash = static fn ($v): string => ($v === null || $v === '') ? '—' : (string) 
             </article>
         <?php endif; ?>
 
+        <?php require dirname(__DIR__) . '/partials/collector_trace.php'; ?>
+
         <?php if (can('documents.view')): ?>
             <?php
             $blockTitle = 'Documentos do patrocinador';

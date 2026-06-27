@@ -105,6 +105,8 @@ $dash       = static fn ($v): string => ($v === null || $v === '') ? '—' : (st
             </article>
         <?php endif; ?>
 
+        <?php require dirname(__DIR__) . '/partials/collector_trace.php'; ?>
+
         <div class="notice" style="margin-top:20px;">
             <p class="mb-0"><i data-lucide="info"></i> Links públicos, assinatura digital, contratos e portal externo serão tratados em etapas futuras.</p>
         </div>
