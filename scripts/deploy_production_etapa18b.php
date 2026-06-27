@@ -43,7 +43,12 @@ foreach ($migrations as $file) {
         $pdo->exec($sql);
         echo "OK\n";
     } catch (Throwable $e) {
-        echo "ERRO: " . $e->getMessage() . "\n";
+        $msg = $e->getMessage();
+        if (str_contains($msg, 'Duplicate column') || str_contains($msg, 'already exists')) {
+            echo "OK (já aplicada)\n";
+            continue;
+        }
+        echo "ERRO: " . $msg . "\n";
         exit(1);
     }
 }
