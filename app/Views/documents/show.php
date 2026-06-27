@@ -104,6 +104,14 @@ $dash       = static fn ($v): string => ($v === null || $v === '') ? '—' : (st
                             <a href="<?= e(app_url('/sponsor-dossiers/' . (int) $document['sponsor_dossier_id'])) ?>" class="link-strong"><?= e($document['sponsor_dossier_title'] ?? '—') ?></a>
                         <?php else: ?>—<?php endif; ?>
                     </dd>
+                    <dt>Credenciamento de captador</dt>
+                    <dd>
+                        <?php if (!empty($document['collector_application_id']) && can('collector_applications.view')): ?>
+                            <a href="<?= e(app_url('/collector-applications/' . (int) $document['collector_application_id'])) ?>" class="link-strong"><?= e($document['collector_application_name'] ?? 'Candidatura #' . (int) $document['collector_application_id']) ?></a>
+                        <?php elseif (!empty($document['collector_application_id'])): ?>
+                            <?= e($document['collector_application_name'] ?? 'Candidatura #' . (int) $document['collector_application_id']) ?>
+                        <?php else: ?>—<?php endif; ?>
+                    </dd>
                     <dt>Responsável</dt>
                     <dd><?= e($dash($document['responsible_name'] ?? '')) ?></dd>
                 </dl>

@@ -204,6 +204,30 @@ $navIsActive = static function (string $base) use ($navPath): bool {
                                 <span>Leads</span>
                             </a>
                         <?php endif; ?>
+                        <?php if (can('collector_applications.view')): ?>
+                            <?php $active = $navIsActive('/collector-applications'); ?>
+                            <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/collector-applications')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="user-check" aria-hidden="true"></i>
+                                <span>Captadores</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (can('contract_templates.view')): ?>
+                            <?php $active = $navIsActive('/contract-templates'); ?>
+                            <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/contract-templates')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="file-signature" aria-hidden="true"></i>
+                                <span>Modelos de contrato</span>
+                            </a>
+                        <?php endif; ?>
+                        <?php if (can('signature_requests.view')): ?>
+                            <?php $active = $navIsActive('/signature-requests'); ?>
+                            <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/signature-requests')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="pen-line" aria-hidden="true"></i>
+                                <span>Assinaturas</span>
+                            </a>
+                        <?php endif; ?>
                         <?php if (can('users.view')): ?>
                             <?php $active = $navIsActive('/users'); ?>
                             <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
@@ -230,8 +254,41 @@ $navIsActive = static function (string $base) use ($navPath): bool {
                         <?php endif; ?>
                     </nav>
                 </div>
+            <?php elseif (str_starts_with($navPath, '/captadores/credenciamento')): ?>
+                <a class="dcx-admin-brand dcx-brand" href="<?= e(app_url('/')) ?>">
+                    <span class="dcx-admin-brand__mark brand-icon" aria-hidden="true">
+                        <i data-lucide="sparkles"></i>
+                    </span>
+                    <span class="dcx-admin-brand__text">
+                        <strong>Dança Carajás</strong>
+                        <small>Captação</small>
+                    </span>
+                </a>
+
+                <button class="dcx-nav-toggle" type="button"
+                        data-nav-toggle aria-expanded="false" aria-label="Abrir menu">
+                    <i data-lucide="menu"></i>
+                </button>
+
+                <div class="dcx-admin-user">
+                    <span class="dcx-admin-user__name dcx-user">
+                        <i data-lucide="shield-check" aria-hidden="true"></i>
+                        <span>Área do captador</span>
+                    </span>
+                </div>
+
+                <div class="dcx-admin-nav-panel" data-nav>
+                    <nav class="dcx-admin-primary-nav" aria-label="Credenciamento">
+                        <span class="dcx-nav-primary__item dcx-nav-link is-active" aria-current="page">
+                            <i data-lucide="user-check" aria-hidden="true"></i>
+                            <span>Credenciamento</span>
+                        </span>
+                    </nav>
+                </div>
+
+                <div class="dcx-header-divider" aria-hidden="true"></div>
             <?php else: ?>
-                <a class="dcx-admin-brand dcx-brand" href="/">
+                <a class="dcx-admin-brand dcx-brand" href="<?= e(app_url('/')) ?>">
                     <span class="dcx-admin-brand__mark brand-icon" aria-hidden="true">
                         <i data-lucide="sparkles"></i>
                     </span>
@@ -247,8 +304,8 @@ $navIsActive = static function (string $base) use ($navPath): bool {
                 </button>
 
                 <nav class="dcx-admin-guest-nav" data-nav aria-label="Navegação">
-                    <a class="dcx-nav-link" href="/">Início</a>
-                    <a class="dcx-nav-link" href="/login">Entrar</a>
+                    <a class="dcx-nav-link" href="<?= e(app_url('/')) ?>">Início</a>
+                    <a class="dcx-nav-link" href="<?= e(app_url('/login')) ?>">Entrar</a>
                 </nav>
             <?php endif; ?>
         </div>

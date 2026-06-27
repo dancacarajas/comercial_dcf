@@ -73,6 +73,9 @@ final class Database
             throw new RuntimeException('Nao foi possivel conectar ao banco de dados.', 0, $e);
         }
 
+        $collation = (string) ($config['collation'] ?? 'utf8mb4_unicode_ci');
+        self::$instance->exec('SET NAMES utf8mb4 COLLATE ' . $collation);
+
         return self::$instance;
     }
 

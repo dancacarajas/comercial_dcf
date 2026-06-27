@@ -201,6 +201,20 @@ final class DashboardController extends Controller
             $dossiersWithBalance       = $dossierModel->countWithFinancialBalance();
         }
 
+        $collectorsReceived = null;
+        $collectorsPendingReview = null;
+        $collectorsAwaitingDocs = null;
+        $collectorsApproved = null;
+        $collectorsAccessReleased = null;
+        if (can('collector_applications.view')) {
+            $collectorModel = new \App\Models\CollectorApplication();
+            $collectorsReceived = $collectorModel->countByStatus('manifestacao_recebida');
+            $collectorsPendingReview = $collectorModel->countPendingReview();
+            $collectorsAwaitingDocs = $collectorModel->countAwaitingDocuments();
+            $collectorsApproved = $collectorModel->countApproved();
+            $collectorsAccessReleased = $collectorModel->countAccessReleased();
+        }
+
         $reportsAvailable = can('reports.view');
         $reportTasksOverdue = $tasksOverdue;
         $reportFinancialRemaining = $financialsRemaining;
@@ -356,6 +370,11 @@ final class DashboardController extends Controller
             'dossiersPending'         => $dossiersPending,
             'dossiersPendingCounterparts' => $dossiersPendingCounterparts,
             'dossiersWithBalance'     => $dossiersWithBalance,
+            'collectorsReceived'      => $collectorsReceived,
+            'collectorsPendingReview'=> $collectorsPendingReview,
+            'collectorsAwaitingDocs' => $collectorsAwaitingDocs,
+            'collectorsApproved'    => $collectorsApproved,
+            'collectorsAccessReleased'=> $collectorsAccessReleased,
             'reportsAvailable'        => $reportsAvailable,
             'reportTasksOverdue'      => $reportTasksOverdue,
             'reportFinancialRemaining'=> $reportFinancialRemaining,

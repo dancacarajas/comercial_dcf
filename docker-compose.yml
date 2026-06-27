@@ -1,0 +1,61 @@
+# =====================================================================
+# Ambiente de DESENVOLVIMENTO local com Docker.
+# NAO use em producao — na Hostinger o deploy e direto (PHP + MySQL).
+#
+#   Subir:    docker compose up -d --build
+#   Acessar:  http://localhost:8080        (sistema)
+#             http://localhost:8082        (phpMyAdmin)
+#   Parar:    docker compose down
+#   Zerar BD: docker compose down -v
+# =====================================================================
+
+services:
+  app:
+    build: ./docker
+    container_name: dcc_app
+    ports:
+      - "8080:80"
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mariadb:11
+    container_name: dcc_db
+    environment:
+      MARIADB_DATABASE: danca_captacao
+      MARIADB_USER: danca
+      MARIADB_PASSWORD: danca
+      MARIADB_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+    volumes:
+      - dcc_dbdata:/var/lib/mysql
+      # Importa automaticamente o schema na primeira subida (cria tabelas + seed)
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  phpmyadmin:
+    image: phpmyadmin:5
+    container_name: dcc_pma
+    environment:
+      PMA_HOST: db
+      PMA_USER: root
+      PMA_PASSWORD: root
+      UPLOAD_LIMIT: 64M
+    ports:
+      - "8082:80"
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  dcc_dbdata:

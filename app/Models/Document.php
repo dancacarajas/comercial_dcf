@@ -29,6 +29,7 @@ final class Document extends Model
         'imagem_institucional'      => 'Imagem institucional',
         'planilha_apoio'            => 'Planilha de apoio',
         'documento_comercial'       => 'Documento comercial',
+        'credenciamento_captador'   => 'Credenciamento de captador',
         'outro'                     => 'Outro',
     ];
 
@@ -82,7 +83,7 @@ final class Document extends Model
 
     /** @var list<string> */
     private const FILLABLE = [
-        'company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id', 'financial_entry_id', 'sponsor_dossier_id',
+        'company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id', 'financial_entry_id', 'sponsor_dossier_id', 'collector_application_id',
         'title', 'description', 'category', 'status', 'access_level',
         'file_path', 'original_name', 'stored_name', 'extension', 'mime_type', 'size_bytes', 'checksum_sha256',
         'version_number', 'parent_document_id', 'document_date', 'valid_until',
@@ -90,7 +91,7 @@ final class Document extends Model
     ];
 
     private const LIST_COLUMNS = '
-        d.`id`, d.`company_id`, d.`contact_id`, d.`opportunity_id`, d.`quota_id`, d.`proposal_id`, d.`lead_id`, d.`sponsor_id`, d.`counterpart_id`, d.`contract_id`, d.`financial_entry_id`, d.`sponsor_dossier_id`,
+        d.`id`, d.`company_id`, d.`contact_id`, d.`opportunity_id`, d.`quota_id`, d.`proposal_id`, d.`lead_id`, d.`sponsor_id`, d.`counterpart_id`, d.`contract_id`, d.`financial_entry_id`, d.`sponsor_dossier_id`, d.`collector_application_id`,
         d.`title`, d.`description`, d.`category`, d.`status`, d.`access_level`,
         d.`original_name`, d.`extension`, d.`mime_type`, d.`size_bytes`, d.`checksum_sha256`,
         d.`version_number`, d.`parent_document_id`, d.`document_date`, d.`valid_until`,
@@ -107,6 +108,7 @@ final class Document extends Model
         ct2.`title` AS contract_title,
         fe.`title` AS financial_entry_title,
         sd.`title` AS sponsor_dossier_title,
+        ca.`name` AS collector_application_name,
         ru.`name` AS responsible_name,
         cb.`name` AS created_by_name,
         ub.`name` AS updated_by_name,
@@ -343,7 +345,7 @@ final class Document extends Model
             $params['q'] = '%' . $q . '%';
         }
 
-        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id', 'financial_entry_id', 'sponsor_dossier_id', 'responsible_user_id'] as $fk) {
+        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id', 'financial_entry_id', 'sponsor_dossier_id', 'collector_application_id', 'responsible_user_id'] as $fk) {
             $v = (int) ($filters[$fk] ?? 0);
             if ($v > 0) {
                 $conditions[] = 'd.`' . $fk . '` = :' . $fk;
@@ -396,6 +398,7 @@ final class Document extends Model
                  LEFT JOIN `contracts` ct2 ON ct2.`id` = d.`contract_id`
                  LEFT JOIN `financial_entries` fe ON fe.`id` = d.`financial_entry_id`
                  LEFT JOIN `sponsor_dossiers` sd ON sd.`id` = d.`sponsor_dossier_id`
+                 LEFT JOIN `collector_applications` ca ON ca.`id` = d.`collector_application_id`
                  LEFT JOIN `users` ru ON ru.`id` = d.`responsible_user_id`
                  LEFT JOIN `users` cb ON cb.`id` = d.`created_by`
                  LEFT JOIN `users` ub ON ub.`id` = d.`updated_by`

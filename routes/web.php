@@ -319,6 +319,62 @@ return function (Router $router): void {
     $router->post('/api/leads/site', 'Api\LeadApiController@site');
     $router->add('OPTIONS', '/api/leads/site', 'Api\LeadApiController@site');
 
+    // Credenciamento de captadores — manifestação pública (Etapa 18)
+    $router->post('/api/collectors/site', 'Api\CollectorApplicationApiController@site');
+    $router->add('OPTIONS', '/api/collectors/site', 'Api\CollectorApplicationApiController@site');
+
+    // Jornada pública documental (token, sem login)
+    $router->get('/captadores/credenciamento/{token}', 'CollectorPublicController@show');
+    $router->post('/captadores/credenciamento/{token}/documents', 'CollectorPublicController@upload');
+    $router->post('/captadores/credenciamento/{token}/cadastro', 'CollectorPublicController@register');
+
+    // Assinatura eletrônica pública (token, sem login)
+    $router->get('/assinatura/{token}', 'SignaturePublicController@show');
+    $router->post('/assinatura/{token}/sign', 'SignaturePublicController@sign');
+    $router->get('/assinatura/{token}/documento', 'SignaturePublicController@documento');
+    $router->get('/assinatura/{token}/auditoria', 'SignaturePublicController@auditoria');
+    $router->get('/assinatura/{token}/pdf', 'SignaturePublicController@pdf');
+    $router->get('/assinatura/{token}/pdf/download', 'SignaturePublicController@pdfDownload');
+
+    // Modelos de contrato
+    $router->get('/contract-templates', 'ContractTemplateController@index', ['AuthMiddleware']);
+    $router->get('/contract-templates/create', 'ContractTemplateController@create', ['AuthMiddleware']);
+    $router->post('/contract-templates', 'ContractTemplateController@store', ['AuthMiddleware']);
+    $router->get('/contract-templates/{id}', 'ContractTemplateController@show', ['AuthMiddleware']);
+    $router->get('/contract-templates/{id}/edit', 'ContractTemplateController@edit', ['AuthMiddleware']);
+    $router->post('/contract-templates/{id}/update', 'ContractTemplateController@update', ['AuthMiddleware']);
+    $router->post('/contract-templates/{id}/archive', 'ContractTemplateController@archive', ['AuthMiddleware']);
+    $router->post('/contract-templates/{id}/restore', 'ContractTemplateController@restore', ['AuthMiddleware']);
+    $router->get('/contract-templates/{id}/preview', 'ContractTemplateController@preview', ['AuthMiddleware']);
+
+    // Assinaturas internas
+    $router->get('/signature-requests', 'SignatureRequestController@index', ['AuthMiddleware']);
+    $router->get('/signature-requests/{id}', 'SignatureRequestController@show', ['AuthMiddleware']);
+    $router->get('/signature-requests/{id}/pdf', 'SignatureRequestController@pdf', ['AuthMiddleware']);
+    $router->post('/signature-requests/{id}/send', 'SignatureRequestController@send', ['AuthMiddleware']);
+    $router->post('/signature-requests/{id}/sign-contratante', 'SignatureRequestController@signContratante', ['AuthMiddleware']);
+    $router->post('/signature-requests/{id}/cancel', 'SignatureRequestController@cancel', ['AuthMiddleware']);
+    $router->post('/signature-requests/{id}/archive', 'SignatureRequestController@archive', ['AuthMiddleware']);
+    $router->post('/signature-requests/{id}/restore', 'SignatureRequestController@restore', ['AuthMiddleware']);
+
+    // Credenciamento de captadores — módulo interno
+    $router->get('/collector-applications',                              'CollectorApplicationController@index',           ['AuthMiddleware']);
+    $router->get('/collector-applications/create',                      'CollectorApplicationController@create',        ['AuthMiddleware']);
+    $router->post('/collector-applications',                            'CollectorApplicationController@store',         ['AuthMiddleware']);
+    $router->get('/collector-applications/{id}',                          'CollectorApplicationController@show',          ['AuthMiddleware']);
+    $router->get('/collector-applications/{id}/edit',                     'CollectorApplicationController@edit',          ['AuthMiddleware']);
+    $router->post('/collector-applications/{id}/update',                'CollectorApplicationController@update',        ['AuthMiddleware']);
+    $router->post('/collector-applications/{id}/status',                'CollectorApplicationController@status',        ['AuthMiddleware']);
+    $router->post('/collector-applications/{id}/request-documents',     'CollectorApplicationController@requestDocuments', ['AuthMiddleware']);
+    $router->post('/collector-applications/{id}/review-document',       'CollectorApplicationController@reviewDocument', ['AuthMiddleware']);
+    $router->post('/collector-applications/{id}/approve',               'CollectorApplicationController@approve',         ['AuthMiddleware']);
+    $router->post('/collector-applications/{id}/reject',                'CollectorApplicationController@reject',          ['AuthMiddleware']);
+    $router->post('/collector-applications/{id}/generate-contract',     'CollectorApplicationController@generateContract', ['AuthMiddleware']);
+    $router->post('/collector-applications/{id}/prepare-access',        'CollectorApplicationController@prepareAccess',   ['AuthMiddleware']);
+    $router->post('/collector-applications/{id}/release-access',        'CollectorApplicationController@releaseAccess',   ['AuthMiddleware']);
+    $router->post('/collector-applications/{id}/archive',               'CollectorApplicationController@archive',       ['AuthMiddleware']);
+    $router->post('/collector-applications/{id}/restore',               'CollectorApplicationController@restore',       ['AuthMiddleware']);
+
     // Perfis
     $router->get('/roles',              'RoleController@index',  ['AuthMiddleware']);
     $router->get('/roles/{id}',         'RoleController@show',   ['AuthMiddleware']);

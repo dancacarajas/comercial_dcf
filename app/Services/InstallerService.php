@@ -376,6 +376,7 @@ final class InstallerService
 
     private function executeSqlBatch(PDO $pdo, string $sql): void
     {
+        $pdo->exec('SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci');
         $sql = preg_replace('/^\s*--.*$/m', '', $sql) ?? $sql;
         $parts = preg_split('/;\s*(?:\r?\n|$)/', $sql) ?: [];
 

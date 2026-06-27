@@ -51,6 +51,12 @@ $dossiersTotal     = $dossiersTotal ?? null;
 $dossiersDelivered = $dossiersDelivered ?? null;
 $dossiersPending   = $dossiersPending ?? null;
 
+$collectorsReceived = $collectorsReceived ?? null;
+$collectorsPendingReview = $collectorsPendingReview ?? null;
+$collectorsAwaitingDocs = $collectorsAwaitingDocs ?? null;
+$collectorsApproved = $collectorsApproved ?? null;
+$collectorsAccessReleased = $collectorsAccessReleased ?? null;
+
 $visualizations = $visualizations ?? [];
 $reportKey      = $reportKey ?? 'executive';
 $reportsAvailable = !empty($reportsAvailable);
@@ -405,6 +411,18 @@ $dateLabel = (new DateTime('now', new DateTimeZone('America/Belem')))->format('d
                                         <?= (int) $dossiersPending ?> pendentes
                                     </p>
                                     <a href="<?= e(app_url('/sponsor-dossiers')) ?>" class="dashboard-kpi-card__link">Gerenciar</a>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($collectorsReceived !== null): ?>
+                                <div class="dashboard-card dashboard-card--compact">
+                                    <h3 class="dashboard-card__title">Credenciamento captadores</h3>
+                                    <p class="dashboard-card__value"><?= (int) $collectorsPendingReview ?></p>
+                                    <p class="dashboard-card__meta">
+                                        <?= (int) $collectorsReceived ?> recebidas ·
+                                        <?= (int) $collectorsAwaitingDocs ?> aguard. docs ·
+                                        <?= (int) $collectorsApproved ?> aprovados
+                                    </p>
+                                    <a href="<?= e(app_url('/collector-applications')) ?>" class="dashboard-kpi-card__link">Gerenciar</a>
                                 </div>
                             <?php endif; ?>
                         </div>

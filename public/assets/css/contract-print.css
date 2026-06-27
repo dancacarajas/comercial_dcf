@@ -1,0 +1,623 @@
+/* Contrato premium — visualização e impressão (sem CDN) */
+
+@page {
+    size: A4;
+    margin: 18mm 16mm 18mm 16mm;
+}
+
+.contract-page {
+    max-width: 210mm;
+    margin: 0 auto;
+    background: #ffffff;
+    color: #111111;
+    font-family: 'Segoe UI', 'Nunito Sans', Arial, sans-serif;
+    font-size: 12pt;
+    line-height: 1.55;
+}
+
+.contract-page h1,
+.contract-page h2,
+.contract-page h3,
+.contract-page .contract-header-center strong {
+    font-family: 'Segoe UI', 'Quicksand', Arial, sans-serif;
+}
+
+/* ---- Cabeçalho ---- */
+.contract-header {
+    background: #ffffff;
+}
+
+.contract-accent {
+    height: 5px;
+    background: #f7c400;
+}
+
+.contract-header-main {
+    display: grid;
+    grid-template-columns: 1fr minmax(180px, 2fr) 1fr;
+    align-items: center;
+    gap: 16px;
+    padding: 22px 28px 14px;
+    border-bottom: 1px solid #dededb;
+}
+
+.contract-logo,
+.contract-logo-left,
+.contract-logo-right {
+    background: transparent !important;
+}
+
+.contract-logo img,
+.signature-logo img {
+    display: block;
+    max-width: 180px;
+    max-height: 70px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    background: transparent !important;
+}
+
+.contract-logo-left {
+    justify-self: start;
+}
+
+.contract-logo-right {
+    justify-self: end;
+}
+
+.contract-logo--on-dark {
+    background: #050505;
+    border-radius: 8px;
+    padding: 8px 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+}
+
+.contract-logo--on-dark img {
+    max-width: 150px;
+    max-height: 52px;
+}
+
+.contract-header-center {
+    text-align: center;
+}
+
+.contract-kicker {
+    display: block;
+    font-size: 9pt;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: #4f4f4f;
+    margin-bottom: 4px;
+}
+
+.contract-header-center strong {
+    display: block;
+    font-size: 13pt;
+    font-weight: 900;
+    color: #050505;
+    line-height: 1.2;
+}
+
+.contract-header-center small {
+    display: block;
+    margin-top: 4px;
+    font-size: 10pt;
+    color: #4f4f4f;
+}
+
+.contract-meta-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 24px;
+    padding: 10px 28px 14px;
+    background: #fafaf8;
+    border-bottom: 1px solid #dededb;
+    font-size: 9.5pt;
+    color: #4f4f4f;
+}
+
+.contract-meta-strip span strong {
+    color: #050505;
+    font-weight: 700;
+}
+
+/* ---- Título formal ---- */
+.contract-title-block {
+    padding: 22px 28px 8px;
+}
+
+.contract-title-block h1 {
+    margin: 0 0 4px;
+    font-size: 17pt;
+    font-weight: 900;
+    letter-spacing: .02em;
+    color: #050505;
+    line-height: 1.15;
+}
+
+.contract-title-block h1 + h1 {
+    margin-top: 2px;
+    font-size: 14pt;
+}
+
+.contract-subtitle {
+    margin: 10px 0 0;
+    font-size: 11pt;
+    color: #4f4f4f;
+    line-height: 1.5;
+}
+
+.contract-info-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    padding: 0 28px 20px;
+}
+
+.contract-info-grid > div {
+    padding: 10px 12px;
+    border: 1px solid #dededb;
+    border-radius: 8px;
+    background: #fff;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.contract-info-grid small {
+    display: block;
+    font-size: 8.5pt;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #767676;
+    margin-bottom: 3px;
+}
+
+.contract-info-grid strong {
+    font-size: 10.5pt;
+    color: #050505;
+    display: block;
+    max-width: 100%;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.text-break {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* ---- Corpo ---- */
+.contract-body {
+    padding: 4px 28px 20px;
+}
+
+.contract-body h1,
+.contract-body h2,
+.contract-body h3 {
+    font-size: 14pt;
+    margin: 18px 0 8px;
+    color: #050505;
+    border-left: 4px solid #f7c400;
+    padding-left: 10px;
+    font-weight: 800;
+}
+
+.contract-body p {
+    margin: 0 0 10px;
+    text-align: justify;
+}
+
+.contract-body ul,
+.contract-body ol {
+    margin: 0 0 10px;
+    padding-left: 1.25em;
+}
+
+/* ---- Comprovante de assinatura ---- */
+.signature-proof {
+    margin: 8px 28px 20px;
+    padding: 0;
+    border: 1px solid #c8c8c5;
+    border-radius: 12px;
+    background: #fafaf8;
+    overflow: hidden;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+.signature-proof__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 14px 18px;
+    border-bottom: 1px solid #dededb;
+    background: #fff;
+}
+
+.signature-proof__brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.signature-proof__brand-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.signature-proof + .signature-proof {
+    margin-top: 16px;
+}
+
+.signature-proofs-heading {
+    margin: 24px 28px 8px;
+    font-size: 11pt;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #4f4f4f;
+}
+
+.signature-proof__brand-title {
+    font-family: 'Segoe UI', 'Quicksand', Arial, sans-serif;
+    font-size: 11pt;
+    font-weight: 900;
+    color: #050505;
+    line-height: 1.2;
+}
+
+.signature-proof__brand-sub {
+    font-size: 9pt;
+    color: #767676;
+}
+
+/* ---- Barra de impressão ---- */
+.print-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #050505;
+    color: #ffffff;
+    font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 13px;
+}
+
+.report-print-body .print-toolbar,
+.report-print-body .print-toolbar__back,
+.report-print-body .print-toolbar__btn {
+    font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+.print-toolbar__back {
+    color: #f7c400;
+    text-decoration: none !important;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.01em;
+    font-family: inherit;
+    border-bottom: 0;
+}
+
+.print-toolbar__back:hover {
+    color: #ffe066;
+    text-decoration: none;
+}
+
+.print-toolbar__sep {
+    color: #666;
+    user-select: none;
+}
+
+.print-toolbar__btn {
+    background: #f7c400;
+    color: #050505;
+    border: 0;
+    padding: 8px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 13px;
+    font-family: inherit;
+    letter-spacing: 0.01em;
+}
+
+.print-toolbar__btn:hover {
+    background: #e0b000;
+}
+
+/* ---- Selo minimalista ---- */
+.signature-seal-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+}
+
+.signature-seal-badge__svg {
+    display: block;
+    width: 36px;
+    height: 36px;
+}
+
+.signature-stamp-svg {
+    display: none;
+}
+
+.signature-seal {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #050505;
+    color: #ffffff;
+    border: 1px solid #f7c400;
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-family: 'Segoe UI', 'Quicksand', Arial, sans-serif;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    font-size: 9px;
+}
+
+.signature-seal__icon {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #f7c400;
+    color: #050505;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 11px;
+    line-height: 1;
+}
+
+.signature-proof__status {
+    font-size: 10pt;
+    font-weight: 700;
+    color: #1a6b3c;
+    white-space: nowrap;
+}
+
+.signature-proof__status--fail {
+    color: #9b1c1c;
+}
+
+.signature-proof__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 20px;
+    padding: 16px 18px;
+}
+
+.signature-proof__grid small {
+    display: block;
+    font-size: 8.5pt;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: #767676;
+    margin-bottom: 2px;
+}
+
+.signature-proof__grid strong {
+    font-size: 10.5pt;
+    color: #050505;
+    word-break: break-word;
+}
+
+.signature-code {
+    font-family: Consolas, 'Courier New', monospace;
+    letter-spacing: .08em;
+    color: #050505;
+}
+
+.signature-hash {
+    padding: 0 18px 14px;
+}
+
+.signature-hash small {
+    display: block;
+    font-size: 8.5pt;
+    text-transform: uppercase;
+    color: #767676;
+    margin-bottom: 4px;
+}
+
+.signature-hash code {
+    display: block;
+    font-family: Consolas, 'Courier New', monospace;
+    font-size: 9pt;
+    word-break: break-all;
+    background: #fff;
+    border: 1px solid #dededb;
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: #333;
+}
+
+.signature-audit-link {
+    display: inline-block;
+    margin: 0 18px 12px;
+    color: #0a6b7a;
+    font-weight: 700;
+    font-size: 10pt;
+    text-decoration: underline;
+}
+
+.signature-legal-note {
+    margin: 0;
+    padding: 12px 18px 16px;
+    font-size: 9pt;
+    color: #4f4f4f;
+    line-height: 1.5;
+    border-top: 1px solid #dededb;
+    background: #fff;
+}
+
+/* ---- Rodapé ---- */
+.contract-footer {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 28px;
+    border-top: 1px solid #dededb;
+    font-size: 9pt;
+    color: #767676;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+.contract-footer strong {
+    display: block;
+    color: #050505;
+    font-size: 10pt;
+}
+
+.contract-footer span {
+    display: block;
+}
+
+/* ---- Auditoria ---- */
+.audit-page .contract-header-main {
+    padding-bottom: 18px;
+}
+
+.audit-status-banner {
+    margin: 0 28px 16px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 10.5pt;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+.audit-status-banner--ok {
+    background: #e8f5ec;
+    border: 1px solid #b8dfc4;
+    color: #1a6b3c;
+}
+
+.audit-status-banner--fail {
+    background: #fdecec;
+    border: 1px solid #f0bcbc;
+    color: #9b1c1c;
+}
+
+.signature-proof--audit {
+    margin-top: 0;
+}
+
+.signature-proof__grid--audit {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.signature-acceptance-quote {
+    margin: 0 18px 12px;
+    padding: 10px 14px;
+    border-left: 4px solid #f7c400;
+    background: #fff;
+    font-size: 10pt;
+    color: #333;
+    font-style: italic;
+}
+
+.audit-legal-meta {
+    padding: 0 28px 16px;
+    font-size: 10pt;
+    color: #4f4f4f;
+    line-height: 1.55;
+}
+
+.audit-legal-meta p {
+    margin: 0 0 6px;
+}
+
+.audit-actions {
+    padding: 0 28px 18px;
+}
+
+.audit-action-btn {
+    display: inline-block;
+    background: #f7c400;
+    color: #050505;
+    font-weight: 800;
+    font-size: 10.5pt;
+    padding: 10px 18px;
+    border-radius: 999px;
+    text-decoration: none;
+}
+
+.audit-action-btn:hover {
+    background: #e0b000;
+}
+
+/* ---- Impressão ---- */
+@media print {
+    body {
+        background: #ffffff !important;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    .contract-page {
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 !important;
+        max-width: none !important;
+    }
+
+    .signature-proof,
+    .contract-footer {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    a {
+        color: #050505;
+        text-decoration: none;
+    }
+}
+
+@media (max-width: 720px) {
+    .contract-header-main {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+
+    .contract-logo-left,
+    .contract-logo-right {
+        justify-self: center;
+    }
+
+    .contract-info-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .signature-proof__grid,
+    .signature-proof__grid--audit {
+        grid-template-columns: 1fr;
+    }
+
+    .signature-proof__header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

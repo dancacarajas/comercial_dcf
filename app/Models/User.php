@@ -144,12 +144,12 @@ final class User extends Model
      *
      * @param array<string, mixed> $data
      */
-    public function createUser(string $name, string $email, string $passwordHash, string $status = 'active'): string
+    public function createUser(string $name, string $email, string $passwordHash, string $status = 'active', bool $mustChange = true): string
     {
         $this->query(
             'INSERT INTO `users` (`name`, `email`, `password_hash`, `status`, `must_change_password`)
-             VALUES (:name, :email, :hash, :status, 1)',
-            ['name' => $name, 'email' => $email, 'hash' => $passwordHash, 'status' => $status]
+             VALUES (:name, :email, :hash, :status, :mc)',
+            ['name' => $name, 'email' => $email, 'hash' => $passwordHash, 'status' => $status, 'mc' => $mustChange ? 1 : 0]
         );
 
         return $this->db->lastInsertId();
