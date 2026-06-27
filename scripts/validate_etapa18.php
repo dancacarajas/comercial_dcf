@@ -423,9 +423,9 @@ $fk = $pdo->query(
 assertTrue((int) $fk >= 1, 'FK collector_application_documents', 'FK collector_application_documents ausente');
 
 $permCount = (int) $pdo->query(
-    "SELECT COUNT(*) FROM permissions WHERE slug LIKE 'collector_%'"
+    "SELECT COUNT(*) FROM permissions WHERE slug LIKE 'collector_applications.%' OR slug = 'collector_portal.view'"
 )->fetchColumn();
-assertTrue($permCount === 9, '9 permissões collector_*', "Permissões collector: {$permCount} (esperado 9)");
+assertTrue($permCount === 9, '9 permissões collector_applications/portal', "Permissões collector: {$permCount} (esperado 9)");
 
 $permDup = (int) $pdo->query(
     "SELECT COUNT(*) FROM (SELECT slug FROM permissions GROUP BY slug HAVING COUNT(*)>1) x"
@@ -894,6 +894,73 @@ $complete = $model->findById($testAppId);
 assertTrue($model->allDocumentsSubmitted($testAppId), 'Pacote documental completo', 'Pacote incompleto');
 assertTrue((string) ($complete['status'] ?? '') === 'documentos_enviados', 'Status documentos_enviados após pacote completo', 'Não avançou após pacote completo');
 
+// ── Etapa 18C: gate do cadastro mestre antes da aprovação ─────────────────────
+$colModel = new \App\Models\Collector();
+
+// (a) Sem cadastro mestre → aprovação bloqueada
+$show = $http->request('/collector-applications/' . $testAppId);
+$csrf = $http->csrfFrom($show['body']);
+$http->request('/collector-applications/' . $testAppId . '/approve', [
+    'method' => 'POST',
+    'post'   => ['_csrf' => $csrf, 'approval_notes' => 'tentativa sem cadastro'],
+]);
+$gateNoCollector = $model->findById($testAppId);
+assertTrue((string) ($gateNoCollector['status'] ?? '') === 'documentos_enviados', '18C gate: aprovação bloqueada sem cadastro mestre', 'Aprovou sem cadastro mestre');
+
+// (b) Criar cadastro mestre completo (PF)
+$createPage = $http->request('/collector-applications/' . $testAppId . '/collector/create');
+$csrfCol = $http->csrfFrom($createPage['body']);
+$http->request('/collector-applications/' . $testAppId . '/collector', [
+    'method' => 'POST',
+    'post'   => [
+        '_csrf'               => $csrfCol,
+        'type'                => 'pessoa_fisica',
+        'status'              => 'ativo',
+        'name'                => 'Captador Fluxo Editado',
+        'document_number'     => '52998224725',
+        'email'               => $testEmail,
+        'phone_whatsapp'      => '94999990000',
+        'address_zipcode'     => '68515000',
+        'address_street'      => 'Rua das Palmeiras',
+        'address_number'      => '100',
+        'address_district'    => 'Centro',
+        'address_city'        => 'Parauapebas',
+        'address_state'       => 'PA',
+        'bank_name'           => 'Banco do Brasil',
+        'agency'              => '0001',
+        'account'             => '123456',
+        'account_type'        => 'corrente',
+        'bank_holder_name'    => 'Captador Fluxo Editado',
+        'commission_percentage' => '10',
+        'contract_start_date' => '2026-01-01',
+        'contract_end_date'   => '2026-12-31',
+    ],
+]);
+$collectorRow = $colModel->findByApplication($testAppId);
+assertTrue($collectorRow !== null, '18C: cadastro mestre criado', 'Cadastro mestre não criado');
+assertTrue($colModel->missingRequirements($collectorRow ?? []) === [], '18C: cadastro mestre completo', 'Cadastro mestre incompleto');
+assertTrue((string) ($collectorRow['registration_status'] ?? '') === 'completo', '18C: status completo (ainda não validado)', 'Status de cadastro inesperado: ' . (string) ($collectorRow['registration_status'] ?? ''));
+
+// (c) Completo mas não validado → aprovação ainda bloqueada
+$show = $http->request('/collector-applications/' . $testAppId);
+$csrf = $http->csrfFrom($show['body']);
+$http->request('/collector-applications/' . $testAppId . '/approve', [
+    'method' => 'POST',
+    'post'   => ['_csrf' => $csrf, 'approval_notes' => 'tentativa sem validar'],
+]);
+$gateNotValidated = $model->findById($testAppId);
+assertTrue((string) ($gateNotValidated['status'] ?? '') === 'documentos_enviados', '18C gate: aprovação bloqueada sem validação', 'Aprovou sem validar cadastro');
+
+// (d) Validar cadastro mestre
+$show = $http->request('/collector-applications/' . $testAppId);
+$csrf = $http->csrfFrom($show['body']);
+$http->request('/collector-applications/' . $testAppId . '/collector/validate', [
+    'method' => 'POST',
+    'post'   => ['_csrf' => $csrf],
+]);
+$validatedCollector = $colModel->findByApplication($testAppId);
+assertTrue((string) ($validatedCollector['registration_status'] ?? '') === 'validado', '18C: cadastro mestre validado', 'Cadastro não validado');
+
 // Aprovar candidatura
 $show = $http->request('/collector-applications/' . $testAppId);
 $csrf = $http->csrfFrom($show['body']);
@@ -1167,6 +1234,59 @@ if ($csrf) {
 
 // Pendência documents module
 ok('Integração automática com tabela documents: PENDÊNCIA PLANEJADA (upload usa collector_application_documents)');
+
+// ── Etapa 18C — Cadastro Mestre de Captadores ─────────────────────────────────
+$tbl18c = (int) $pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'collectors'")->fetchColumn();
+assertTrue($tbl18c === 1, '18C: tabela collectors existe', 'Tabela collectors ausente');
+
+assertTrue(class_exists(\App\Models\Collector::class), '18C: model Collector carregado', 'Collector ausente');
+assertTrue(class_exists(\App\Controllers\CollectorController::class), '18C: CollectorController carregado', 'CollectorController ausente');
+
+$colModel = new \App\Models\Collector();
+
+$incompleto = $colModel->missingRequirements(['type' => 'pessoa_fisica', 'name' => 'X', 'document_number' => '123']);
+assertTrue($incompleto !== [], '18C: cadastro vazio acusa pendências', 'missingRequirements não detectou pendências');
+assertTrue(isset($incompleto['address'], $incompleto['bank'], $incompleto['commercial']), '18C: pendências de endereço/banco/comercial detectadas', 'Pendências esperadas ausentes');
+
+$completoPf = [
+    'type' => 'pessoa_fisica', 'name' => 'Captador PF', 'document_number' => '12345678901',
+    'address_zipcode' => '68515000', 'address_street' => 'Rua A', 'address_number' => '10',
+    'address_district' => 'Centro', 'address_city' => 'Parauapebas', 'address_state' => 'PA',
+    'bank_name' => 'Banco X', 'agency' => '0001', 'account' => '12345', 'account_type' => 'corrente', 'bank_holder_name' => 'Captador PF',
+    'commission_percentage' => '10', 'contract_start_date' => '2026-01-01', 'contract_end_date' => '2026-12-31',
+];
+assertTrue($colModel->missingRequirements($completoPf) === [], '18C: cadastro PF completo sem pendências', 'PF completo ainda acusa pendências');
+assertTrue($colModel->isReadyForDocuments(array_merge($completoPf, ['registration_status' => 'completo'])) === false, '18C: completo mas não validado NÃO libera', 'Completo sem validar liberou documentos');
+assertTrue($colModel->isReadyForDocuments(array_merge($completoPf, ['registration_status' => 'validado'])) === true, '18C: completo + validado libera documentos', 'Validado não liberou documentos');
+
+$pjSemRep = array_merge($completoPf, ['type' => 'pessoa_juridica', 'document_number' => '12345678000199']);
+assertTrue(isset($colModel->missingRequirements($pjSemRep)['representative']), '18C: PJ sem representante acusa pendência', 'PJ sem representante não bloqueou');
+
+$pixOk = [
+    'type' => 'pessoa_fisica', 'name' => 'Captador PIX', 'document_number' => '12345678901',
+    'address_zipcode' => '68515000', 'address_street' => 'Rua A', 'address_number' => '10',
+    'address_district' => 'Centro', 'address_city' => 'Parauapebas', 'address_state' => 'PA',
+    'pix_key' => 'captador@pix.com', 'pix_key_type' => 'email',
+    'commission_percentage' => '10', 'contract_start_date' => '2026-01-01', 'contract_end_date' => '2026-12-31',
+];
+assertTrue(!isset($colModel->missingRequirements($pixOk)['bank']), '18C: PIX satisfaz bloco bancário', 'PIX não satisfez bloco bancário');
+
+$ctx18c = \App\Services\ContractTemplateRenderer::contextFromCollector($completoPf, [], [], ['contract_title' => 'Contrato']);
+assertTrue(!empty($ctx18c['collector']['address_full']), '18C: contexto traz endereço completo', 'address_full ausente no contexto');
+assertTrue(!empty($ctx18c['collector']['bank_summary']), '18C: contexto traz resumo bancário', 'bank_summary ausente no contexto');
+assertTrue((string) ($ctx18c['compensation']['percentage'] ?? '') === '10', '18C: comissão do cadastro aplicada no contexto', 'Comissão não refletida no contexto');
+
+foreach (['collectors.view', 'collectors.manage', 'collectors.validate'] as $perm18c) {
+    $exists = (int) $pdo->query("SELECT COUNT(*) FROM permissions WHERE slug = " . $pdo->quote($perm18c))->fetchColumn();
+    assertTrue($exists === 1, "18C: permissão {$perm18c} cadastrada", "Permissão {$perm18c} ausente");
+}
+
+$routesSrc = (string) file_get_contents($root . '/routes/web.php');
+assertTrue(str_contains($routesSrc, 'CollectorController@validateRegistration'), '18C: rota de validação registrada', 'Rota validateRegistration ausente');
+assertTrue(str_contains($routesSrc, "'/collectors'"), '18C: rota /collectors registrada', 'Rota /collectors ausente');
+
+$showSrc = (string) file_get_contents($root . '/app/Views/collector_applications/show.php');
+assertTrue(str_contains($showSrc, 'Cadastro do captador'), '18C: seção Cadastro do captador na view', 'Seção ausente no show.php');
 
 // Confirmações finais estáticas
 ok('Assinatura eletrônica Etapa 5 validada');
