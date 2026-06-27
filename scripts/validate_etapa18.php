@@ -423,9 +423,9 @@ $fk = $pdo->query(
 assertTrue((int) $fk >= 1, 'FK collector_application_documents', 'FK collector_application_documents ausente');
 
 $permCount = (int) $pdo->query(
-    "SELECT COUNT(*) FROM permissions WHERE slug LIKE 'collector_%'"
+    "SELECT COUNT(*) FROM permissions WHERE slug LIKE 'collector_applications.%' OR slug = 'collector_portal.view'"
 )->fetchColumn();
-assertTrue($permCount === 9, '9 permissões collector_*', "Permissões collector: {$permCount} (esperado 9)");
+assertTrue($permCount === 9, '9 permissões collector_applications/portal', "Permissões collector: {$permCount} (esperado 9)");
 
 $permDup = (int) $pdo->query(
     "SELECT COUNT(*) FROM (SELECT slug FROM permissions GROUP BY slug HAVING COUNT(*)>1) x"
@@ -893,6 +893,73 @@ $model->syncDocumentStatus($testAppId);
 $complete = $model->findById($testAppId);
 assertTrue($model->allDocumentsSubmitted($testAppId), 'Pacote documental completo', 'Pacote incompleto');
 assertTrue((string) ($complete['status'] ?? '') === 'documentos_enviados', 'Status documentos_enviados após pacote completo', 'Não avançou após pacote completo');
+
+// ── Etapa 18C: gate do cadastro mestre antes da aprovação ─────────────────────
+$colModel = new \App\Models\Collector();
+
+// (a) Sem cadastro mestre → aprovação bloqueada
+$show = $http->request('/collector-applications/' . $testAppId);
+$csrf = $http->csrfFrom($show['body']);
+$http->request('/collector-applications/' . $testAppId . '/approve', [
+    'method' => 'POST',
+    'post'   => ['_csrf' => $csrf, 'approval_notes' => 'tentativa sem cadastro'],
+]);
+$gateNoCollector = $model->findById($testAppId);
+assertTrue((string) ($gateNoCollector['status'] ?? '') === 'documentos_enviados', '18C gate: aprovação bloqueada sem cadastro mestre', 'Aprovou sem cadastro mestre');
+
+// (b) Criar cadastro mestre completo (PF)
+$createPage = $http->request('/collector-applications/' . $testAppId . '/collector/create');
+$csrfCol = $http->csrfFrom($createPage['body']);
+$http->request('/collector-applications/' . $testAppId . '/collector', [
+    'method' => 'POST',
+    'post'   => [
+        '_csrf'               => $csrfCol,
+        'type'                => 'pessoa_fisica',
+        'status'              => 'ativo',
+        'name'                => 'Captador Fluxo Editado',
+        'document_number'     => '52998224725',
+        'email'               => $testEmail,
+        'phone_whatsapp'      => '94999990000',
+        'address_zipcode'     => '68515000',
+        'address_street'      => 'Rua das Palmeiras',
+        'address_number'      => '100',
+        'address_district'    => 'Centro',
+        'address_city'        => 'Parauapebas',
+        'address_state'       => 'PA',
+        'bank_name'           => 'Banco do Brasil',
+        'agency'              => '0001',
+        'account'             => '123456',
+        'account_type'        => 'corrente',
+        'bank_holder_name'    => 'Captador Fluxo Editado',
+        'commission_percentage' => '10',
+        'contract_start_date' => '2026-01-01',
+        'contract_end_date'   => '2026-12-31',
+    ],
+]);
+$collectorRow = $colModel->findByApplication($testAppId);
+assertTrue($collectorRow !== null, '18C: cadastro mestre criado', 'Cadastro mestre não criado');
+assertTrue($colModel->missingRequirements($collectorRow ?? []) === [], '18C: cadastro mestre completo', 'Cadastro mestre incompleto');
+assertTrue((string) ($collectorRow['registration_status'] ?? '') === 'completo', '18C: status completo (ainda não validado)', 'Status de cadastro inesperado: ' . (string) ($collectorRow['registration_status'] ?? ''));
+
+// (c) Completo mas não validado → aprovação ainda bloqueada
+$show = $http->request('/collector-applications/' . $testAppId);
+$csrf = $http->csrfFrom($show['body']);
+$http->request('/collector-applications/' . $testAppId . '/approve', [
+    'method' => 'POST',
+    'post'   => ['_csrf' => $csrf, 'approval_notes' => 'tentativa sem validar'],
+]);
+$gateNotValidated = $model->findById($testAppId);
+assertTrue((string) ($gateNotValidated['status'] ?? '') === 'documentos_enviados', '18C gate: aprovação bloqueada sem validação', 'Aprovou sem validar cadastro');
+
+// (d) Validar cadastro mestre
+$show = $http->request('/collector-applications/' . $testAppId);
+$csrf = $http->csrfFrom($show['body']);
+$http->request('/collector-applications/' . $testAppId . '/collector/validate', [
+    'method' => 'POST',
+    'post'   => ['_csrf' => $csrf],
+]);
+$validatedCollector = $colModel->findByApplication($testAppId);
+assertTrue((string) ($validatedCollector['registration_status'] ?? '') === 'validado', '18C: cadastro mestre validado', 'Cadastro não validado');
 
 // Aprovar candidatura
 $show = $http->request('/collector-applications/' . $testAppId);
