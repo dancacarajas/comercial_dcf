@@ -120,17 +120,27 @@ INSERT INTO `permissions` (`name`, `slug`, `description`) VALUES
     ('Validar captadores',          'collectors.validate', 'Validar cadastro mestre antes da geração de documentos')
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `description` = VALUES(`description`);
 
+-- administrador-geral: view + manage + validate (validação é gate sensível)
 INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.`id`, p.`id`
 FROM `roles` r
 JOIN `permissions` p ON p.`slug` IN ('collectors.view', 'collectors.manage', 'collectors.validate')
 WHERE r.`slug` = 'administrador-geral';
 
+-- captacao-comercial: preenche e corrige, mas NÃO valida
 INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.`id`, p.`id`
 FROM `roles` r
-JOIN `permissions` p ON p.`slug` IN ('collectors.view', 'collectors.manage', 'collectors.validate')
+JOIN `permissions` p ON p.`slug` IN ('collectors.view', 'collectors.manage')
 WHERE r.`slug` = 'captacao-comercial';
+
+-- Corrige execuções anteriores que tenham concedido validate ao perfil comercial
+DELETE rp
+FROM `role_permissions` rp
+JOIN `roles` r ON r.`id` = rp.`role_id`
+JOIN `permissions` p ON p.`id` = rp.`permission_id`
+WHERE r.`slug` = 'captacao-comercial'
+  AND p.`slug` = 'collectors.validate';
 
 INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.`id`, p.`id`
