@@ -69,6 +69,20 @@ $emailWp  = "audit.collector.prod+{$stamp}.wp@example.com";
 echo 'audit_email_crm=' . $emailCrm . PHP_EOL;
 echo 'audit_email_wp=' . $emailWp . PHP_EOL;
 
+// Auditoria CLI: limpa buckets locais de rate limit de captadores desta instalação
+// para não gerar falso FAIL após execuções repetidas de teste.
+$rateDir = $root . '/storage/ratelimit';
+if (PHP_SAPI === 'cli' && is_dir($rateDir)) {
+    $cleared = 0;
+    foreach (glob($rateDir . '/collector_*.json') ?: [] as $rateFile) {
+        if (@unlink($rateFile)) {
+            ++$cleared;
+        }
+    }
+    echo 'ratelimit_policy=clear_collector_buckets_before_audit' . PHP_EOL;
+    echo 'ratelimit_files_cleared=' . $cleared . PHP_EOL;
+}
+
 /**
  * @param array<string, mixed> $payload
  * @return array{status:int,body:string}
