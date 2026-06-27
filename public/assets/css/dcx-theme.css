@@ -2881,6 +2881,173 @@ tr.task-overdue > td:first-child { box-shadow: inset 3px 0 0 #d34a4a; }
     }
 }
 
+/* Admin — detalhe da candidatura captador */
+.collector-app-detail .collector-app-journey-card {
+    margin-bottom: 18px;
+}
+
+.collector-journey-steps--admin {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+    .collector-journey-steps--admin {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 520px) {
+    .collector-journey-steps--admin {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.collector-app-status-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.collector-app-link-box {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--dcx-line);
+    background: var(--dcx-soft);
+}
+
+.collector-app-link-box__label {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--dcx-muted);
+    margin-bottom: 6px;
+}
+
+.collector-app-link-box__url {
+    display: block;
+    font-size: 12px;
+    word-break: break-all;
+    margin-bottom: 10px;
+    color: var(--dcx-text-card);
+}
+
+.collector-app-stage-card__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+
+.collector-app-request-panel {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--dcx-line);
+}
+
+.collector-app-request-panel summary {
+    cursor: pointer;
+    font-family: var(--dcx-font-title);
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--dcx-black);
+    margin-bottom: 10px;
+}
+
+.collector-app-request-form__group-title {
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--dcx-muted);
+    margin: 14px 0 8px;
+}
+
+.collector-doc-request-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 14px;
+}
+
+@media (min-width: 900px) {
+    .collector-doc-request-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.collector-doc-request-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--dcx-line);
+    border-radius: 8px;
+    background: #fff;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.collector-doc-request-item.is-requested {
+    opacity: .72;
+    background: var(--dcx-soft);
+    cursor: default;
+}
+
+.collector-doc-request-item input {
+    flex-shrink: 0;
+}
+
+.collector-doc-request-item__tag {
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 700;
+    color: var(--dcx-muted);
+}
+
+.collector-admin-doc-card {
+    margin-bottom: 0;
+}
+
+.collector-admin-doc-card__review {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--dcx-line);
+}
+
+.collector-admin-doc-quick {
+    display: inline;
+}
+
+.collector-admin-doc-notes {
+    width: 100%;
+    margin-top: 4px;
+}
+
+.collector-admin-doc-notes summary {
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--dcx-muted);
+}
+
+.collector-admin-doc-notes-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+}
+
 .collector-register-form .form-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

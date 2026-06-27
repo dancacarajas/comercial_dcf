@@ -105,6 +105,8 @@ final class CollectorApplicationController extends Controller
         $this->view('collector_applications/show', [
             'title'            => $app['name'] ?? 'Candidatura',
             'application'      => $app,
+            'journeySteps'     => $model->getJourneySteps(),
+            'currentStep'      => $model->journeyStepKey($app),
             'documents'        => $docModel->findByApplication($id),
             'docTypes'         => $docModel->getAllTypes(),
             'docStatuses'      => $docModel->getStatuses(),
