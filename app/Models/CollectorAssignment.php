@@ -20,6 +20,7 @@ final class CollectorAssignment extends Model
 
     /** @var list<string> */
     private const FILLABLE = [
+        'incentive_project_id',
         'collector_id', 'company_id', 'assignment_type', 'status', 'exclusive_until',
         'authorized_by', 'authorized_at', 'cancelled_at', 'notes',
         'created_by', 'updated_by',

@@ -582,6 +582,20 @@ final class ProposalController extends Controller
             }
         }
 
+        // Etapa 19: a proposta herda o projeto da oportunidade (ou da cota).
+        if (empty($data['incentive_project_id']) && !empty($data['opportunity_id'])) {
+            $opp = (new Opportunity())->findById((int) $data['opportunity_id']);
+            if ($opp !== null && !empty($opp['incentive_project_id'])) {
+                $data['incentive_project_id'] = (int) $opp['incentive_project_id'];
+            }
+        }
+        if (empty($data['incentive_project_id']) && !empty($data['quota_id'])) {
+            $quota = (new Quota())->findById((int) $data['quota_id']);
+            if ($quota !== null && !empty($quota['incentive_project_id'])) {
+                $data['incentive_project_id'] = (int) $quota['incentive_project_id'];
+            }
+        }
+
         if (empty($data['created_on'])) {
             $data['created_on'] = date('Y-m-d');
         }

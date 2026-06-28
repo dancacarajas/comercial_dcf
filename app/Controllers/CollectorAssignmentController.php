@@ -136,8 +136,12 @@ final class CollectorAssignmentController extends Controller
 
         $userId = $_SESSION['user_id'] ?? null;
         $companyName = (string) ($assignment['company_name'] ?? 'Empresa');
+        $projectId = isset($assignment['incentive_project_id']) && $assignment['incentive_project_id'] !== null
+            ? (int) $assignment['incentive_project_id']
+            : null;
 
         $opportunityId = (int) (new Opportunity())->create([
+            'incentive_project_id' => $projectId,
             'company_id'  => (int) $assignment['company_id'],
             'title'       => 'Captação — ' . $companyName,
             'status'      => 'prospect_identificado',
@@ -149,6 +153,7 @@ final class CollectorAssignmentController extends Controller
         ]);
 
         $dealId = (int) (new CollectorDeal())->create([
+            'incentive_project_id'    => $projectId,
             'collector_id'            => (int) $assignment['collector_id'],
             'collector_assignment_id' => (int) $assignment['id'],
             'company_id'              => (int) $assignment['company_id'],

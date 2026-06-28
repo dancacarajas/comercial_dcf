@@ -15,6 +15,7 @@ final class Sponsor extends Model
 
     /** @var list<string> */
     private const FILLABLE = [
+        'incentive_project_id',
         'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id', 'primary_document_id',
         'sponsor_display_name', 'sponsorship_type', 'funding_mechanism',
         'project_year', 'festival_edition', 'quota_snapshot_name', 'quota_snapshot_amount',

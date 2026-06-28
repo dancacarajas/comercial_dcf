@@ -20,6 +20,7 @@ final class CollectorDeal extends Model
 
     /** @var list<string> */
     private const FILLABLE = [
+        'incentive_project_id',
         'collector_id', 'collector_assignment_id', 'company_id', 'contact_id',
         'opportunity_id', 'proposal_id', 'sponsor_id', 'financial_entry_id',
         'deal_status', 'attribution_type', 'source', 'notes',

@@ -22,6 +22,7 @@ final class Opportunity extends Model
 
     /** Colunas preenchíveis via formulário (allowlist anti mass-assignment). */
     private const FILLABLE = [
+        'incentive_project_id',
         'company_id', 'contact_id', 'title', 'quota_interest',
         'quota_id', 'quota_reserved_until',
         'estimated_value', 'probability', 'status', 'source',

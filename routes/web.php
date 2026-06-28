@@ -47,6 +47,22 @@ return function (Router $router): void {
     // -----------------------------------------------------------------
     $router->get('/dashboard', 'DashboardController@index', ['AuthMiddleware']);
 
+    // Projetos Incentivados / PRONACs / Plano de Captação (Etapa 19)
+    // Rotas estaticas antes das dinamicas {id}.
+    $router->get('/projects',                       'IncentiveProjectController@index',          ['AuthMiddleware']);
+    $router->get('/projects/create',                'IncentiveProjectController@create',         ['AuthMiddleware']);
+    $router->post('/projects',                      'IncentiveProjectController@store',          ['AuthMiddleware']);
+    $router->get('/projects/{id}',                  'IncentiveProjectController@show',           ['AuthMiddleware']);
+    $router->get('/projects/{id}/edit',             'IncentiveProjectController@edit',           ['AuthMiddleware']);
+    $router->post('/projects/{id}/update',          'IncentiveProjectController@update',         ['AuthMiddleware']);
+    $router->get('/projects/{id}/budget',           'IncentiveProjectController@budget',         ['AuthMiddleware']);
+    $router->post('/projects/{id}/budget',          'IncentiveProjectController@budgetStore',    ['AuthMiddleware']);
+    $router->post('/projects/{id}/budget/{itemId}/archive', 'IncentiveProjectController@budgetArchive', ['AuthMiddleware']);
+    $router->get('/projects/{id}/dashboard',        'IncentiveProjectController@dashboard',      ['AuthMiddleware']);
+    $router->post('/projects/{id}/activate-capture','IncentiveProjectController@activateCapture',['AuthMiddleware']);
+    $router->post('/projects/{id}/archive',         'IncentiveProjectController@archive',        ['AuthMiddleware']);
+    $router->post('/projects/{id}/restore',         'IncentiveProjectController@restore',        ['AuthMiddleware']);
+
     // Usuarios
     $router->get('/users',                   'UserController@index',        ['AuthMiddleware']);
     $router->get('/users/create',            'UserController@create',       ['AuthMiddleware']);

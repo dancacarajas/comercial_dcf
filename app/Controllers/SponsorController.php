@@ -575,6 +575,10 @@ final class SponsorController extends Controller
                 if (empty($data['sponsor_display_name'])) {
                     $data['sponsor_display_name'] = (string) ($prop['title'] ?? '');
                 }
+                // Etapa 19: patrocinador herda o projeto da proposta.
+                if (empty($data['incentive_project_id']) && !empty($prop['incentive_project_id'])) {
+                    $data['incentive_project_id'] = (int) $prop['incentive_project_id'];
+                }
             }
         }
 
@@ -592,6 +596,10 @@ final class SponsorController extends Controller
                 }
                 if (($data['committed_amount'] ?? null) === null && $opp['estimated_value'] !== null) {
                     $data['committed_amount'] = $opp['estimated_value'];
+                }
+                // Etapa 19: patrocinador herda o projeto da oportunidade.
+                if (empty($data['incentive_project_id']) && !empty($opp['incentive_project_id'])) {
+                    $data['incentive_project_id'] = (int) $opp['incentive_project_id'];
                 }
             }
         }

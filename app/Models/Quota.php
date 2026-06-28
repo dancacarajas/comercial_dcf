@@ -21,6 +21,7 @@ final class Quota extends Model
     public const FLEXIBLE_NAME = 'Círculo Dança Carajás';
 
     private const FILLABLE = [
+        'incentive_project_id',
         'name', 'commercial_name', 'amount',
         'available_quantity', 'reserved_quantity', 'closed_quantity',
         'description', 'ideal_profile', 'status', 'display_order', 'notes',

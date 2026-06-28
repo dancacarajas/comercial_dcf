@@ -14,6 +14,7 @@ final class Proposal extends Model
     protected string $table = 'proposals';
 
     private const FILLABLE = [
+        'incentive_project_id',
         'company_id', 'contact_id', 'opportunity_id', 'quota_id',
         'title', 'type', 'proposed_value', 'version_number', 'parent_proposal_id',
         'status', 'created_on', 'sent_at', 'valid_until', 'responsible_user_id',

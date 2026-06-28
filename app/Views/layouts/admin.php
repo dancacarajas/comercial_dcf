@@ -87,6 +87,14 @@ $navIsActive = static function (string $base) use ($navPath): bool {
                             <i data-lucide="layout-dashboard" aria-hidden="true"></i>
                             <span>Painel</span>
                         </a>
+                        <?php if (can('incentive_projects.view')): ?>
+                            <?php $active = $navIsActive('/projects'); ?>
+                            <a class="dcx-nav-primary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/projects')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="folder-kanban" aria-hidden="true"></i>
+                                <span>Projetos</span>
+                            </a>
+                        <?php endif; ?>
                         <?php if (can('companies.view')): ?>
                             <?php $active = $navIsActive('/companies'); ?>
                             <a class="dcx-nav-primary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"

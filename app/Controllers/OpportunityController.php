@@ -11,6 +11,7 @@ use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Document;
 use App\Models\FinancialEntry;
+use App\Models\IncentiveProject;
 use App\Models\SponsorDossier;
 use App\Models\Opportunity;
 use App\Models\Proposal;
@@ -123,6 +124,10 @@ final class OpportunityController extends Controller
         $data  = $this->collectInput($model);
 
         $errors = $model->validate($data, 'create');
+        // Etapa 19: toda oportunidade precisa pertencer a um projeto incentivado.
+        if (empty($data['incentive_project_id'])) {
+            $errors['incentive_project_id'] = 'Selecione o projeto incentivado da oportunidade.';
+        }
         $this->checkCompany($data, $errors);
         $this->checkContact($data, $errors);
         $this->checkOwner($data, $errors);
@@ -470,6 +475,7 @@ final class OpportunityController extends Controller
             'lostReasons'         => $model->getLostReasons(),
             'companies'           => (new Company())->options(),
             'quotas'              => (new Quota())->activeOptions(),
+            'projects'            => (new IncentiveProject())->options(true),
         ];
     }
 
@@ -493,8 +499,16 @@ final class OpportunityController extends Controller
         $contactId = (int) input('contact_id', 0);
         $ownerId   = (int) input('owner_user_id', 0);
         $quotaId   = (int) input('quota_id', 0);
+        $projectId = (int) input('incentive_project_id', 0);
+        if ($projectId <= 0) {
+            $capture = (new IncentiveProject())->options(true);
+            if (count($capture) === 1) {
+                $projectId = (int) $capture[0]['id'];
+            }
+        }
 
         return [
+            'incentive_project_id' => $projectId > 0 ? $projectId : null,
             'company_id'           => (int) input('company_id', 0),
             'contact_id'           => $contactId > 0 ? $contactId : null,
             'title'                => clean((string) input('title', '')),
