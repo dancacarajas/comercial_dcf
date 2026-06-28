@@ -88,7 +88,7 @@ final class IncentiveProject extends Model
     /**
      * Calcula o fator de comissão a partir da rubrica e do total aprovado.
      */
-    public function computeFactor(float|int|null $commissionBudget, float|int|null $approvedTotal): ?float
+    public function computeFactor(float|int|string|null $commissionBudget, float|int|string|null $approvedTotal): ?float
     {
         $budget = (float) ($commissionBudget ?? 0);
         $total  = (float) ($approvedTotal ?? 0);

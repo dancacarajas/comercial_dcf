@@ -413,7 +413,7 @@ final class Opportunity extends Model
                     o.`owner_user_id`, o.`opened_at`, o.`last_interaction_at`, o.`next_action_at`,
                     o.`urgency_level`, o.`lost_reason`, o.`notes`,
                     o.`created_by`, o.`updated_by`, o.`created_at`, o.`updated_at`, o.`archived_at`,
-                    o.`quota_id`, o.`quota_reserved_until`,
+                    o.`quota_id`, o.`quota_reserved_until`, o.`incentive_project_id`,
                     co.`name` AS company_name, co.`archived_at` AS company_archived_at,
                     ct.`name` AS contact_name, ct.`company_id` AS contact_company_id,
                     ow.`name` AS owner_name,

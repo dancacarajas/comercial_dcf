@@ -22,7 +22,7 @@ final class Proposal extends Model
     ];
 
     private const LIST_COLUMNS =
-        'p.`id`, p.`company_id`, p.`contact_id`, p.`opportunity_id`, p.`quota_id`,
+        'p.`id`, p.`incentive_project_id`, p.`company_id`, p.`contact_id`, p.`opportunity_id`, p.`quota_id`,
          p.`title`, p.`type`, p.`proposed_value`, p.`version_number`, p.`parent_proposal_id`,
          p.`status`, p.`created_on`, p.`sent_at`, p.`valid_until`, p.`responsible_user_id`,
          p.`pdf_file_path`, p.`pdf_original_name`, p.`revision_notes`, p.`notes`,

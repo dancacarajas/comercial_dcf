@@ -27,7 +27,7 @@ final class Sponsor extends Model
     ];
 
     private const LIST_COLUMNS =
-        's.`id`, s.`company_id`, s.`contact_id`, s.`opportunity_id`, s.`proposal_id`, s.`quota_id`,
+        's.`id`, s.`incentive_project_id`, s.`company_id`, s.`contact_id`, s.`opportunity_id`, s.`proposal_id`, s.`quota_id`,
          s.`primary_document_id`, s.`sponsor_display_name`, s.`sponsorship_type`, s.`funding_mechanism`,
          s.`project_year`, s.`festival_edition`, s.`quota_snapshot_name`, s.`quota_snapshot_amount`,
          s.`committed_amount`, s.`confirmed_amount`, s.`in_kind_description`, s.`in_kind_estimated_value`,

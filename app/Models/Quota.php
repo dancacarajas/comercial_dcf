@@ -205,7 +205,7 @@ final class Quota extends Model
     public function findById(int|string $id): ?array
     {
         $row = $this->query(
-            'SELECT q.`id`, q.`name`, q.`commercial_name`, q.`amount`,
+            'SELECT q.`id`, q.`incentive_project_id`, q.`name`, q.`commercial_name`, q.`amount`,
                     q.`available_quantity`, q.`reserved_quantity`, q.`closed_quantity`,
                     q.`description`, q.`ideal_profile`, q.`status`, q.`display_order`, q.`notes`,
                     q.`created_by`, q.`updated_by`, q.`created_at`, q.`updated_at`, q.`archived_at`,

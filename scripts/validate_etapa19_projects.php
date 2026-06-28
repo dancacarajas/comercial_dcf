@@ -200,7 +200,7 @@ $oppId = (int) $pdo->lastInsertId();
 $rc = new ReflectionClass(\App\Controllers\ProposalController::class);
 $pc = $rc->newInstanceWithoutConstructor();
 $m = $rc->getMethod('applyAutofill'); $m->setAccessible(true);
-$propData = $m->invoke($pc, new \App\Models\Proposal(), ['opportunity_id' => $oppId]);
+$propData = $m->invoke($pc, new \App\Models\Proposal(), ['opportunity_id' => $oppId, 'proposed_value' => '', 'quota_id' => null]);
 is_ok((int) ($propData['incentive_project_id'] ?? 0) === $projAId, 'Proposta herda projeto da oportunidade', 'Proposta não herdou projeto: ' . var_export($propData['incentive_project_id'] ?? null, true));
 
 // Proposta real para herança do sponsor
