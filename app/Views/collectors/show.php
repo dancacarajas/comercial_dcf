@@ -13,6 +13,14 @@ $regBadge = match ($regStatus) {
     default    => 'collector-doc-badge collector-doc-badge--pendente',
 };
 $row = static fn (string $label, ?string $value): string => '<dt>' . e($label) . '</dt><dd>' . e($value !== null && $value !== '' ? $value : '—') . '</dd>';
+
+$assignments = $assignments ?? [];
+$assignmentTypes = $assignmentTypes ?? [];
+$assignmentStatuses = $assignmentStatuses ?? [];
+$deals = $deals ?? [];
+$dealStatuses = $dealStatuses ?? [];
+$collectorId = (int) ($collector['id'] ?? 0);
+$activeStatuses = ['solicitada', 'autorizada'];
 ?>
 <section class="section"><div class="container">
 <div class="page-head">
@@ -92,5 +100,89 @@ $row = static fn (string $label, ?string $value): string => '<dt>' . e($label) .
             <?= $row('Território', (string) ($collector['territory_scope'] ?? '')) ?>
         </dl>
     </div>
+</div>
+
+<!-- Etapa 18C Fase 2 — Atribuição comercial -->
+<div class="card" style="margin-top:18px;">
+    <div class="page-head" style="margin-bottom:12px;">
+        <h3 class="h3-card" style="margin:0;">Empresas autorizadas / atribuições</h3>
+        <?php if (can('collector_assignments.manage')): ?>
+            <a href="<?= e(app_url('/collectors/' . $collectorId . '/assignments/create')) ?>" class="btn btn-sm btn-yellow">Autorizar abordagem</a>
+        <?php endif; ?>
+    </div>
+    <?php if ($assignments === []): ?>
+        <p class="muted">Nenhuma empresa atribuída a este captador.</p>
+    <?php else: ?>
+        <div class="table-wrap"><table class="table">
+            <thead><tr><th>Empresa</th><th>Tipo</th><th>Status</th><th>Exclusiva até</th><th>Ações</th></tr></thead>
+            <tbody>
+            <?php foreach ($assignments as $a): ?>
+                <?php $st = (string) ($a['status'] ?? ''); ?>
+                <tr>
+                    <td><?= e($a['company_name'] ?? ('#' . (int) $a['company_id'])) ?></td>
+                    <td><?= e($assignmentTypes[$a['assignment_type'] ?? ''] ?? $a['assignment_type'] ?? '') ?></td>
+                    <td><?= e($assignmentStatuses[$st] ?? $st) ?></td>
+                    <td><?= e((string) ($a['exclusive_until'] ?? '') !== '' ? (string) $a['exclusive_until'] : '—') ?></td>
+                    <td>
+                        <?php if (can('collector_assignments.manage')): ?>
+                            <?php if ($st === 'solicitada'): ?>
+                                <form method="post" action="<?= e(app_url('/collector-assignments/' . (int) $a['id'] . '/authorize')) ?>" style="display:inline;">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="btn btn-xs btn-yellow">Autorizar</button>
+                                </form>
+                            <?php endif; ?>
+                            <?php if ($st === 'autorizada'): ?>
+                                <form method="post" action="<?= e(app_url('/collector-assignments/' . (int) $a['id'] . '/convert')) ?>" style="display:inline;">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="btn btn-xs btn-outline">Converter em oportunidade</button>
+                                </form>
+                            <?php endif; ?>
+                            <?php if (in_array($st, $activeStatuses, true)): ?>
+                                <form method="post" action="<?= e(app_url('/collector-assignments/' . (int) $a['id'] . '/cancel')) ?>" style="display:inline;" onsubmit="return confirm('Cancelar esta atribuição?');">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="btn btn-xs btn-outline">Cancelar</button>
+                                </form>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table></div>
+    <?php endif; ?>
+</div>
+
+<!-- Etapa 18C Fase 2 — Captações rastreadas (deals) -->
+<div class="card" style="margin-top:18px;">
+    <div class="page-head" style="margin-bottom:12px;">
+        <h3 class="h3-card" style="margin:0;">Captações rastreadas</h3>
+        <?php if (can('collector_deals.manage')): ?>
+            <a href="<?= e(app_url('/collectors/' . $collectorId . '/deals/create')) ?>" class="btn btn-sm btn-yellow">Nova captação</a>
+        <?php endif; ?>
+    </div>
+    <?php if ($deals === []): ?>
+        <p class="muted">Nenhuma captação rastreada para este captador.</p>
+    <?php else: ?>
+        <div class="table-wrap"><table class="table">
+            <thead><tr><th>Empresa</th><th>Status</th><th>Oportunidade</th><th>Proposta</th><th>Patrocinador</th><th>Ações</th></tr></thead>
+            <tbody>
+            <?php foreach ($deals as $d): ?>
+                <?php $ds = (string) ($d['deal_status'] ?? ''); ?>
+                <tr>
+                    <td><?= e($d['company_name'] ?? ('#' . (int) $d['company_id'])) ?></td>
+                    <td><?= e($dealStatuses[$ds] ?? $ds) ?></td>
+                    <td><?php if (!empty($d['opportunity_id'])): ?><a href="<?= e(app_url('/opportunities/' . (int) $d['opportunity_id'])) ?>"><?= e($d['opportunity_title'] ?? ('#' . (int) $d['opportunity_id'])) ?></a><?php else: ?>—<?php endif; ?></td>
+                    <td><?php if (!empty($d['proposal_id'])): ?><a href="<?= e(app_url('/proposals/' . (int) $d['proposal_id'])) ?>"><?= e($d['proposal_title'] ?? ('#' . (int) $d['proposal_id'])) ?></a><?php else: ?>—<?php endif; ?></td>
+                    <td><?php if (!empty($d['sponsor_id'])): ?><a href="<?= e(app_url('/sponsors/' . (int) $d['sponsor_id'])) ?>"><?= e($d['sponsor_name'] ?? ('#' . (int) $d['sponsor_id'])) ?></a><?php else: ?>—<?php endif; ?></td>
+                    <td>
+                        <?php if (can('collector_deals.manage')): ?>
+                            <a href="<?= e(app_url('/collector-deals/' . (int) $d['id'] . '/edit')) ?>" class="btn btn-xs btn-outline">Editar</a>
+                        <?php endif; ?>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            </tbody>
+        </table></div>
+    <?php endif; ?>
 </div>
 </div></section>

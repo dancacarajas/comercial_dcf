@@ -119,6 +119,8 @@ $probMap = htmlspecialchars(json_encode($statusProbabilities, JSON_UNESCAPED_UNI
             </article>
         <?php endif; ?>
 
+        <?php require dirname(__DIR__) . '/partials/collector_trace.php'; ?>
+
         <?php if (can('opportunities.edit') && !$isArchived): ?>
             <article class="card quick-status-form" style="margin-top:18px;">
                 <h3 class="h3-card"><i data-lucide="git-branch"></i> Ação rápida de status</h3>

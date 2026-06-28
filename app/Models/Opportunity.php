@@ -130,7 +130,7 @@ final class Opportunity extends Model
     public function getSources(): array
     {
         return [
-            'pesquisa ativa', 'indicação interna', 'site', 'evento', 'reunião',
+            'pesquisa ativa', 'indicação interna', 'captador', 'site', 'evento', 'reunião',
             'lista Radar Rouanet', 'relacionamento institucional',
             'retorno espontâneo', 'outro',
         ];

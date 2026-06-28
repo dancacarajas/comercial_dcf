@@ -384,6 +384,20 @@ return function (Router $router): void {
     $router->post('/collector-applications/{id}/collector/update',      'CollectorController@update',                   ['AuthMiddleware']);
     $router->post('/collector-applications/{id}/collector/validate',    'CollectorController@validateRegistration',     ['AuthMiddleware']);
 
+    // Etapa 18C Fase 2 — Atribuição comercial (nested create/store no captador)
+    $router->get('/collectors/{id}/assignments/create',                 'CollectorAssignmentController@create',          ['AuthMiddleware']);
+    $router->post('/collectors/{id}/assignments',                       'CollectorAssignmentController@store',           ['AuthMiddleware']);
+    $router->post('/collector-assignments/{id}/authorize',              'CollectorAssignmentController@authorize',       ['AuthMiddleware']);
+    $router->post('/collector-assignments/{id}/cancel',                 'CollectorAssignmentController@cancel',          ['AuthMiddleware']);
+    $router->post('/collector-assignments/{id}/convert',                'CollectorAssignmentController@convert',         ['AuthMiddleware']);
+
+    // Etapa 18C Fase 2 — Captações rastreadas (deals)
+    $router->get('/collectors/{id}/deals/create',                       'CollectorDealController@create',               ['AuthMiddleware']);
+    $router->post('/collectors/{id}/deals',                             'CollectorDealController@store',                ['AuthMiddleware']);
+    $router->get('/collector-deals/{id}/edit',                          'CollectorDealController@edit',                 ['AuthMiddleware']);
+    $router->post('/collector-deals/{id}/update',                       'CollectorDealController@update',               ['AuthMiddleware']);
+    $router->post('/collector-deals/{id}/archive',                      'CollectorDealController@archive',              ['AuthMiddleware']);
+
     // Etapa 18C — Cadastro mestre de captadores (listagem)
     $router->get('/collectors',                                         'CollectorController@index',                    ['AuthMiddleware']);
     $router->get('/collectors/{id}',                                    'CollectorController@show',                     ['AuthMiddleware']);

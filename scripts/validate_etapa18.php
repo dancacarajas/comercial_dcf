@@ -318,6 +318,13 @@ $lintFiles = [
     'app/Views/collector_applications/public/error.php',
     'app/Models/Document.php',
     'app/Views/documents/show.php',
+    'app/Models/CollectorAssignment.php',
+    'app/Models/CollectorDeal.php',
+    'app/Controllers/CollectorAssignmentController.php',
+    'app/Controllers/CollectorDealController.php',
+    'app/Views/collector_assignments/form.php',
+    'app/Views/collector_deals/form.php',
+    'app/Views/partials/collector_trace.php',
     'app/Controllers/DashboardController.php',
     'app/Views/dashboard/index.php',
     'app/Views/layouts/admin.php',
@@ -399,6 +406,29 @@ if (is_file($stageMigration)) {
         ok('Migration Etapa 5 captadores idempotente (2x)');
     } catch (Throwable $e) {
         fail('Migration Etapa 5: ' . $e->getMessage());
+    }
+}
+
+// Etapa 18C Fase 2 — migration idempotente (atribuição/rastreabilidade)
+$fase2Migration = $root . '/database/migrations/2026_etapa18c_fase2_atribuicao_rastreabilidade.sql';
+if (is_file($fase2Migration)) {
+    try {
+        $sqlF2 = (string) file_get_contents($fase2Migration);
+        $cleanF2 = implode("\n", array_filter(
+            explode("\n", $sqlF2),
+            static fn (string $l): bool => !str_starts_with(trim($l), '--')
+        ));
+        for ($run = 1; $run <= 2; ++$run) {
+            foreach (array_filter(array_map('trim', explode(';', $cleanF2))) as $stmt) {
+                if ($stmt === '' || stripos($stmt, 'SET NAMES') === 0) {
+                    continue;
+                }
+                $pdo->exec($stmt);
+            }
+        }
+        ok('18C-F2: migration idempotente (2x reexecução sem erro fatal)');
+    } catch (Throwable $e) {
+        fail('18C-F2: migration reexecução: ' . $e->getMessage());
     }
 }
 
@@ -1287,6 +1317,233 @@ assertTrue(str_contains($routesSrc, "'/collectors'"), '18C: rota /collectors reg
 
 $showSrc = (string) file_get_contents($root . '/app/Views/collector_applications/show.php');
 assertTrue(str_contains($showSrc, 'Cadastro do captador'), '18C: seção Cadastro do captador na view', 'Seção ausente no show.php');
+
+// ── Etapa 18C — Fase 2: Atribuição comercial e rastreabilidade ────────────────
+$tblAssign = (int) $pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'collector_assignments'")->fetchColumn();
+$tblDeals = (int) $pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'collector_deals'")->fetchColumn();
+assertTrue($tblAssign === 1, '18C-F2: tabela collector_assignments existe', 'Tabela collector_assignments ausente');
+assertTrue($tblDeals === 1, '18C-F2: tabela collector_deals existe', 'Tabela collector_deals ausente');
+
+assertTrue(class_exists(\App\Models\CollectorAssignment::class), '18C-F2: model CollectorAssignment', 'CollectorAssignment ausente');
+assertTrue(class_exists(\App\Models\CollectorDeal::class), '18C-F2: model CollectorDeal', 'CollectorDeal ausente');
+assertTrue(class_exists(\App\Controllers\CollectorAssignmentController::class), '18C-F2: CollectorAssignmentController', 'Controller atribuição ausente');
+assertTrue(class_exists(\App\Controllers\CollectorDealController::class), '18C-F2: CollectorDealController', 'Controller deal ausente');
+
+foreach (['collector_assignments.view', 'collector_assignments.manage', 'collector_deals.view', 'collector_deals.manage'] as $permF2) {
+    $exists = (int) $pdo->query("SELECT COUNT(*) FROM permissions WHERE slug = " . $pdo->quote($permF2))->fetchColumn();
+    assertTrue($exists === 1, "18C-F2: permissão {$permF2} cadastrada", "Permissão {$permF2} ausente");
+}
+foreach (['collector_assignments.view', 'collector_assignments.manage', 'collector_deals.view', 'collector_deals.manage'] as $permF2) {
+    assertTrue(roleHasPermission($pdo, 'administrador-geral', $permF2), "18C-F2: admin → {$permF2}", "Admin sem {$permF2}");
+    assertTrue(roleHasPermission($pdo, 'captacao-comercial', $permF2), "18C-F2: captação → {$permF2}", "Captação sem {$permF2}");
+    assertTrue(!roleHasPermission($pdo, 'captador-externo', $permF2), "18C-F2: captador-externo SEM {$permF2}", "Captador-externo tem {$permF2} indevido");
+}
+assertTrue(roleHasPermission($pdo, 'leitura-consulta', 'collector_assignments.view'), '18C-F2: leitura-consulta → view', 'Leitura sem view');
+assertTrue(!roleHasPermission($pdo, 'leitura-consulta', 'collector_assignments.manage'), '18C-F2: leitura-consulta SEM manage', 'Leitura com manage indevido');
+
+// Model anti-conflito de exclusividade (unitário)
+$assignModelU = new \App\Models\CollectorAssignment();
+assertTrue($assignModelU->findExclusiveConflict(999999, 'nao_exclusiva', null) === null, '18C-F2: não exclusiva nunca conflita', 'Não exclusiva gerou conflito');
+
+// Recupera o cadastro mestre validado do fluxo principal
+$f2Collector = $colModel->findByApplication($testAppId);
+$f2CollectorId = (int) ($f2Collector['id'] ?? 0);
+assertTrue($f2CollectorId > 0, '18C-F2: cadastro mestre disponível para teste', 'Cadastro mestre ausente para Fase 2');
+
+// Empresa de teste
+$companyModelF2 = new \App\Models\Company();
+$f2CompanyId = (int) $companyModelF2->create([
+    'name' => 'EMPRESA TESTE 18C-F2', 'status' => 'prospect', 'created_by' => null,
+]);
+assertTrue($f2CompanyId > 0, '18C-F2: empresa de teste criada', 'Falha ao criar empresa de teste');
+
+$assignModel = new \App\Models\CollectorAssignment();
+$dealModel = new \App\Models\CollectorDeal();
+
+// (a) Criar atribuição exclusiva (admin) — solicitada
+$createAssignPage = $http->request('/collectors/' . $f2CollectorId . '/assignments/create');
+assertTrue($createAssignPage['code'] === 200, '18C-F2: form de atribuição → 200', "Form atribuição → {$createAssignPage['code']}");
+$csrfA = $http->csrfFrom($createAssignPage['body']);
+$storeAssign = $http->request('/collectors/' . $f2CollectorId . '/assignments', [
+    'method' => 'POST',
+    'post'   => ['_csrf' => $csrfA, 'company_id' => (string) $f2CompanyId, 'assignment_type' => 'exclusiva', 'exclusive_until' => '2026-12-31', 'notes' => 'teste'],
+]);
+assertTrue(in_array($storeAssign['code'], [302, 303], true), '18C-F2: criar atribuição → redirect', "Criar atribuição → {$storeAssign['code']}");
+$assignList = $assignModel->forCollector($f2CollectorId);
+assertTrue($assignList !== [], '18C-F2: atribuição persistida', 'Atribuição não criada');
+$f2AssignId = (int) ($assignList[0]['id'] ?? 0);
+assertTrue((string) ($assignList[0]['status'] ?? '') === 'solicitada', '18C-F2: status inicial solicitada', 'Status inicial de atribuição incorreto');
+
+// (b) Conflito de exclusividade: segunda exclusiva ativa para a MESMA empresa → bloqueio (409)
+$createAssign2 = $http->request('/collectors/' . $f2CollectorId . '/assignments/create');
+$csrfA2 = $http->csrfFrom($createAssign2['body']);
+$dupAssign = $http->request('/collectors/' . $f2CollectorId . '/assignments', [
+    'method' => 'POST',
+    'post'   => ['_csrf' => $csrfA2, 'company_id' => (string) $f2CompanyId, 'assignment_type' => 'exclusiva', 'exclusive_until' => '2026-12-31'],
+]);
+assertTrue($dupAssign['code'] === 409, '18C-F2: 2ª exclusiva mesma empresa → 409', "Duplicidade exclusiva → {$dupAssign['code']}");
+$assignCountAfterDup = count($assignModel->forCollector($f2CollectorId));
+assertTrue($assignCountAfterDup === 1, '18C-F2: conflito não cria atribuição duplicada', 'Atribuição duplicada criada');
+
+// (c) Autorizar a atribuição (admin)
+$show = $http->request('/collectors/' . $f2CollectorId);
+$csrfAuth = $http->csrfFrom($show['body']);
+$authAssign = $http->request('/collector-assignments/' . $f2AssignId . '/authorize', [
+    'method' => 'POST', 'post' => ['_csrf' => $csrfAuth],
+]);
+assertTrue(in_array($authAssign['code'], [302, 303], true), '18C-F2: autorizar atribuição → redirect', "Autorizar → {$authAssign['code']}");
+$authedAssign = $assignModel->findById($f2AssignId);
+assertTrue((string) ($authedAssign['status'] ?? '') === 'autorizada', '18C-F2: atribuição autorizada', 'Atribuição não autorizada');
+
+// (d) Converter atribuição em oportunidade (cria deal)
+$show = $http->request('/collectors/' . $f2CollectorId);
+$csrfConv = $http->csrfFrom($show['body']);
+$convert = $http->request('/collector-assignments/' . $f2AssignId . '/convert', [
+    'method' => 'POST', 'post' => ['_csrf' => $csrfConv],
+]);
+assertTrue(in_array($convert['code'], [302, 303], true), '18C-F2: converter → redirect', "Converter → {$convert['code']}");
+$convertedAssign = $assignModel->findById($f2AssignId);
+assertTrue((string) ($convertedAssign['status'] ?? '') === 'convertida_em_oportunidade', '18C-F2: atribuição marcada como convertida', 'Conversão não registrada');
+
+$f2OpportunityId = 0;
+if (preg_match('#/opportunities/(\d+)#', (string) ($convert['location'] ?? ''), $mOpp)) {
+    $f2OpportunityId = (int) $mOpp[1];
+}
+assertTrue($f2OpportunityId > 0, '18C-F2: oportunidade criada na conversão', 'Oportunidade não criada na conversão');
+$dealFromConvert = $dealModel->findByFunnelEntity('opportunity', $f2OpportunityId);
+assertTrue($dealFromConvert !== null, '18C-F2: deal criado e vinculado à oportunidade', 'Deal não vinculado à oportunidade');
+assertTrue((int) ($dealFromConvert['collector_id'] ?? 0) === $f2CollectorId, '18C-F2: deal aponta para o captador correto', 'Deal com captador incorreto');
+
+// (e) Funil mostra "Origem da captação" com o captador
+$oppShow = $http->request('/opportunities/' . $f2OpportunityId);
+assertTrue($oppShow['code'] === 200 && str_contains($oppShow['body'], 'Origem da captação'), '18C-F2: oportunidade exibe origem da captação', 'Card de origem ausente na oportunidade');
+assertTrue(str_contains($oppShow['body'], (string) ($f2Collector['name'] ?? 'TESTE')), '18C-F2: origem mostra o nome do captador', 'Nome do captador ausente na origem');
+
+// (e2) Ajuste obrigatório 1 — "captador" é origem oficial e a conversão nasce com source = captador
+assertTrue(in_array('captador', (new \App\Models\Opportunity())->getSources(), true), '18C-F2: "captador" é origem válida em Opportunity::getSources()', '"captador" ausente das origens válidas');
+$convOppSource = (string) $pdo->query("SELECT source FROM opportunities WHERE id = {$f2OpportunityId}")->fetchColumn();
+assertTrue($convOppSource === 'captador', '18C-F2: oportunidade convertida persiste source = captador', "Oportunidade convertida com source '{$convOppSource}'");
+
+// (f) Atribuição não exclusiva não conflita (mesma empresa, outra atribuição)
+$createAssign3 = $http->request('/collectors/' . $f2CollectorId . '/assignments/create');
+$csrfA3 = $http->csrfFrom($createAssign3['body']);
+$nonExcl = $http->request('/collectors/' . $f2CollectorId . '/assignments', [
+    'method' => 'POST',
+    'post'   => ['_csrf' => $csrfA3, 'company_id' => (string) $f2CompanyId, 'assignment_type' => 'nao_exclusiva'],
+]);
+assertTrue(in_array($nonExcl['code'], [302, 303], true), '18C-F2: não exclusiva criada sem conflito', "Não exclusiva → {$nonExcl['code']}");
+
+// (g) Criar deal manual (admin) + arquivar
+$createDealPage = $http->request('/collectors/' . $f2CollectorId . '/deals/create');
+assertTrue($createDealPage['code'] === 200, '18C-F2: form de captação → 200', "Form deal → {$createDealPage['code']}");
+$csrfD = $http->csrfFrom($createDealPage['body']);
+$storeDeal = $http->request('/collectors/' . $f2CollectorId . '/deals', [
+    'method' => 'POST',
+    'post'   => ['_csrf' => $csrfD, 'company_id' => (string) $f2CompanyId, 'deal_status' => 'lead_indicado', 'attribution_type' => 'indicacao', 'source' => 'teste manual'],
+]);
+assertTrue(in_array($storeDeal['code'], [302, 303], true), '18C-F2: criar deal manual → redirect', "Criar deal → {$storeDeal['code']}");
+$dealsAll = $dealModel->forCollector($f2CollectorId);
+assertTrue(count($dealsAll) >= 2, '18C-F2: múltiplos deals do captador', 'Deal manual não criado');
+$manualDealId = (int) ($dealsAll[0]['id'] ?? 0);
+$show = $http->request('/collectors/' . $f2CollectorId);
+$csrfArch = $http->csrfFrom($show['body']);
+$archiveDeal = $http->request('/collector-deals/' . $manualDealId . '/archive', [
+    'method' => 'POST', 'post' => ['_csrf' => $csrfArch],
+]);
+assertTrue(in_array($archiveDeal['code'], [302, 303], true), '18C-F2: arquivar deal → redirect', "Arquivar deal → {$archiveDeal['code']}");
+$archivedDeal = $pdo->query("SELECT archived_at FROM collector_deals WHERE id = {$manualDealId}")->fetchColumn();
+assertTrue(!empty($archivedDeal), '18C-F2: deal arquivado', 'Deal não arquivado');
+
+// (h) Controle de papéis: captador-externo NÃO gerencia (403)
+$httpExtF2 = new ValidateHttp($base);
+if ($httpExtF2->login('captador.externo.etapa18@example.com', $testPassword)) {
+    $extAssign = $httpExtF2->request('/collectors/' . $f2CollectorId . '/assignments/create');
+    assertTrue($extAssign['code'] === 403, '18C-F2: captador-externo SEM acesso a atribuições → 403', "Captador-externo atribuição → {$extAssign['code']}");
+    $extDeal = $httpExtF2->request('/collectors/' . $f2CollectorId . '/deals/create');
+    assertTrue($extDeal['code'] === 403, '18C-F2: captador-externo SEM acesso a captações → 403', "Captador-externo deal → {$extDeal['code']}");
+    $httpExtF2->logout();
+}
+
+// (i) Controle de papéis: captacao-comercial PODE gerenciar (tem manage)
+$httpCapF2 = new ValidateHttp($base);
+if ($httpCapF2->login('captacao.teste.etapa18@example.com', $testPassword)) {
+    $capAssignForm = $httpCapF2->request('/collectors/' . $f2CollectorId . '/assignments/create');
+    assertTrue($capAssignForm['code'] === 200, '18C-F2: captação-comercial acessa form de atribuição', "Captação atribuição → {$capAssignForm['code']}");
+    $httpCapF2->logout();
+}
+
+// (j) Ajuste obrigatório 2 — origem "captador" não pode ser criada manualmente sem rastreabilidade
+$oppCreatePage = $http->request('/opportunities/create');
+assertTrue($oppCreatePage['code'] === 200, '18C-F2: form de oportunidade → 200', "Form oportunidade → {$oppCreatePage['code']}");
+$csrfOpp = $http->csrfFrom($oppCreatePage['body']);
+$oppCountBefore = (int) $pdo->query("SELECT COUNT(*) FROM opportunities WHERE source = 'captador'")->fetchColumn();
+$manualCaptador = $http->request('/opportunities', [
+    'method' => 'POST',
+    'post'   => [
+        '_csrf'       => $csrfOpp,
+        'company_id'  => (string) $f2CompanyId,
+        'title'       => 'TESTE 18C-F2 origem manual captador',
+        'status'      => 'prospect_identificado',
+        'probability' => '5',
+        'source'      => 'captador',
+    ],
+]);
+assertTrue($manualCaptador['code'] === 422, '18C-F2: criação manual com source=captador é bloqueada (422)', "Criação manual captador → {$manualCaptador['code']}");
+assertTrue(str_contains($manualCaptador['body'], 'Converter atribuição em oportunidade'), '18C-F2: bloqueio manual orienta usar conversão de atribuição', 'Mensagem de orientação ausente no bloqueio manual');
+$oppCountAfter = (int) $pdo->query("SELECT COUNT(*) FROM opportunities WHERE source = 'captador'")->fetchColumn();
+assertTrue($oppCountAfter === $oppCountBefore, '18C-F2: bloqueio manual não cria oportunidade com origem captador', 'Oportunidade captador criada manualmente indevidamente');
+
+// (k) Ajuste recomendado — atribuição exclusiva VENCIDA não bloqueia nova exclusiva
+$companyExpired = (int) $companyModelF2->create([
+    'name' => 'EMPRESA TESTE 18C-F2 EXPIRADA', 'status' => 'prospect', 'created_by' => null,
+]);
+$expiredAssignId = (int) $assignModel->create([
+    'collector_id'    => $f2CollectorId,
+    'company_id'      => $companyExpired,
+    'assignment_type' => 'exclusiva',
+    'status'          => 'autorizada',
+    'exclusive_until' => date('Y-m-d', strtotime('-30 days')),
+    'created_by'      => null,
+]);
+assertTrue($expiredAssignId > 0, '18C-F2: atribuição exclusiva vencida criada para teste', 'Falha ao criar atribuição vencida');
+assertTrue(
+    $assignModel->findExclusiveConflict($companyExpired, 'exclusiva', null) === null,
+    '18C-F2: exclusiva vencida não bloqueia nova exclusiva',
+    'Exclusiva vencida bloqueou indevidamente'
+);
+// Sanidade: exclusiva ainda vigente continua bloqueando
+$companyActiveExcl = (int) $companyModelF2->create([
+    'name' => 'EMPRESA TESTE 18C-F2 VIGENTE', 'status' => 'prospect', 'created_by' => null,
+]);
+$activeAssignId = (int) $assignModel->create([
+    'collector_id'    => $f2CollectorId,
+    'company_id'      => $companyActiveExcl,
+    'assignment_type' => 'exclusiva',
+    'status'          => 'autorizada',
+    'exclusive_until' => date('Y-m-d', strtotime('+30 days')),
+    'created_by'      => null,
+]);
+assertTrue(
+    $assignModel->findExclusiveConflict($companyActiveExcl, 'exclusiva', null) !== null,
+    '18C-F2: exclusiva vigente ainda bloqueia nova exclusiva',
+    'Exclusiva vigente deixou de bloquear'
+);
+// Arquiva empresas auxiliares deste bloco
+$pdo->prepare('UPDATE collector_assignments SET archived_at = NOW() WHERE id IN (?, ?)')->execute([$expiredAssignId, $activeAssignId]);
+$pdo->prepare('UPDATE companies SET archived_at = NOW() WHERE id IN (?, ?)')->execute([$companyExpired, $companyActiveExcl]);
+
+// Limpeza Fase 2 (arquiva empresa/atribuições/deals de teste)
+try {
+    $pdo->prepare('UPDATE collector_deals SET archived_at = NOW() WHERE collector_id = ?')->execute([$f2CollectorId]);
+    $pdo->prepare('UPDATE collector_assignments SET archived_at = NOW() WHERE collector_id = ?')->execute([$f2CollectorId]);
+    if ($f2OpportunityId > 0) {
+        $pdo->prepare('UPDATE opportunities SET archived_at = NOW() WHERE id = ?')->execute([$f2OpportunityId]);
+    }
+    $pdo->prepare('UPDATE companies SET archived_at = NOW() WHERE id = ?')->execute([$f2CompanyId]);
+    ok('18C-F2: limpeza local (atribuições/deals/empresa de teste arquivados)');
+} catch (Throwable $e) {
+    fail('18C-F2: limpeza local: ' . $e->getMessage());
+}
 
 // Confirmações finais estáticas
 ok('Assinatura eletrônica Etapa 5 validada');

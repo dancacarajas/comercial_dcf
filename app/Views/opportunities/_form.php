@@ -134,6 +134,8 @@ $probJson = htmlspecialchars(json_encode($statusProbabilities, JSON_UNESCAPED_UN
             <select id="source" name="source">
                 <option value="">— Não informada —</option>
                 <?php foreach ($sources as $src): ?>
+                    <?php // "captador" é reservado ao fluxo de conversão de atribuição; só aparece se já for o valor atual. ?>
+                    <?php if ($src === 'captador' && $val('source') !== 'captador') { continue; } ?>
                     <option value="<?= e($src) ?>" <?= $val('source') === $src ? 'selected' : '' ?>><?= e(ucfirst($src)) ?></option>
                 <?php endforeach; ?>
             </select>
