@@ -8,6 +8,7 @@ use App\Core\Controller;
 use App\Middlewares\AuthMiddleware;
 use App\Models\ActivityLog;
 use App\Models\Collector;
+use App\Models\CollectorApplication;
 use App\Models\CollectorAssignment;
 use App\Models\CollectorDeal;
 use App\Models\Company;
@@ -46,14 +47,64 @@ final class CollectorPortalController extends Controller
 
         $collector = $this->currentCollector();
         if ($collector === null) {
-            http_response_code(403);
-            $this->view('portal/no_access', [
-                'title' => 'Portal do Captador',
-            ], 'layouts/portal');
-            exit;
+            $this->denyPortal('Sua conta ainda nao esta vinculada a um cadastro de captador aprovado.');
+        }
+
+        /** @var array<string,mixed> $collector */
+        $reason = $this->accreditationBlock($collector);
+        if ($reason !== null) {
+            $this->denyPortal($reason);
         }
 
         return $collector;
+    }
+
+    private function denyPortal(string $message): void
+    {
+        http_response_code(403);
+        $this->view('portal/no_access', [
+            'title'   => 'Portal do Captador',
+            'message' => $message,
+        ], 'layouts/portal');
+        exit;
+    }
+
+    /**
+     * Defesa em camadas: o captador so acessa o portal com credenciamento
+     * concluido (ativo, validado, candidatura aprovada e assinaturas
+     * obrigatorias finalizadas quando houver candidatura vinculada).
+     *
+     * @param array<string,mixed> $collector
+     */
+    private function accreditationBlock(array $collector): ?string
+    {
+        $denied = 'Seu acesso ao Portal do Captador ainda nao esta liberado. Conclua o credenciamento e as assinaturas obrigatorias.';
+
+        if ((string) ($collector['status'] ?? '') !== 'ativo') {
+            return $denied;
+        }
+        if ((string) ($collector['registration_status'] ?? '') !== 'validado') {
+            return $denied;
+        }
+
+        $appId = (int) ($collector['collector_application_id'] ?? 0);
+        if ($appId > 0) {
+            $appModel = new CollectorApplication();
+            $app = $appModel->findById($appId);
+            if ($app === null) {
+                return $denied;
+            }
+            $approved = (string) ($app['review_status'] ?? '') === 'aprovado'
+                || in_array((string) ($app['status'] ?? ''), ['aprovado', 'aguardando_assinatura_contratual', 'contrato_assinado', 'acesso_preparado', 'acesso_liberado'], true);
+            if (!$approved) {
+                return $denied;
+            }
+            if (!$appModel->hasCompletedRequiredCollectorSignatures($app)) {
+                return $denied;
+            }
+        }
+
+        return null;
     }
 
     public function dashboard(): void
@@ -167,7 +218,7 @@ final class CollectorPortalController extends Controller
             $this->abort(404, 'Captação não encontrada na sua carteira.');
         }
 
-        $contacts = (new Contact())->findByCompany((int) $deal['company_id'], 50);
+        $contacts = (new Contact())->findByCompanyForPortal((int) $deal['company_id'], (int) ($_SESSION['user_id'] ?? 0), 50);
 
         $this->view('portal/deal_show', [
             'title'        => 'Captação — ' . (string) ($deal['company_name'] ?? ''),

@@ -109,6 +109,14 @@ is_ok(str_contains((string) file_get_contents($root . '/app/Controllers/Dashboar
     'Dashboard redireciona captador-externo ao portal', 'Redirect do dashboard ausente');
 is_ok(method_exists(new \App\Models\Collector(), 'findByUserId'),
     'Collector::findByUserId existe', 'Collector::findByUserId ausente');
+
+// Permissoes do portal tambem no install_schema.sql (instalacao do zero)
+$schemaSql = (string) file_get_contents($root . '/database/install_schema.sql');
+foreach ($portalPerms as $slug) {
+    is_ok(str_contains($schemaSql, "'" . $slug . "'"), "install_schema define permissao {$slug}", "install_schema sem permissao {$slug}");
+}
+is_ok(str_contains($schemaSql, "'collector_portal.view', 'collector_portal.companies.create'"),
+    'install_schema concede permissoes do portal a captador-externo', 'install_schema sem grant do portal para captador-externo');
 is_ok(method_exists(new \App\Models\CollectorDeal(), 'findByCompanyForCollector'),
     'CollectorDeal::findByCompanyForCollector existe', 'método ausente');
 
@@ -117,15 +125,15 @@ is_ok(method_exists(new \App\Models\CollectorDeal(), 'findByCompanyForCollector'
 // ----------------------------------------------------------------------
 $T = 'TESTE 18C F2B';
 function cleanupF2B(PDO $pdo): void {
-    $pdo->exec("DELETE cd FROM collector_deals cd JOIN collectors c ON c.id=cd.collector_id WHERE c.collector_code IN ('DCF-F2B-CAP','DCF-F2B-OTHER')");
-    $pdo->exec("DELETE ca FROM collector_assignments ca JOIN collectors c ON c.id=ca.collector_id WHERE c.collector_code IN ('DCF-F2B-CAP','DCF-F2B-OTHER')");
+    $pdo->exec("DELETE cd FROM collector_deals cd JOIN collectors c ON c.id=cd.collector_id WHERE c.collector_code IN ('DCF-F2B-CAP','DCF-F2B-OTHER','DCF-F2B-BLOCK')");
+    $pdo->exec("DELETE ca FROM collector_assignments ca JOIN collectors c ON c.id=ca.collector_id WHERE c.collector_code IN ('DCF-F2B-CAP','DCF-F2B-OTHER','DCF-F2B-BLOCK')");
     $pdo->exec("DELETE FROM sponsors WHERE company_id IN (SELECT id FROM companies WHERE name LIKE 'TESTE 18C F2B%')");
     $pdo->exec("DELETE FROM opportunities WHERE company_id IN (SELECT id FROM companies WHERE name LIKE 'TESTE 18C F2B%')");
     $pdo->exec("DELETE FROM contacts WHERE company_id IN (SELECT id FROM companies WHERE name LIKE 'TESTE 18C F2B%')");
     $pdo->exec("DELETE FROM companies WHERE name LIKE 'TESTE 18C F2B%'");
-    $pdo->exec("DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users WHERE email='teste18c.f2b.captador@example.com')");
-    $pdo->exec("DELETE FROM collectors WHERE collector_code IN ('DCF-F2B-CAP','DCF-F2B-OTHER')");
-    $pdo->exec("DELETE FROM users WHERE email='teste18c.f2b.captador@example.com'");
+    $pdo->exec("DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users WHERE email IN ('teste18c.f2b.captador@example.com','teste18c.f2b.block@example.com'))");
+    $pdo->exec("DELETE FROM collectors WHERE collector_code IN ('DCF-F2B-CAP','DCF-F2B-OTHER','DCF-F2B-BLOCK')");
+    $pdo->exec("DELETE FROM users WHERE email IN ('teste18c.f2b.captador@example.com','teste18c.f2b.block@example.com')");
 }
 cleanupF2B($pdo);
 
@@ -227,6 +235,39 @@ is_ok($note['code'] === 302 && str_contains($notesDb, 'Primeiro contato'), 'Obse
 $contact = $http('POST', $BASE . '/portal/companies/' . $companyId . '/contacts', ['_csrf' => $tok2, 'name' => 'Maria Marketing', 'position_title' => 'Gerente', 'email' => 'maria@f2bhttp.example.com', 'whatsapp' => '94988887777'], false);
 $ctCnt = (int) $pdo->query('SELECT COUNT(*) FROM contacts WHERE company_id=' . $companyId)->fetchColumn();
 is_ok($contact['code'] === 302 && $ctCnt === 1, 'Contato cadastrado na empresa', 'Contato falhou');
+
+// Escopo de contatos: contato interno de outro usuario nao pode aparecer ao captador
+$pdo->prepare("INSERT INTO contacts (company_id,name,status,owner_user_id,created_by,created_at) VALUES (?,?,?,?,?,NOW())")
+    ->execute([$companyId, "$T Contato Interno Sigiloso", 'ativo', 1, 1]);
+$show2 = $http('GET', $BASE . '/portal/deals/' . $dealId);
+is_ok(str_contains($show2['body'], 'Maria Marketing'), 'Captador ve o proprio contato', 'Contato do captador nao apareceu');
+is_ok(!str_contains($show2['body'], 'Contato Interno Sigiloso'), 'Captador NAO ve contato interno de outro usuario', 'Vazou contato interno no portal');
+
+// Bloqueio: captador sem credenciamento final nao acessa o portal
+$pdo->prepare("INSERT INTO collectors (name,collector_code,status,registration_status,created_by,created_at) VALUES (?,?,?,?,1,NOW())")
+    ->execute(["$T Captador Pendente", 'DCF-F2B-BLOCK', 'ativo', 'pendente']);
+$blockColId = (int) $pdo->lastInsertId();
+$pdo->prepare("INSERT INTO users (name,email,password_hash,status,must_change_password,created_at) VALUES (?,?,?,?,0,NOW())")
+    ->execute(["$T Captador Pendente", 'teste18c.f2b.block@example.com', password_hash($PWD, PASSWORD_DEFAULT), 'active']);
+$blockUid = (int) $pdo->lastInsertId();
+$pdo->prepare('INSERT IGNORE INTO user_roles (user_id,role_id) VALUES (?,?)')->execute([$blockUid, $roleId]);
+$pdo->prepare('UPDATE collectors SET user_id=? WHERE id=?')->execute([$blockUid, $blockColId]);
+$jarB = tempnam(sys_get_temp_dir(), 'f2bblk_');
+$reqB = function (string $method, string $url, $post = null, bool $follow = true) use ($jarB): array {
+    $ch = curl_init();
+    curl_setopt_array($ch, [CURLOPT_URL => $url, CURLOPT_RETURNTRANSFER => true, CURLOPT_HEADER => true,
+        CURLOPT_COOKIEJAR => $jarB, CURLOPT_COOKIEFILE => $jarB, CURLOPT_FOLLOWLOCATION => $follow,
+        CURLOPT_SSL_VERIFYPEER => false, CURLOPT_TIMEOUT => 30]);
+    if ($method === 'POST') { curl_setopt($ch, CURLOPT_POST, true); curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post)); }
+    $resp = curl_exec($ch); $hs = curl_getinfo($ch, CURLINFO_HEADER_SIZE); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $body = substr($resp, $hs); curl_close($ch);
+    return ['code' => $code, 'body' => $body];
+};
+$tokB = $csrf($reqB('GET', $BASE . '/login')['body']);
+$reqB('POST', $BASE . '/login', ['_csrf' => $tokB, 'email' => 'teste18c.f2b.block@example.com', 'password' => $PWD]);
+$portalB = $reqB('GET', $BASE . '/portal');
+is_ok($portalB['code'] === 403 && str_contains($portalB['body'], 'ainda nao esta liberado'), 'Portal bloqueia captador sem credenciamento final', 'Portal nao bloqueou captador sem credenciamento: ' . $portalB['code']);
+@unlink($jarB);
 
 // Escopo: CRM interno proibido
 foreach (['/collectors' => 'Captadores', '/opportunities' => 'Oportunidades', '/users' => 'Usuários', '/companies' => 'Empresas'] as $path => $label) {

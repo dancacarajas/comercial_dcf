@@ -2058,7 +2058,11 @@ INSERT INTO `permissions` (`name`, `slug`, `description`) VALUES
     ('Aprovar credenciamentos', 'collector_applications.approve', 'Aprovar ou reprovar candidaturas'),
     ('Solicitar documentos captador', 'collector_applications.request_documents', 'Gerar link e solicitar documentos'),
     ('Liberar acesso captador', 'collector_applications.release_access', 'Preparar e liberar acesso de captador externo'),
-    ('Portal captador', 'collector_portal.view', 'Acesso ao portal restrito do captador externo')
+    ('Portal captador', 'collector_portal.view', 'Acesso ao portal restrito do captador externo'),
+    ('Portal captador - cadastrar empresa', 'collector_portal.companies.create', 'Cadastrar prospect/empresa pelo portal do captador'),
+    ('Portal captador - cadastrar contato', 'collector_portal.contacts.create', 'Cadastrar contato pelo portal do captador'),
+    ('Portal captador - ver captacoes', 'collector_portal.deals.view', 'Visualizar as proprias captacoes no portal'),
+    ('Portal captador - registrar andamento', 'collector_portal.deals.note', 'Registrar observacoes/andamento no portal')
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `description` = VALUES(`description`);
 
 INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
@@ -2084,8 +2088,10 @@ SELECT r.`id`, p.`id` FROM `roles` r JOIN `permissions` p ON p.`slug` = 'collect
 WHERE r.`slug` IN ('producao-coordenacao', 'comunicacao', 'leitura-consulta');
 
 INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
-SELECT r.`id`, p.`id` FROM `roles` r JOIN `permissions` p ON p.`slug` = 'collector_portal.view'
-WHERE r.`slug` = 'captador-externo';
+SELECT r.`id`, p.`id` FROM `roles` r JOIN `permissions` p ON p.`slug` IN (
+    'collector_portal.view', 'collector_portal.companies.create', 'collector_portal.contacts.create',
+    'collector_portal.deals.view', 'collector_portal.deals.note'
+) WHERE r.`slug` = 'captador-externo';
 
 -- Etapa 18C — Cadastro Mestre de Captadores
 INSERT INTO `permissions` (`name`, `slug`, `description`) VALUES

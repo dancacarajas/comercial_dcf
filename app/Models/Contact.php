@@ -286,6 +286,28 @@ final class Contact extends Model
     }
 
     /**
+     * Contatos visiveis no Portal do Captador: apenas os criados/pertencentes
+     * ao proprio usuario do captador (nunca contatos internos da empresa).
+     *
+     * @return list<array<string,mixed>>
+     */
+    public function findByCompanyForPortal(int|string $companyId, int|string $userId, int $limit = 50): array
+    {
+        $limit = max(1, $limit);
+
+        return $this->query(
+            'SELECT ct.`id`, ct.`name`, ct.`position_title`, ct.`department`,
+                    ct.`email`, ct.`whatsapp`, ct.`status`
+               FROM `contacts` ct
+              WHERE ct.`company_id` = :id AND ct.`archived_at` IS NULL
+                AND (ct.`owner_user_id` = :uid OR ct.`created_by` = :uid2)
+              ORDER BY ct.`name` ASC
+              LIMIT ' . $limit,
+            ['id' => $companyId, 'uid' => $userId, 'uid2' => $userId]
+        )->fetchAll();
+    }
+
+    /**
      * Conta contatos ativos (nao arquivados) de uma empresa.
      */
     public function countByCompany(int|string $companyId): int
