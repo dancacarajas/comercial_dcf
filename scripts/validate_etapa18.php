@@ -1419,6 +1419,11 @@ $oppShow = $http->request('/opportunities/' . $f2OpportunityId);
 assertTrue($oppShow['code'] === 200 && str_contains($oppShow['body'], 'Origem da captação'), '18C-F2: oportunidade exibe origem da captação', 'Card de origem ausente na oportunidade');
 assertTrue(str_contains($oppShow['body'], (string) ($f2Collector['name'] ?? 'TESTE')), '18C-F2: origem mostra o nome do captador', 'Nome do captador ausente na origem');
 
+// (e2) Ajuste obrigatório 1 — "captador" é origem oficial e a conversão nasce com source = captador
+assertTrue(in_array('captador', (new \App\Models\Opportunity())->getSources(), true), '18C-F2: "captador" é origem válida em Opportunity::getSources()', '"captador" ausente das origens válidas');
+$convOppSource = (string) $pdo->query("SELECT source FROM opportunities WHERE id = {$f2OpportunityId}")->fetchColumn();
+assertTrue($convOppSource === 'captador', '18C-F2: oportunidade convertida persiste source = captador', "Oportunidade convertida com source '{$convOppSource}'");
+
 // (f) Atribuição não exclusiva não conflita (mesma empresa, outra atribuição)
 $createAssign3 = $http->request('/collectors/' . $f2CollectorId . '/assignments/create');
 $csrfA3 = $http->csrfFrom($createAssign3['body']);
@@ -1466,6 +1471,66 @@ if ($httpCapF2->login('captacao.teste.etapa18@example.com', $testPassword)) {
     assertTrue($capAssignForm['code'] === 200, '18C-F2: captação-comercial acessa form de atribuição', "Captação atribuição → {$capAssignForm['code']}");
     $httpCapF2->logout();
 }
+
+// (j) Ajuste obrigatório 2 — origem "captador" não pode ser criada manualmente sem rastreabilidade
+$oppCreatePage = $http->request('/opportunities/create');
+assertTrue($oppCreatePage['code'] === 200, '18C-F2: form de oportunidade → 200', "Form oportunidade → {$oppCreatePage['code']}");
+$csrfOpp = $http->csrfFrom($oppCreatePage['body']);
+$oppCountBefore = (int) $pdo->query("SELECT COUNT(*) FROM opportunities WHERE source = 'captador'")->fetchColumn();
+$manualCaptador = $http->request('/opportunities', [
+    'method' => 'POST',
+    'post'   => [
+        '_csrf'       => $csrfOpp,
+        'company_id'  => (string) $f2CompanyId,
+        'title'       => 'TESTE 18C-F2 origem manual captador',
+        'status'      => 'prospect_identificado',
+        'probability' => '5',
+        'source'      => 'captador',
+    ],
+]);
+assertTrue($manualCaptador['code'] === 422, '18C-F2: criação manual com source=captador é bloqueada (422)', "Criação manual captador → {$manualCaptador['code']}");
+assertTrue(str_contains($manualCaptador['body'], 'Converter atribuição em oportunidade'), '18C-F2: bloqueio manual orienta usar conversão de atribuição', 'Mensagem de orientação ausente no bloqueio manual');
+$oppCountAfter = (int) $pdo->query("SELECT COUNT(*) FROM opportunities WHERE source = 'captador'")->fetchColumn();
+assertTrue($oppCountAfter === $oppCountBefore, '18C-F2: bloqueio manual não cria oportunidade com origem captador', 'Oportunidade captador criada manualmente indevidamente');
+
+// (k) Ajuste recomendado — atribuição exclusiva VENCIDA não bloqueia nova exclusiva
+$companyExpired = (int) $companyModelF2->create([
+    'name' => 'EMPRESA TESTE 18C-F2 EXPIRADA', 'status' => 'prospect', 'created_by' => null,
+]);
+$expiredAssignId = (int) $assignModel->create([
+    'collector_id'    => $f2CollectorId,
+    'company_id'      => $companyExpired,
+    'assignment_type' => 'exclusiva',
+    'status'          => 'autorizada',
+    'exclusive_until' => date('Y-m-d', strtotime('-30 days')),
+    'created_by'      => null,
+]);
+assertTrue($expiredAssignId > 0, '18C-F2: atribuição exclusiva vencida criada para teste', 'Falha ao criar atribuição vencida');
+assertTrue(
+    $assignModel->findExclusiveConflict($companyExpired, 'exclusiva', null) === null,
+    '18C-F2: exclusiva vencida não bloqueia nova exclusiva',
+    'Exclusiva vencida bloqueou indevidamente'
+);
+// Sanidade: exclusiva ainda vigente continua bloqueando
+$companyActiveExcl = (int) $companyModelF2->create([
+    'name' => 'EMPRESA TESTE 18C-F2 VIGENTE', 'status' => 'prospect', 'created_by' => null,
+]);
+$activeAssignId = (int) $assignModel->create([
+    'collector_id'    => $f2CollectorId,
+    'company_id'      => $companyActiveExcl,
+    'assignment_type' => 'exclusiva',
+    'status'          => 'autorizada',
+    'exclusive_until' => date('Y-m-d', strtotime('+30 days')),
+    'created_by'      => null,
+]);
+assertTrue(
+    $assignModel->findExclusiveConflict($companyActiveExcl, 'exclusiva', null) !== null,
+    '18C-F2: exclusiva vigente ainda bloqueia nova exclusiva',
+    'Exclusiva vigente deixou de bloquear'
+);
+// Arquiva empresas auxiliares deste bloco
+$pdo->prepare('UPDATE collector_assignments SET archived_at = NOW() WHERE id IN (?, ?)')->execute([$expiredAssignId, $activeAssignId]);
+$pdo->prepare('UPDATE companies SET archived_at = NOW() WHERE id IN (?, ?)')->execute([$companyExpired, $companyActiveExcl]);
 
 // Limpeza Fase 2 (arquiva empresa/atribuições/deals de teste)
 try {

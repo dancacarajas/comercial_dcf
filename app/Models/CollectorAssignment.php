@@ -145,12 +145,10 @@ final class CollectorAssignment extends Model
             $params[] = (int) $ignoreId;
         }
 
-        // Sobreposição de período: uma exclusiva sem data (exclusive_until NULL) é
-        // tratada como vigente por tempo indeterminado e sempre conflita; com data,
-        // conflita enquanto a vigência existente não tiver terminado.
-        if ($exclusiveUntil !== null && $exclusiveUntil !== '') {
-            $sql .= ' AND (a.`exclusive_until` IS NULL OR a.`exclusive_until` >= CURDATE())';
-        }
+        // Só conflita com exclusivas ainda vigentes: sem data (vigência indeterminada)
+        // ou com `exclusive_until` futuro/hoje. Exclusivas vencidas nunca bloqueiam,
+        // mesmo que alguém tenha esquecido de marcá-las como expiradas.
+        $sql .= ' AND (a.`exclusive_until` IS NULL OR a.`exclusive_until` >= CURDATE())';
 
         $sql .= ' ORDER BY a.`id` DESC LIMIT 1';
 

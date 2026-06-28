@@ -126,6 +126,10 @@ final class OpportunityController extends Controller
         $this->checkCompany($data, $errors);
         $this->checkContact($data, $errors);
         $this->checkOwner($data, $errors);
+        // Etapa 18C Fase 2: origem "captador" só pelo fluxo oficial de conversão de atribuição.
+        if ((string) ($data['source'] ?? '') === 'captador') {
+            $errors['source'] = 'Para origem captador, use a ação Converter atribuição em oportunidade.';
+        }
         $warnings = $this->applyQuotaRules($model, $data, $errors);
 
         if ($errors !== []) {
@@ -297,6 +301,11 @@ final class OpportunityController extends Controller
         $this->checkCompany($data, $errors);
         $this->checkContact($data, $errors);
         $this->checkOwner($data, $errors);
+        // Etapa 18C Fase 2: origem "captador" exige rastreabilidade (collector_deal já vinculado).
+        if ((string) ($data['source'] ?? '') === 'captador'
+            && !(new \App\Models\CollectorDeal())->hasDealForFunnelEntity('opportunity', $id)) {
+            $errors['source'] = 'Para origem captador, use a ação Converter atribuição em oportunidade.';
+        }
         $warnings = $this->applyQuotaRules($model, $data, $errors);
 
         if ($errors !== []) {
