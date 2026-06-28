@@ -441,4 +441,48 @@ final class Collector extends Model
 
         return $out;
     }
+
+    /**
+     * Localiza o captador (master) vinculado a um usuario do sistema.
+     * Resolve por collectors.user_id e, se ausente, pelo usuario criado na
+     * candidatura (collector_applications.user_created_id), com backfill.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findByUserId(int|string $userId): ?array
+    {
+        $uid = (int) $userId;
+        if ($uid <= 0) {
+            return null;
+        }
+
+        $row = $this->query(
+            'SELECT * FROM `collectors` WHERE `user_id` = :uid AND `archived_at` IS NULL ORDER BY `id` DESC LIMIT 1',
+            ['uid' => $uid]
+        )->fetch();
+        if ($row !== false) {
+            return $row;
+        }
+
+        $row = $this->query(
+            'SELECT c.* FROM `collectors` c
+               JOIN `collector_applications` ca ON ca.`id` = c.`collector_application_id`
+              WHERE ca.`user_created_id` = :uid AND c.`archived_at` IS NULL
+              ORDER BY c.`id` DESC LIMIT 1',
+            ['uid' => $uid]
+        )->fetch();
+        if ($row === false) {
+            return null;
+        }
+
+        if (empty($row['user_id'])) {
+            $this->query(
+                'UPDATE `collectors` SET `user_id` = :uid, `updated_at` = NOW() WHERE `id` = :id',
+                ['uid' => $uid, 'id' => $row['id']]
+            );
+            $row['user_id'] = $uid;
+        }
+
+        return $row;
+    }
 }

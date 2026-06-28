@@ -398,6 +398,14 @@ return function (Router $router): void {
     $router->post('/collector-deals/{id}/update',                       'CollectorDealController@update',               ['AuthMiddleware']);
     $router->post('/collector-deals/{id}/archive',                      'CollectorDealController@archive',              ['AuthMiddleware']);
 
+
+    // Etapa 18C Fase 2B - Portal do Captador (carteira propria do captador externo)
+    $router->get('/portal',                          'CollectorPortalController@dashboard',      ['AuthMiddleware']);
+    $router->get('/portal/prospects/create',         'CollectorPortalController@prospectCreate', ['AuthMiddleware']);
+    $router->post('/portal/prospects',               'CollectorPortalController@prospectStore',  ['AuthMiddleware']);
+    $router->get('/portal/deals/{id}',               'CollectorPortalController@dealShow',       ['AuthMiddleware']);
+    $router->post('/portal/deals/{id}/note',         'CollectorPortalController@dealNote',       ['AuthMiddleware']);
+    $router->post('/portal/companies/{id}/contacts', 'CollectorPortalController@contactStore',   ['AuthMiddleware']);
     // Etapa 18C — Cadastro mestre de captadores (listagem)
     $router->get('/collectors',                                         'CollectorController@index',                    ['AuthMiddleware']);
     $router->get('/collectors/{id}',                                    'CollectorController@show',                     ['AuthMiddleware']);

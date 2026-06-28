@@ -251,4 +251,21 @@ final class CollectorDeal extends Model
 
         return $out;
     }
+
+    /**
+     * Retorna o deal mais recente (nao arquivado) de uma empresa para um captador.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findByCompanyForCollector(int|string $companyId, int|string $collectorId): ?array
+    {
+        $row = $this->query(
+            'SELECT * FROM `collector_deals`
+              WHERE `company_id` = :co AND `collector_id` = :cl AND `archived_at` IS NULL
+              ORDER BY `id` DESC LIMIT 1',
+            ['co' => $companyId, 'cl' => $collectorId]
+        )->fetch();
+
+        return $row !== false ? $row : null;
+    }
 }
