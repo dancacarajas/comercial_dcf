@@ -468,7 +468,7 @@ final class OpportunityController extends Controller
      *
      * @return array<string, mixed>
      */
-    private function lists(Opportunity $model): array
+    private function lists(Opportunity $model, int|string|null $projectId = null): array
     {
         return [
             'statusLabels'        => $model->getStatusLabels(),
@@ -478,7 +478,7 @@ final class OpportunityController extends Controller
             'urgencyLevels'       => $model->getUrgencyLevels(),
             'lostReasons'         => $model->getLostReasons(),
             'companies'           => (new Company())->options(),
-            'quotas'              => (new Quota())->activeOptions(),
+            'quotas'              => (new Quota())->activeOptions($projectId),
             'projects'            => (new IncentiveProject())->options(true),
         ];
     }
@@ -596,7 +596,7 @@ final class OpportunityController extends Controller
 
         $quotaId = $data['quota_id'] ?? null;
         if ($quotaId !== null) {
-            $check = $model->validateQuota($quotaId);
+            $check = $model->validateQuota($quotaId, $data['incentive_project_id'] ?? null);
             if ($check['error'] !== null) {
                 $errors['quota_id'] = $check['error'];
             } else {
@@ -646,9 +646,10 @@ final class OpportunityController extends Controller
 
         // Contatos da empresa selecionada (para o select de contato principal).
         $companyId = (int) ($old['company_id'] ?? ($opportunity['company_id'] ?? 0));
+        $projectId = (int) ($old['incentive_project_id'] ?? ($opportunity['incentive_project_id'] ?? 0));
         $companyContacts = $companyId > 0 ? (new Contact())->findByCompany($companyId, 200) : [];
 
-        $this->view($view, array_merge($this->lists($model), [
+        $this->view($view, array_merge($this->lists($model, $projectId > 0 ? $projectId : null), [
             'title'           => $title,
             'old'             => $old,
             'errors'          => $errors,

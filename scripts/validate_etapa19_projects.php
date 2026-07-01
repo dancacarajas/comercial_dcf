@@ -56,6 +56,11 @@ $files = [
     'app/Models/CollectorAssignment.php',
     'app/Controllers/CollectorAssignmentController.php',
     'app/Views/collector_assignments/form.php',
+    'app/Models/Quota.php',
+    'app/Controllers/QuotaController.php',
+    'app/Views/quotas/_form.php',
+    'app/Views/quotas/index.php',
+    'app/Views/quotas/show.php',
     'app/Controllers/OpportunityController.php',
     'app/Controllers/ProposalController.php',
     'app/Views/proposals/_form.php',
@@ -196,6 +201,39 @@ $quotaId = (int) $quotaModel->create([
 $quotaProj = (int) $pdo->query('SELECT incentive_project_id FROM quotas WHERE id=' . $quotaId)->fetchColumn();
 is_ok($quotaProj === $projAId, 'Cota pertence ao projeto', 'Cota não vinculada ao projeto');
 
+$quotaErrors = $quotaModel->validate([
+    'name'               => "$T Cota Sem Projeto",
+    'amount'             => 1000.00,
+    'available_quantity' => 1,
+    'status'             => 'disponivel',
+], 'create');
+is_ok(isset($quotaErrors['incentive_project_id']), 'Cota sem projeto bloqueia', 'Quota::validate permite cota sem projeto');
+
+$quotaBId = (int) $quotaModel->create([
+    'incentive_project_id' => $projBId,
+    'name'                 => "$T Cota Outro Projeto",
+    'amount'               => 50000.00,
+    'available_quantity'   => 1,
+    'status'               => 'disponivel',
+]);
+$quotaBProj = (int) $pdo->query('SELECT incentive_project_id FROM quotas WHERE id=' . $quotaBId)->fetchColumn();
+is_ok($quotaBProj === $projBId, 'Cota de outro projeto grava incentive_project_id', 'Cota B não vinculada ao projeto B');
+
+$dashAQuotas = $ipModel->dashboard($projAId);
+$dashBQuotas = $ipModel->dashboard($projBId);
+is_ok((int) ($dashAQuotas['quotas_count'] ?? 0) === 1 && (int) ($dashBQuotas['quotas_count'] ?? 0) === 1,
+    'Dashboard conta cotas apenas do proprio projeto', 'Dashboard contou cotas cruzadas entre projetos');
+
+$quotaPageA = $quotaModel->paginate(['incentive_project_id' => $projAId], 1, 50);
+$quotaPageIdsA = array_map(static fn (array $row): int => (int) $row['id'], $quotaPageA);
+is_ok(in_array($quotaId, $quotaPageIdsA, true) && !in_array($quotaBId, $quotaPageIdsA, true),
+    'Filtro de cotas por projeto isola registros', 'Filtro /quotas?incentive_project_id retornou cota de outro projeto');
+
+$quotaOptionsA = $quotaModel->activeOptions($projAId);
+$quotaOptionIdsA = array_map(static fn (array $row): int => (int) $row['id'], $quotaOptionsA);
+is_ok(in_array($quotaId, $quotaOptionIdsA, true) && !in_array($quotaBId, $quotaOptionIdsA, true),
+    'activeOptions(projectId) retorna apenas cotas do projeto', 'activeOptions(projectId) retornou cota de outro projeto');
+
 // Test 6 — oportunidade exige projeto (regra no controller)
 $oppCtrl = (string) file_get_contents($root . '/app/Controllers/OpportunityController.php');
 is_ok(str_contains($oppCtrl, "empty(\$data['incentive_project_id'])") && str_contains($oppCtrl, 'projeto incentivado da oportunidade'),
@@ -207,6 +245,8 @@ is_ok(substr_count($oppCtrl, "empty(\$data['incentive_project_id'])") >= 2,
 $pdo->prepare("INSERT INTO opportunities (incentive_project_id,company_id,title,status,source,opened_at,created_at) VALUES (?,?,?,?,?,NOW(),NOW())")
     ->execute([$projAId, $coMulti, "$T Opp A", 'prospect_identificado', 'outbound']);
 $oppId = (int) $pdo->lastInsertId();
+$quotaMismatch = (new \App\Models\Opportunity())->validateQuota($quotaBId, $projAId);
+is_ok($quotaMismatch['error'] !== null, 'Oportunidade bloqueia cota de outro projeto', 'Opportunity::validateQuota aceitou cota de outro projeto');
 
 // Test 7 — proposta herda projeto da oportunidade (applyAutofill)
 $rc = new ReflectionClass(\App\Controllers\ProposalController::class);
@@ -220,6 +260,16 @@ is_ok(str_contains($proposalCtrl, "'incentive_project_id'") && str_contains($pro
     'Proposta direta sem projeto bloqueia no controller', 'ProposalController nao exige incentive_project_id');
 is_ok(str_contains($proposalForm, 'name="incentive_project_id"') && str_contains($proposalForm, 'required'),
     'Formulario de proposta tem projeto obrigatorio', 'Formulario de proposta sem projeto obrigatorio');
+
+$proposalLinkErrors = [];
+$mProposalLinks = $rc->getMethod('validateLinks'); $mProposalLinks->setAccessible(true);
+$proposalLinkArgs = [[
+    'company_id' => $coMulti,
+    'quota_id' => $quotaBId,
+    'incentive_project_id' => $projAId,
+], &$proposalLinkErrors];
+$mProposalLinks->invokeArgs($pc, $proposalLinkArgs);
+is_ok(isset($proposalLinkErrors['quota_id']), 'Proposta bloqueia cota de outro projeto', 'ProposalController aceitou cota de outro projeto');
 
 // Proposta real para herança do sponsor
 $pdo->prepare("INSERT INTO proposals (incentive_project_id,company_id,opportunity_id,title,type,proposed_value,status,created_on,created_at) VALUES (?,?,?,?,?,?,?,CURDATE(),NOW())")
@@ -238,6 +288,16 @@ is_ok(str_contains($sponsorCtrl, "'incentive_project_id'") && str_contains($spon
     'Patrocinador direto sem projeto bloqueia no controller', 'SponsorController nao exige incentive_project_id');
 is_ok(str_contains($sponsorForm, 'name="incentive_project_id"') && str_contains($sponsorForm, 'required'),
     'Formulario de patrocinador tem projeto obrigatorio', 'Formulario de patrocinador sem projeto obrigatorio');
+
+$sponsorLinkErrors = [];
+$mSponsorLinks = $rcS->getMethod('validateLinks'); $mSponsorLinks->setAccessible(true);
+$sponsorLinkArgs = [[
+    'company_id' => $coMulti,
+    'quota_id' => $quotaBId,
+    'incentive_project_id' => $projAId,
+], &$sponsorLinkErrors];
+$mSponsorLinks->invokeArgs($sc, $sponsorLinkArgs);
+is_ok(isset($sponsorLinkErrors['quota_id']), 'Patrocinador bloqueia cota de outro projeto', 'SponsorController aceitou cota de outro projeto');
 
 // Patrocinador real para herança do financeiro
 $pdo->prepare("INSERT INTO sponsors (incentive_project_id,company_id,proposal_id,opportunity_id,sponsor_display_name,status,confirmed_amount,created_at) VALUES (?,?,?,?,?,?,?,NOW())")

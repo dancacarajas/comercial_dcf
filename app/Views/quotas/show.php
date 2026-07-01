@@ -51,6 +51,16 @@ $oProbClass = static function (int $p): string {
                 <h3 class="h3-card"><i data-lucide="badge-dollar-sign"></i> Dados da cota</h3>
                 <dl class="meta-list">
                     <dt>Nome comercial</dt><dd><?= e($dash($quota['commercial_name'] ?? '')) ?></dd>
+                    <dt>Projeto</dt>
+                    <dd>
+                        <?php if (!empty($quota['incentive_project_id'])): ?>
+                            <a href="<?= e(app_url('/projects/' . (int) $quota['incentive_project_id'])) ?>" class="link-strong">
+                                <?= e($quota['project_name'] ?? ('Projeto #' . (int) $quota['incentive_project_id'])) ?>
+                            </a>
+                        <?php else: ?>
+                            <?= e($dash(null)) ?>
+                        <?php endif; ?>
+                    </dd>
                     <dt>Valor</dt><dd class="money-value"><?= $quota['amount'] !== null ? e(money_br($quota['amount'])) : 'Flexível' ?></dd>
                     <dt>Status</dt><dd><span class="badge-quota badge-quota-<?= e($st) ?>"><?= e($statuses[$st] ?? $st) ?></span></dd>
                     <dt>Perfil indicado</dt><dd><?= e($idealProfiles[$profile] ?? ($profile !== '' ? $profile : '—')) ?></dd>

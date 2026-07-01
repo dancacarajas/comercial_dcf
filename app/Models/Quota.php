@@ -28,9 +28,10 @@ final class Quota extends Model
     ];
 
     private const LIST_COLUMNS =
-        'q.`id`, q.`name`, q.`commercial_name`, q.`amount`,
+        'q.`id`, q.`incentive_project_id`, q.`name`, q.`commercial_name`, q.`amount`,
          q.`available_quantity`, q.`reserved_quantity`, q.`closed_quantity`,
-         q.`status`, q.`display_order`, q.`archived_at`';
+         q.`status`, q.`display_order`, q.`archived_at`,
+         ip.`project_name` AS project_name, ip.`edition_year` AS project_edition_year';
 
     // -----------------------------------------------------------------
     // Listas controladas
@@ -113,6 +114,10 @@ final class Quota extends Model
     {
         $errors = [];
 
+        if ((int) ($data['incentive_project_id'] ?? 0) <= 0) {
+            $errors['incentive_project_id'] = 'Selecione o projeto incentivado da cota.';
+        }
+
         $name = trim((string) ($data['name'] ?? ''));
         if ($name === '') {
             $errors['name'] = 'Informe o nome da cota.';
@@ -181,6 +186,7 @@ final class Quota extends Model
 
         $sql = 'SELECT ' . self::LIST_COLUMNS . '
                   FROM `quotas` q'
+            . ' LEFT JOIN `incentive_projects` ip ON ip.`id` = q.`incentive_project_id`'
             . $where .
             ' ORDER BY q.`display_order` ASC, q.`amount` DESC, q.`name` ASC
               LIMIT ' . $perPage . ' OFFSET ' . $offset;
@@ -209,8 +215,10 @@ final class Quota extends Model
                     q.`available_quantity`, q.`reserved_quantity`, q.`closed_quantity`,
                     q.`description`, q.`ideal_profile`, q.`status`, q.`display_order`, q.`notes`,
                     q.`created_by`, q.`updated_by`, q.`created_at`, q.`updated_at`, q.`archived_at`,
+                    ip.`project_name` AS project_name, ip.`edition_year` AS project_edition_year,
                     cb.`name` AS created_by_name, ub.`name` AS updated_by_name
                FROM `quotas` q
+               LEFT JOIN `incentive_projects` ip ON ip.`id` = q.`incentive_project_id`
                LEFT JOIN `users` cb ON cb.`id` = q.`created_by`
                LEFT JOIN `users` ub ON ub.`id` = q.`updated_by`
               WHERE q.`id` = :id
@@ -226,14 +234,19 @@ final class Quota extends Model
      *
      * @return array<int, array<string, mixed>>
      */
-    public function activeOptions(): array
+    public function activeOptions(int|string|null $projectId = null): array
     {
-        return $this->query(
-            "SELECT `id`, `name`, `commercial_name`, `amount`, `status`
+        $sql = "SELECT `id`, `incentive_project_id`, `name`, `commercial_name`, `amount`, `status`
                FROM `quotas`
-              WHERE `archived_at` IS NULL
-              ORDER BY `display_order` ASC, `amount` DESC, `name` ASC"
-        )->fetchAll();
+              WHERE `archived_at` IS NULL";
+        $params = [];
+        if ($projectId !== null && (int) $projectId > 0) {
+            $sql .= ' AND `incentive_project_id` = :project_id';
+            $params['project_id'] = (int) $projectId;
+        }
+        $sql .= ' ORDER BY `display_order` ASC, `amount` DESC, `name` ASC';
+
+        return $this->query($sql, $params)->fetchAll();
     }
 
     /**
@@ -398,6 +411,11 @@ final class Quota extends Model
         if ($status !== '') {
             $conditions[]     = 'q.`status` = :status';
             $params['status'] = $status;
+        }
+
+        if ((int) ($filters['incentive_project_id'] ?? 0) > 0) {
+            $conditions[] = 'q.`incentive_project_id` = :project_id';
+            $params['project_id'] = (int) $filters['incentive_project_id'];
         }
 
         if (isset($filters['amount_min']) && $filters['amount_min'] !== '') {

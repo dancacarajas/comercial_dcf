@@ -660,8 +660,14 @@ final class ProposalController extends Controller
         }
 
         $quotaId = (int) ($data['quota_id'] ?? 0);
-        if ($quotaId > 0 && (new Quota())->findById($quotaId) === null) {
-            $errors['quota_id'] = 'Cota não encontrada.';
+        if ($quotaId > 0) {
+            $quota = (new Quota())->findById($quotaId);
+            if ($quota === null) {
+                $errors['quota_id'] = 'Cota não encontrada.';
+            } elseif (!empty($data['incentive_project_id'])
+                && (int) ($quota['incentive_project_id'] ?? 0) !== (int) $data['incentive_project_id']) {
+                $errors['quota_id'] = 'A cota selecionada não pertence ao projeto incentivado informado.';
+            }
         }
 
         $respId = (int) ($data['responsible_user_id'] ?? 0);
@@ -692,6 +698,7 @@ final class ProposalController extends Controller
     {
         $model     = new Proposal();
         $companyId = (int) ($old['company_id'] ?? ($proposal['company_id'] ?? 0));
+        $projectId = (int) ($old['incentive_project_id'] ?? ($proposal['incentive_project_id'] ?? 0));
         $companyContacts = $companyId > 0 ? (new Contact())->findByCompany($companyId, 200) : [];
 
         $this->view($view, [
@@ -703,7 +710,7 @@ final class ProposalController extends Controller
             'statuses'        => $model->getStatuses(),
             'companies'       => (new Company())->activeOptions(),
             'opportunities'   => $this->linkOptions('opportunities', 'title'),
-            'quotas'          => (new Quota())->activeOptions(),
+            'quotas'          => (new Quota())->activeOptions($projectId > 0 ? $projectId : null),
             'projects'        => (new IncentiveProject())->options(true),
             'users'           => (new User())->activeList(),
             'companyContacts' => $companyContacts,

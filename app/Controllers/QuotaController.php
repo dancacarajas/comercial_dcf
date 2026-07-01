@@ -9,6 +9,7 @@ use App\Middlewares\AuthMiddleware;
 use App\Models\ActivityLog;
 use App\Models\Document;
 use App\Models\FinancialEntry;
+use App\Models\IncentiveProject;
 use App\Models\SponsorDossier;
 use App\Models\Proposal;
 use App\Models\Quota;
@@ -47,6 +48,7 @@ final class QuotaController extends Controller
             'items'      => $items,
             'filters'    => $filters,
             'statuses'   => $model->getStatuses(),
+            'projects'   => (new IncentiveProject())->options(true),
             'model'      => $model,
             'page'       => $page,
             'pages'      => $pages,
@@ -59,7 +61,11 @@ final class QuotaController extends Controller
     {
         AuthMiddleware::requirePermission('quotas.create');
 
-        $this->renderForm('quotas/create', 'Nova cota', ['status' => 'disponivel'], []);
+        $projectId = (int) input('incentive_project_id', 0);
+        $this->renderForm('quotas/create', 'Nova cota', [
+            'status' => 'disponivel',
+            'incentive_project_id' => $projectId > 0 ? $projectId : null,
+        ], []);
     }
 
     public function store(): void
@@ -292,6 +298,7 @@ final class QuotaController extends Controller
     {
         return [
             'q'             => (string) input('q', ''),
+            'incentive_project_id' => (int) input('incentive_project_id', 0),
             'status'        => (string) input('status', ''),
             'amount_min'    => input('amount_min') !== null ? (string) input('amount_min') : '',
             'amount_max'    => input('amount_max') !== null ? (string) input('amount_max') : '',
@@ -305,6 +312,7 @@ final class QuotaController extends Controller
     private function collectInput(Quota $model): array
     {
         return [
+            'incentive_project_id' => ($projectId = (int) input('incentive_project_id', 0)) > 0 ? $projectId : null,
             'name'               => clean((string) input('name', '')),
             'commercial_name'    => clean((string) input('commercial_name', '')) ?: null,
             'amount'             => $model->normalizeMoney((string) input('amount', '')),
@@ -335,6 +343,7 @@ final class QuotaController extends Controller
             'quota'         => $quota,
             'statuses'      => $model->getStatuses(),
             'idealProfiles' => $model->getIdealProfiles(),
+            'projects'      => (new IncentiveProject())->options(true),
         ]);
     }
 

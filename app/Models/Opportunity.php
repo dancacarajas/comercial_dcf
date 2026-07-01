@@ -287,7 +287,7 @@ final class Opportunity extends Model
      *
      * @return array{error: ?string, warning: ?string, quota: ?array<string, mixed>}
      */
-    public function validateQuota(int|string|null $quotaId): array
+    public function validateQuota(int|string|null $quotaId, int|string|null $projectId = null): array
     {
         $result = ['error' => null, 'warning' => null, 'quota' => null];
 
@@ -297,7 +297,7 @@ final class Opportunity extends Model
         }
 
         $row = $this->query(
-            'SELECT `id`, `name`, `amount`, `status`, `archived_at` FROM `quotas` WHERE `id` = :id LIMIT 1',
+            'SELECT `id`, `incentive_project_id`, `name`, `amount`, `status`, `archived_at` FROM `quotas` WHERE `id` = :id LIMIT 1',
             ['id' => $quotaId]
         )->fetch();
 
@@ -309,6 +309,14 @@ final class Opportunity extends Model
 
         if ($row['archived_at'] !== null) {
             $result['error'] = 'A cota selecionada está arquivada e não pode ser vinculada.';
+
+            return $result;
+        }
+
+        if ($projectId !== null
+            && (int) $projectId > 0
+            && (int) ($row['incentive_project_id'] ?? 0) !== (int) $projectId) {
+            $result['error'] = 'A cota selecionada não pertence ao projeto incentivado informado.';
 
             return $result;
         }

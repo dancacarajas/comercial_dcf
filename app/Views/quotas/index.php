@@ -7,6 +7,7 @@
 $items    = $items ?? [];
 $filters  = $filters ?? [];
 $statuses = $statuses ?? [];
+$projects = $projects ?? [];
 $model    = $model ?? null;
 $page     = (int) ($page ?? 1);
 $pages    = (int) ($pages ?? 1);
@@ -16,6 +17,7 @@ $f = static fn (string $k, string $default = ''): string => (string) ($filters[$
 
 $baseQuery = array_filter([
     'q'             => $f('q'),
+    'incentive_project_id' => (int) ($filters['incentive_project_id'] ?? 0) ?: '',
     'status'        => $f('status'),
     'amount_min'    => $f('amount_min'),
     'amount_max'    => $f('amount_max'),
@@ -46,6 +48,17 @@ $pageUrl = static fn (int $p): string =>
                 <div class="filter-q">
                     <label for="q">Busca</label>
                     <input type="text" id="q" name="q" value="<?= e($f('q')) ?>" placeholder="Nome, nome comercial ou descrição">
+                </div>
+                <div>
+                    <label for="fproject">Projeto</label>
+                    <select id="fproject" name="incentive_project_id">
+                        <option value="">Todos</option>
+                        <?php foreach ($projects as $project): ?>
+                            <option value="<?= (int) $project['id'] ?>" <?= (int) ($filters['incentive_project_id'] ?? 0) === (int) $project['id'] ? 'selected' : '' ?>>
+                                <?= e($project['label'] ?? '') ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
                 <div>
                     <label for="fstatus">Status</label>
@@ -90,6 +103,7 @@ $pageUrl = static fn (int $p): string =>
                     <thead>
                         <tr>
                             <th>Nome</th>
+                            <th>Projeto</th>
                             <th>Nome comercial</th>
                             <th>Valor</th>
                             <th>Disp.</th>
@@ -114,6 +128,7 @@ $pageUrl = static fn (int $p): string =>
                                     <strong><?= e($q['name']) ?></strong>
                                     <?php if ($isArchived): ?><span class="badge-status badge-status-arquivado">Arquivada</span><?php endif; ?>
                                 </td>
+                                <td><?= e($q['project_name'] ?? '') ?: '—' ?></td>
                                 <td><?= e($q['commercial_name'] ?? '') ?: '—' ?></td>
                                 <td class="money-value"><?= $q['amount'] !== null ? e(money_br($q['amount'])) : '<span class="quota-flex">flexível</span>' ?></td>
                                 <td><?= (int) ($q['available_quantity'] ?? 0) ?></td>

@@ -63,6 +63,12 @@ $factorPct = $project['commission_factor'] !== null
         <div class="metric-card"><span class="metric-label">Captadores</span><strong class="metric-value"><?= (int) ($metrics['collectors_count'] ?? 0) ?></strong></div>
         <div class="metric-card"><span class="metric-label">Captado (recebido)</span><strong class="metric-value"><?= money_br($metrics['financial_received'] ?? 0) ?></strong></div>
     </div>
+    <div class="actions-row" style="margin-top:12px;">
+        <a href="<?= e(app_url('/quotas?incentive_project_id=' . $id)) ?>" class="btn btn-sm btn-outline">Ver cotas do projeto</a>
+        <?php if (can('quotas.create')): ?>
+            <a href="<?= e(app_url('/quotas/create?incentive_project_id=' . $id)) ?>" class="btn btn-sm btn-yellow">Nova cota para este projeto</a>
+        <?php endif; ?>
+    </div>
 </div>
 
 <div class="form-card" style="margin-bottom:18px;">

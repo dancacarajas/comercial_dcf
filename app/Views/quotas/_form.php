@@ -8,6 +8,7 @@ $old           = $old ?? [];
 $errors        = $errors ?? [];
 $statuses      = $statuses ?? [];
 $idealProfiles = $idealProfiles ?? [];
+$projects      = $projects ?? [];
 
 $val = static fn (string $k, string $default = ''): string => (string) ($old[$k] ?? $default);
 $err = static function (string $k) use ($errors): string {
@@ -20,6 +21,18 @@ $err = static function (string $k) use ($errors): string {
 
     <h3 class="h3-card form-section-title"><i data-lucide="badge-dollar-sign"></i> Dados principais</h3>
     <div class="form-grid">
+        <div class="col-span-2">
+            <label for="incentive_project_id">Projeto incentivado *</label>
+            <select id="incentive_project_id" name="incentive_project_id" required>
+                <option value="">- Selecione -</option>
+                <?php foreach ($projects as $project): ?>
+                    <option value="<?= (int) $project['id'] ?>" <?= (int) $val('incentive_project_id') === (int) $project['id'] ? 'selected' : '' ?>>
+                        <?= e($project['label'] ?? '') ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <?= $err('incentive_project_id') ?>
+        </div>
         <div class="col-span-2">
             <label for="name">Nome da cota *</label>
             <input type="text" id="name" name="name" value="<?= e($val('name')) ?>" maxlength="120" required>
