@@ -289,6 +289,8 @@ return function (Router $router): void {
     $router->post('/commissions/{id}/approve',           'CollectorCommissionController@approve',              ['AuthMiddleware']);
     $router->post('/commissions/{id}/block',             'CollectorCommissionController@block',                ['AuthMiddleware']);
     $router->post('/commissions/{id}/reopen',            'CollectorCommissionController@reopen',               ['AuthMiddleware']);
+    $router->post('/commissions/{id}/payments',          'CollectorCommissionController@pay',                  ['AuthMiddleware']);
+    $router->post('/commissions/payments/{id}/cancel',   'CollectorCommissionController@cancelPayment',        ['AuthMiddleware']);
     $router->get('/commissions/{id}',                    'CollectorCommissionController@show',                 ['AuthMiddleware']);
     $router->post('/financials/{id}/commissions/recalculate', 'CollectorCommissionController@recalculateFinancial', ['AuthMiddleware']);
 

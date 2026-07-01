@@ -1,5 +1,8 @@
 <?php
 $commission = $commission ?? [];
+$payments = $payments ?? [];
+$paymentMethods = $paymentMethods ?? [];
+$paymentStatuses = $paymentStatuses ?? [];
 $snapshot = $snapshot ?? [];
 $model = $model ?? null;
 $canApprove = can('commissions.approve')
@@ -114,6 +117,8 @@ $canReopen = can('commissions.reopen')
                 </div>
             <?php endif; ?>
         </article>
+
+        <?php require __DIR__ . '/_payments_table.php'; ?>
 
         <article class="card" style="margin-top:18px;">
             <h3 class="h3-card"><i data-lucide="file-json"></i> Snapshot do calculo</h3>

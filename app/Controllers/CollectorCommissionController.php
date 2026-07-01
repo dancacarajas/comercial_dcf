@@ -9,9 +9,11 @@ use App\Middlewares\AuthMiddleware;
 use App\Models\ActivityLog;
 use App\Models\Collector;
 use App\Models\CollectorCommission;
+use App\Models\CollectorCommissionPayment;
 use App\Models\CommissionPool;
 use App\Models\IncentiveProject;
 use App\Services\CollectorCommissionCalculator;
+use App\Services\CollectorCommissionPaymentService;
 
 /**
  * Motor interno de comissoes dos captadores (Etapa 20A).
@@ -82,6 +84,9 @@ final class CollectorCommissionController extends Controller
         $this->view('collector_commissions/show', [
             'title' => 'Comissao #' . $id,
             'commission' => $commission,
+            'payments' => (new CollectorCommissionPayment())->findByCommission($id),
+            'paymentMethods' => (new CollectorCommissionPayment())->getMethods(),
+            'paymentStatuses' => (new CollectorCommissionPayment())->getStatuses(),
             'snapshot' => json_decode((string) ($commission['calculation_snapshot_json'] ?? ''), true) ?: [],
             'model' => new CollectorCommission(),
         ]);
@@ -144,6 +149,50 @@ final class CollectorCommissionController extends Controller
             flash('error', $e->getMessage());
         }
         $this->redirect('/commissions/' . $id);
+    }
+
+    public function pay(array $params): void
+    {
+        AuthMiddleware::requirePermission('commissions.pay');
+        csrf_verify();
+
+        $id = (int) ($params['id'] ?? 0);
+        try {
+            $paymentId = (new CollectorCommissionPaymentService())->register($id, [
+                'amount' => input('amount', ''),
+                'payment_date' => input('payment_date', ''),
+                'payment_method' => input('payment_method', ''),
+                'proof_document_id' => input('proof_document_id', 0),
+                'notes' => input('notes', ''),
+            ], $_SESSION['user_id'] ?? null);
+            (new ActivityLog())->record('collector_commission_payment_registered', $_SESSION['user_id'] ?? null, 'collector_commission_payment', $paymentId);
+            flash('success', 'Pagamento de comissao registrado.');
+        } catch (\Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+        $this->redirect('/commissions/' . $id);
+    }
+
+    public function cancelPayment(array $params): void
+    {
+        AuthMiddleware::requirePermission('commissions.cancel_payment');
+        csrf_verify();
+
+        $paymentId = (int) ($params['id'] ?? 0);
+        $commissionId = (int) input('collector_commission_id', 0);
+        try {
+            $commissionId = (new CollectorCommissionPaymentService())->cancel(
+                $paymentId,
+                $_SESSION['user_id'] ?? null,
+                trim((string) input('cancel_reason', '')),
+                trim((string) input('cancel_status', 'cancelado'))
+            );
+            (new ActivityLog())->record('collector_commission_payment_cancelled', $_SESSION['user_id'] ?? null, 'collector_commission_payment', $paymentId);
+            flash('success', 'Pagamento de comissao cancelado/estornado.');
+        } catch (\Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+        $this->redirect('/commissions/' . $commissionId);
     }
 
     /** @return array<string, mixed> */
