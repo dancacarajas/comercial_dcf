@@ -15,6 +15,73 @@ $total = (int) ($total ?? 0);
 $cleanFilters = array_filter($filters, static fn ($v): bool => $v !== '' && $v !== 0 && $v !== null);
 $query = http_build_query($cleanFilters);
 ?>
+<style>
+.commission-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.commission-summary-grid .metric-card {
+    min-height: 62px;
+    padding: 10px 12px;
+}
+.commission-summary-grid .metric-label {
+    font-size: 10px;
+}
+.commission-summary-grid .metric-value {
+    font-size: 16px;
+}
+.commission-filter-panel {
+    border: 1px solid #e6e1d8;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 14px;
+    background: #fff;
+}
+.commission-filter-grid {
+    display: grid;
+    grid-template-columns: minmax(220px, 2fr) minmax(180px, 1.5fr) minmax(180px, 1.5fr) repeat(4, minmax(130px, 1fr)) 120px 120px auto;
+    gap: 8px;
+    align-items: end;
+}
+.commission-filter-grid label {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 11px;
+    font-weight: 700;
+}
+.commission-filter-grid input,
+.commission-filter-grid select {
+    width: 100%;
+    min-height: 34px;
+    padding: 6px 8px;
+    font-size: 12px;
+}
+.commission-filter-grid .filters-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    white-space: nowrap;
+}
+@media (max-width: 1180px) {
+    .commission-filter-grid {
+        grid-template-columns: repeat(4, minmax(150px, 1fr));
+    }
+    .commission-filter-grid .filters-actions {
+        grid-column: span 4;
+    }
+}
+@media (max-width: 720px) {
+    .commission-summary-grid,
+    .commission-filter-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .commission-filter-grid .filters-actions {
+        grid-column: span 2;
+    }
+}
+</style>
 <section class="section">
     <div class="container">
         <div class="page-head">
@@ -30,7 +97,7 @@ $query = http_build_query($cleanFilters);
             </div>
         </div>
 
-        <div class="card-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px;">
+        <div class="commission-summary-grid">
             <div class="metric-card"><span class="metric-label">Gerada</span><strong class="metric-value"><?= e(money_br($summary['generated_total'] ?? 0)) ?></strong></div>
             <div class="metric-card"><span class="metric-label">Aprovada</span><strong class="metric-value"><?= e(money_br($summary['approved_total'] ?? 0)) ?></strong></div>
             <div class="metric-card"><span class="metric-label">A pagar</span><strong class="metric-value"><?= e(money_br($summary['payable_total'] ?? 0)) ?></strong></div>
@@ -38,7 +105,8 @@ $query = http_build_query($cleanFilters);
             <div class="metric-card"><span class="metric-label">Saldo pendente</span><strong class="metric-value"><?= e(money_br($summary['balance_total'] ?? 0)) ?></strong></div>
         </div>
 
-        <form method="get" class="filters-bar">
+        <form method="get" class="commission-filter-panel">
+            <div class="commission-filter-grid">
             <div>
                 <label>Busca</label>
                 <input type="search" name="q" value="<?= e($filters['q'] ?? '') ?>" placeholder="Projeto, captador, financeiro">
@@ -117,6 +185,7 @@ $query = http_build_query($cleanFilters);
             <div class="filters-actions">
                 <button class="btn btn-sm btn-yellow" type="submit"><i data-lucide="search"></i> Filtrar</button>
                 <a href="<?= e(app_url('/commissions')) ?>" class="btn btn-sm btn-outline">Limpar</a>
+            </div>
             </div>
         </form>
 
