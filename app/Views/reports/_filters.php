@@ -49,6 +49,15 @@ $action = $routeMap[$reportKey] ?? app_url('/reports');
             </select>
         </div>
         <div>
+            <label class="label-sm" for="incentive_project_id">Projeto</label>
+            <select id="incentive_project_id" name="incentive_project_id" class="input">
+                <option value="">Todos</option>
+                <?php foreach ($options['projects'] ?? [] as $p): ?>
+                    <option value="<?= (int) $p['id'] ?>" <?= (int) ($filters['incentive_project_id'] ?? 0) === (int) $p['id'] ? 'selected' : '' ?>><?= e($p['label'] ?? '') ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <div>
             <label class="label-sm" for="company_id">Empresa</label>
             <select id="company_id" name="company_id" class="input">
                 <option value="">Todas</option>

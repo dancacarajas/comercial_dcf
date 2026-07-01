@@ -11,6 +11,7 @@ use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Counterpart;
 use App\Models\Document;
+use App\Models\IncentiveProject;
 use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Quota;
@@ -80,14 +81,14 @@ final class CounterpartController extends Controller
         if ($sponsor === null) {
             $this->abort(404, 'Patrocinador não encontrado.');
         }
-        $this->renderForm('counterparts/create', 'Nova contrapartida', $this->applyFromSponsor($this->prefillFromQuery([
+        $this->renderForm('counterparts/create', 'Nova contrapartida', $this->applyProjectScope($this->applyFromSponsor($this->prefillFromQuery([
             'sponsor_id'          => $id,
             'category'            => 'divulgacao_marca',
             'delivery_type'       => 'entrega_unica',
             'priority'            => 'media',
             'status'              => 'planejada',
             'responsible_user_id' => $_SESSION['user_id'] ?? null,
-        ]), $sponsor), []);
+        ]), $sponsor)), []);
     }
 
     public function createForCompany(array $params): void
@@ -176,7 +177,7 @@ final class CounterpartController extends Controller
 
         $model = new Counterpart();
         $data  = $this->collectInput($model);
-        $data  = $this->applyFromSponsor($data);
+        $data  = $this->applyProjectScope($this->applyFromSponsor($data));
 
         $errors = $model->validate($data, 'create');
         $this->validateLinks($data, $errors);
@@ -256,7 +257,7 @@ final class CounterpartController extends Controller
 
         $model  = new Counterpart();
         $data   = $this->collectInput($model);
-        $data   = $this->applyFromSponsor($data);
+        $data   = $this->applyProjectScope($this->applyFromSponsor($data));
         $errors = $model->validate($data, 'update');
         $this->validateLinks($data, $errors);
 
@@ -407,6 +408,7 @@ final class CounterpartController extends Controller
     {
         return [
             'q'                   => (string) input('q', ''),
+            'incentive_project_id'=> (int) input('incentive_project_id', 0),
             'sponsor_id'          => (int) input('sponsor_id', 0),
             'company_id'          => (int) input('company_id', 0),
             'contact_id'          => (int) input('contact_id', 0),
@@ -431,6 +433,7 @@ final class CounterpartController extends Controller
     private function collectInput(Counterpart $model): array
     {
         return [
+            'incentive_project_id' => ($projectId = (int) input('incentive_project_id', 0)) > 0 ? $projectId : null,
             'sponsor_id'           => (int) input('sponsor_id', 0),
             'company_id'           => input('company_id') !== null && input('company_id') !== '' ? (int) input('company_id') : null,
             'contact_id'           => input('contact_id') !== null && input('contact_id') !== '' ? (int) input('contact_id') : null,
@@ -462,7 +465,7 @@ final class CounterpartController extends Controller
     /** @param array<string, mixed> $data @return array<string, mixed> */
     private function prefillFromQuery(array $data): array
     {
-        foreach (['sponsor_id', 'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id', 'evidence_document_id'] as $k) {
+        foreach (['incentive_project_id', 'sponsor_id', 'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id', 'evidence_document_id'] as $k) {
             $q = input($k);
             if ($q !== null && $q !== '') {
                 $data[$k] = (int) $q;
@@ -494,6 +497,30 @@ final class CounterpartController extends Controller
             }
         }
 
+        if (empty($data['incentive_project_id']) && !empty($sponsor['incentive_project_id'])) {
+            $data['incentive_project_id'] = (int) $sponsor['incentive_project_id'];
+        }
+
+        return $data;
+    }
+
+    /** @param array<string, mixed> $data @return array<string, mixed> */
+    private function applyProjectScope(array $data): array
+    {
+        foreach ([
+            'proposal_id' => new Proposal(),
+            'opportunity_id' => new Opportunity(),
+            'quota_id' => new Quota(),
+        ] as $field => $model) {
+            if (!empty($data['incentive_project_id']) || empty($data[$field])) {
+                continue;
+            }
+            $row = $model->findById((int) $data[$field]);
+            if ($row !== null && !empty($row['incentive_project_id'])) {
+                $data['incentive_project_id'] = (int) $row['incentive_project_id'];
+            }
+        }
+
         return $data;
     }
 
@@ -508,6 +535,20 @@ final class CounterpartController extends Controller
         $companyId = (int) ($data['company_id'] ?? 0);
         if ($companyId > 0 && (new Company())->findById($companyId) === null) {
             $errors['company_id'] = 'Empresa não encontrada.';
+        }
+
+        foreach ([
+            'sponsor_id' => [new Sponsor(), 'O patrocinador'],
+            'proposal_id' => [new Proposal(), 'A proposta'],
+            'opportunity_id' => [new Opportunity(), 'A oportunidade'],
+            'quota_id' => [new Quota(), 'A cota'],
+        ] as $field => [$linkModel, $label]) {
+            $linkId = (int) ($data[$field] ?? 0);
+            if ($linkId <= 0 || empty($data['incentive_project_id'])) { continue; }
+            $row = $linkModel->findById($linkId);
+            if ($row !== null && (int) ($row['incentive_project_id'] ?? 0) !== (int) $data['incentive_project_id']) {
+                $errors[$field] = $label . ' nÃ£o pertence ao projeto incentivado informado.';
+            }
         }
 
         $docId = (int) ($data['evidence_document_id'] ?? 0);
@@ -581,6 +622,7 @@ final class CounterpartController extends Controller
         $model     = new Counterpart();
         $sponsorId = (int) ($old['sponsor_id'] ?? 0);
         $companyId = (int) ($old['company_id'] ?? 0);
+        $projectId = (int) ($old['incentive_project_id'] ?? ($counterpart['incentive_project_id'] ?? 0));
 
         $sponsors = (new Sponsor())->paginate(['show_archived' => 0], 1, 300);
         $documents = [];
@@ -598,12 +640,13 @@ final class CounterpartController extends Controller
             'deliveryTypes' => $model->getDeliveryTypes(),
             'statuses'      => $model->getStatuses(),
             'priorities'    => $model->getPriorities(),
+            'projects'      => (new IncentiveProject())->options(true),
             'sponsors'      => $sponsors,
             'companies'     => (new Company())->activeOptions(),
             'contacts'      => $companyId > 0 ? (new Contact())->findByCompany($companyId, 200) : [],
             'opportunities' => $this->linkOptions('opportunities', 'title'),
             'proposals'     => $this->linkOptions('proposals', 'title'),
-            'quotas'        => (new Quota())->activeOptions(),
+            'quotas'        => (new Quota())->activeOptions($projectId > 0 ? $projectId : null),
             'users'         => (new User())->activeList(),
             'documents'     => array_map(static fn ($d) => [
                 'id'    => (int) $d['id'],

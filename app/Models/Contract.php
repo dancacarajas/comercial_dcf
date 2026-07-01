@@ -15,6 +15,7 @@ final class Contract extends Model
 
     /** @var list<string> */
     private const FILLABLE = [
+        'incentive_project_id',
         'sponsor_id', 'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id',
         'draft_document_id', 'final_document_id', 'signed_document_id',
         'contract_number', 'title', 'contract_type', 'formalized_value', 'funding_mechanism',
@@ -28,7 +29,7 @@ final class Contract extends Model
     ];
 
     private const LIST_COLUMNS =
-        'ct.`id`, ct.`sponsor_id`, ct.`company_id`, ct.`contact_id`, ct.`opportunity_id`, ct.`proposal_id`, ct.`quota_id`,
+        'ct.`id`, ct.`incentive_project_id`, ct.`sponsor_id`, ct.`company_id`, ct.`contact_id`, ct.`opportunity_id`, ct.`proposal_id`, ct.`quota_id`,
          ct.`draft_document_id`, ct.`final_document_id`, ct.`signed_document_id`,
          ct.`contract_number`, ct.`title`, ct.`contract_type`, ct.`formalized_value`, ct.`funding_mechanism`,
          ct.`status`, ct.`review_status`, ct.`signature_status`,
@@ -38,6 +39,7 @@ final class Contract extends Model
          ct.`approval_notes`, ct.`signature_notes`, ct.`legal_notes`, ct.`notes`, ct.`internal_notes`,
          ct.`responsible_user_id`, ct.`approved_by`, ct.`signed_registered_by`,
          ct.`created_by`, ct.`updated_by`, ct.`created_at`, ct.`updated_at`, ct.`approved_at`, ct.`archived_at`,
+         ip.`project_name` AS project_name,
          sp.`sponsor_display_name` AS sponsor_name,
          co.`name` AS company_name,
          ctt.`name` AS contact_name,
@@ -230,6 +232,9 @@ final class Contract extends Model
     public function validate(array $data, string $mode = 'create'): array
     {
         $errors = [];
+        if ((int) ($data['incentive_project_id'] ?? 0) <= 0) {
+            $errors['incentive_project_id'] = 'Selecione o projeto incentivado do contrato.';
+        }
         if ((int) ($data['sponsor_id'] ?? 0) <= 0) {
             $errors['sponsor_id'] = 'Selecione o patrocinador / fechamento comercial.';
         }
@@ -305,7 +310,7 @@ final class Contract extends Model
                 $params['q' . $i] = $like;
             }
         }
-        foreach (['sponsor_id', 'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id', 'responsible_user_id'] as $fk) {
+        foreach (['incentive_project_id', 'sponsor_id', 'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id', 'responsible_user_id'] as $fk) {
             $v = (int) ($filters[$fk] ?? 0);
             if ($v > 0) {
                 $conditions[] = 'ct.`' . $fk . '` = :' . $fk;
@@ -347,6 +352,7 @@ final class Contract extends Model
     private function fromJoins(): string
     {
         return ' FROM `contracts` ct
+                 LEFT JOIN `incentive_projects` ip ON ip.`id` = ct.`incentive_project_id`
                  INNER JOIN `sponsors` sp ON sp.`id` = ct.`sponsor_id`
                  LEFT JOIN `companies` co ON co.`id` = ct.`company_id`
                  LEFT JOIN `contacts` ctt ON ctt.`id` = ct.`contact_id`

@@ -10,6 +10,7 @@ use App\Models\ActivityLog;
 use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Document;
+use App\Models\IncentiveProject;
 use App\Models\Lead;
 use App\Models\Opportunity;
 use App\Models\Task;
@@ -152,6 +153,7 @@ final class LeadController extends Controller
             'title'         => 'Converter lead',
             'lead'          => $lead,
             'companies'     => (new Company())->options(),
+            'projects'      => (new IncentiveProject())->options(true),
             'companyContacts' => !empty($lead['company_id'])
                 ? (new Contact())->findByCompany((int) $lead['company_id'], 200) : [],
             'owners'        => (new User())->activeList(),
@@ -173,6 +175,7 @@ final class LeadController extends Controller
         $didContact = false;
         $didOpp     = false;
         $didTask    = false;
+        $projectId  = (int) input('incentive_project_id', 0);
 
         // Empresa
         if (input('do_company') !== null) {
@@ -201,6 +204,7 @@ final class LeadController extends Controller
                 $updates['contact_id'] = $existingCt;
             } elseif (input('create_contact') !== null) {
                 $ctId = (new Contact())->create([
+                    'incentive_project_id' => $projectId,
                     'company_id'      => $companyId,
                     'name'            => clean((string) input('contact_name', $lead['name'] ?? '')),
                     'email'           => $lead['email'] ?? null,
@@ -218,6 +222,11 @@ final class LeadController extends Controller
 
         // Oportunidade
         if (input('do_opportunity') !== null && $companyId > 0) {
+            if ($projectId <= 0) {
+                flash('error', 'Selecione o projeto incentivado para converter o lead em oportunidade.');
+                $this->redirect('/leads/' . $id . '/convert');
+                return;
+            }
             $existingOp = (int) input('existing_opportunity_id', 0);
             if ($existingOp > 0) {
                 $updates['opportunity_id'] = $existingOp;

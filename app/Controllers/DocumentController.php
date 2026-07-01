@@ -13,6 +13,7 @@ use App\Models\Contract;
 use App\Models\Counterpart;
 use App\Models\Document;
 use App\Models\FinancialEntry;
+use App\Models\IncentiveProject;
 use App\Models\Lead;
 use App\Models\Opportunity;
 use App\Models\Proposal;
@@ -604,6 +605,7 @@ final class DocumentController extends Controller
     {
         return [
             'q'                   => (string) input('q', ''),
+            'incentive_project_id'=> (int) input('incentive_project_id', 0),
             'company_id'          => (int) input('company_id', 0),
             'contact_id'          => (int) input('contact_id', 0),
             'opportunity_id'      => (int) input('opportunity_id', 0),
@@ -630,6 +632,7 @@ final class DocumentController extends Controller
     private function collectInput(Document $model): array
     {
         return [
+            'incentive_project_id'=> ($projectId = (int) input('incentive_project_id', 0)) > 0 ? $projectId : null,
             'company_id'          => input('company_id') !== null && input('company_id') !== '' ? (int) input('company_id') : null,
             'contact_id'          => input('contact_id') !== null && input('contact_id') !== '' ? (int) input('contact_id') : null,
             'opportunity_id'      => input('opportunity_id') !== null && input('opportunity_id') !== '' ? (int) input('opportunity_id') : null,
@@ -667,7 +670,7 @@ final class DocumentController extends Controller
     /** @param array<string, mixed> $data @return array<string, mixed> */
     private function prefillFromQuery(array $data): array
     {
-        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id', 'financial_entry_id', 'sponsor_dossier_id'] as $k) {
+        foreach (['incentive_project_id', 'company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id', 'financial_entry_id', 'sponsor_dossier_id'] as $k) {
             $q = input($k);
             if ($q !== null && $q !== '') {
                 $data[$k] = (int) $q;
@@ -836,6 +839,25 @@ final class DocumentController extends Controller
 
         if (empty($data['document_date'])) {
             $data['document_date'] = date('Y-m-d');
+        }
+
+        foreach ([
+            'opportunity_id' => new Opportunity(),
+            'proposal_id' => new Proposal(),
+            'sponsor_id' => new Sponsor(),
+            'contract_id' => new Contract(),
+            'financial_entry_id' => new FinancialEntry(),
+            'sponsor_dossier_id' => new SponsorDossier(),
+            'counterpart_id' => new Counterpart(),
+            'quota_id' => new Quota(),
+        ] as $field => $linkedModel) {
+            if (!empty($data['incentive_project_id']) || empty($data[$field])) {
+                continue;
+            }
+            $row = $linkedModel->findById((int) $data[$field]);
+            if ($row !== null && !empty($row['incentive_project_id'])) {
+                $data['incentive_project_id'] = (int) $row['incentive_project_id'];
+            }
         }
 
         return $data;
@@ -1106,6 +1128,7 @@ final class DocumentController extends Controller
     {
         $model     = new Document();
         $companyId = (int) ($old['company_id'] ?? ($document['company_id'] ?? 0));
+        $projectId = (int) ($old['incentive_project_id'] ?? ($document['incentive_project_id'] ?? 0));
         $companyContacts = $companyId > 0 ? (new Contact())->findByCompany($companyId, 200) : [];
 
         $this->view($view, [
@@ -1117,9 +1140,10 @@ final class DocumentController extends Controller
             'categories'      => $model->getCategories(),
             'statuses'        => $model->getStatuses(),
             'accessLevels'    => $model->getAccessLevels(),
+            'projects'        => (new IncentiveProject())->options(true),
             'companies'       => (new Company())->activeOptions(),
             'opportunities'   => $this->linkOptions('opportunities', 'title'),
-            'quotas'          => (new Quota())->activeOptions(),
+            'quotas'          => (new Quota())->activeOptions($projectId > 0 ? $projectId : null),
             'proposals'       => $this->proposalFilterOptions(),
             'leads'           => $this->leadFilterOptions(),
             'sponsors'        => $this->sponsorFilterOptions(),

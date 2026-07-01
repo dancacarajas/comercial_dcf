@@ -2355,8 +2355,33 @@ ALTER TABLE `opportunities`         ADD COLUMN `incentive_project_id` BIGINT UNS
 ALTER TABLE `proposals`             ADD COLUMN `incentive_project_id` BIGINT UNSIGNED NULL DEFAULT NULL, ADD KEY `idx_proposals_incentive_project` (`incentive_project_id`);
 ALTER TABLE `sponsors`              ADD COLUMN `incentive_project_id` BIGINT UNSIGNED NULL DEFAULT NULL, ADD KEY `idx_sponsors_incentive_project` (`incentive_project_id`);
 ALTER TABLE `financial_entries`     ADD COLUMN `incentive_project_id` BIGINT UNSIGNED NULL DEFAULT NULL, ADD KEY `idx_financial_entries_incentive_project` (`incentive_project_id`);
+ALTER TABLE `contracts`             ADD COLUMN `incentive_project_id` BIGINT UNSIGNED NULL DEFAULT NULL, ADD KEY `idx_contracts_incentive_project` (`incentive_project_id`);
+ALTER TABLE `documents`             ADD COLUMN `incentive_project_id` BIGINT UNSIGNED NULL DEFAULT NULL, ADD KEY `idx_documents_incentive_project` (`incentive_project_id`);
+ALTER TABLE `counterparts`          ADD COLUMN `incentive_project_id` BIGINT UNSIGNED NULL DEFAULT NULL, ADD KEY `idx_counterparts_incentive_project` (`incentive_project_id`);
+ALTER TABLE `sponsor_dossiers`      ADD COLUMN `incentive_project_id` BIGINT UNSIGNED NULL DEFAULT NULL, ADD KEY `idx_sponsor_dossiers_incentive_project` (`incentive_project_id`);
 ALTER TABLE `collector_assignments` ADD COLUMN `incentive_project_id` BIGINT UNSIGNED NULL DEFAULT NULL, ADD KEY `idx_collector_assignments_incentive_project` (`incentive_project_id`);
 ALTER TABLE `collector_deals`       ADD COLUMN `incentive_project_id` BIGINT UNSIGNED NULL DEFAULT NULL, ADD KEY `idx_collector_deals_incentive_project` (`incentive_project_id`);
+
+INSERT INTO `incentive_projects`
+    (`project_name`, `edition_year`, `law_framework`, `proponent_name`, `project_status`,
+     `approved_total_amount`, `authorized_capture_amount`, `capture_commission_budget`,
+     `commission_factor`, `notes`, `created_at`)
+SELECT 'Dança Carajás Festival 2026', 2026, 'Lei Rouanet / Incentivo Fiscal Federal', 'Dança Carajás',
+       'em_captacao', 470448.00, 470448.00, 42768.00, 0.0909090909,
+       'Projeto criado automaticamente na instalação inicial.', NOW()
+WHERE NOT EXISTS (
+    SELECT 1 FROM `incentive_projects`
+     WHERE `project_name` = 'Dança Carajás Festival 2026' AND `edition_year` = 2026
+);
+
+UPDATE `quotas`
+   SET `incentive_project_id` = (
+       SELECT `id` FROM `incentive_projects`
+        WHERE `project_name` = 'Dança Carajás Festival 2026' AND `edition_year` = 2026
+        ORDER BY `id` ASC LIMIT 1
+   )
+ WHERE `incentive_project_id` IS NULL
+   AND `name` IN ('Cota Apresenta', 'Cota Carajás', 'Cota Movimento', 'Cota Formação', 'Cota Incentivador', 'Círculo Dança Carajás');
 
 INSERT INTO `permissions` (`name`, `slug`, `description`) VALUES
     ('Projetos incentivados: visualizar',         'incentive_projects.view',             'Visualizar projetos incentivados / PRONACs'),

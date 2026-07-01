@@ -30,7 +30,7 @@ final class FinancialEntry extends Model
     ];
 
     private const LIST_COLUMNS =
-        'fe.`id`, fe.`sponsor_id`, fe.`contract_id`, fe.`company_id`, fe.`contact_id`, fe.`opportunity_id`, fe.`proposal_id`, fe.`quota_id`,
+        'fe.`id`, fe.`incentive_project_id`, fe.`sponsor_id`, fe.`contract_id`, fe.`company_id`, fe.`contact_id`, fe.`opportunity_id`, fe.`proposal_id`, fe.`quota_id`,
          fe.`proof_document_id`, fe.`receipt_document_id`, fe.`fiscal_document_id`,
          fe.`entry_number`, fe.`title`, fe.`entry_type`, fe.`funding_mechanism`, fe.`payment_method`,
          fe.`status`, fe.`fiscal_document_status`,
@@ -41,6 +41,7 @@ final class FinancialEntry extends Model
          fe.`proof_notes`, fe.`receipt_notes`, fe.`fiscal_notes`, fe.`reconciliation_notes`, fe.`notes`, fe.`internal_notes`,
          fe.`responsible_user_id`, fe.`confirmed_by`, fe.`reconciled_by`, fe.`cancelled_by`,
          fe.`created_by`, fe.`updated_by`, fe.`created_at`, fe.`updated_at`, fe.`archived_at`,
+         ip.`project_name` AS project_name,
          sp.`sponsor_display_name` AS sponsor_name,
          cn.`title` AS contract_title,
          cn.`contract_number` AS contract_number,
@@ -240,6 +241,9 @@ final class FinancialEntry extends Model
     public function validate(array $data, string $mode = 'create'): array
     {
         $errors = [];
+        if ((int) ($data['incentive_project_id'] ?? 0) <= 0) {
+            $errors['incentive_project_id'] = 'Selecione o projeto incentivado do lançamento financeiro.';
+        }
         if ((int) ($data['sponsor_id'] ?? 0) <= 0) {
             $errors['sponsor_id'] = 'Selecione o patrocinador / fechamento comercial.';
         }
@@ -324,7 +328,7 @@ final class FinancialEntry extends Model
                 $params['q' . $i] = $like;
             }
         }
-        foreach (['sponsor_id', 'contract_id', 'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id', 'responsible_user_id'] as $fk) {
+        foreach (['incentive_project_id', 'sponsor_id', 'contract_id', 'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id', 'responsible_user_id'] as $fk) {
             $v = (int) ($filters[$fk] ?? 0);
             if ($v > 0) {
                 $conditions[] = 'fe.`' . $fk . '` = :' . $fk;
@@ -386,6 +390,7 @@ final class FinancialEntry extends Model
     private function fromJoins(): string
     {
         return ' FROM `financial_entries` fe
+                 LEFT JOIN `incentive_projects` ip ON ip.`id` = fe.`incentive_project_id`
                  INNER JOIN `sponsors` sp ON sp.`id` = fe.`sponsor_id`
                  LEFT JOIN `contracts` cn ON cn.`id` = fe.`contract_id`
                  LEFT JOIN `companies` co ON co.`id` = fe.`company_id`

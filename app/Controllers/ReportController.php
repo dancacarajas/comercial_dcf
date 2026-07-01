@@ -371,6 +371,7 @@ final class ReportController extends Controller
             'period_start'        => input('period_start'),
             'period_end'          => input('period_end'),
             'responsible_user_id' => input('responsible_user_id'),
+            'incentive_project_id'=> input('incentive_project_id'),
             'company_id'          => input('company_id'),
             'sponsor_id'          => input('sponsor_id'),
             'quota_id'            => input('quota_id'),
@@ -403,7 +404,7 @@ final class ReportController extends Controller
                 return true;
             }
         }
-        foreach (['responsible_user_id', 'company_id', 'sponsor_id', 'quota_id'] as $k) {
+        foreach (['responsible_user_id', 'incentive_project_id', 'company_id', 'sponsor_id', 'quota_id'] as $k) {
             if ((int) ($filters[$k] ?? 0) > 0) {
                 return true;
             }

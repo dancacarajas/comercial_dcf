@@ -9,6 +9,7 @@ $fundingMechanisms = $fundingMechanisms ?? [];
 $paymentMethods = $paymentMethods ?? [];
 $statuses = $statuses ?? [];
 $fiscalStatuses = $fiscalStatuses ?? [];
+$projects = $projects ?? [];
 $sponsors = $sponsors ?? [];
 $contracts = $contracts ?? [];
 $companies = $companies ?? [];
@@ -36,6 +37,18 @@ $balance = $remainingPreview ?? max(0.0, round($planned - $received, 2));
 
     <h3 class="h3-card form-section-title"><i data-lucide="link"></i> Vínculos</h3>
     <div class="form-grid">
+        <div class="form-grid-full">
+            <label for="incentive_project_id">Projeto incentivado *</label>
+            <select id="incentive_project_id" name="incentive_project_id" required>
+                <option value="">— Selecione —</option>
+                <?php foreach ($projects as $project): ?>
+                    <option value="<?= (int) $project['id'] ?>" <?= (int) $val('incentive_project_id') === (int) $project['id'] ? 'selected' : '' ?>>
+                        <?= e($project['label'] ?? '') ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <?= $err('incentive_project_id') ?>
+        </div>
         <div class="form-grid-full">
             <label for="sponsor_id">Patrocinador / fechamento *</label>
             <select id="sponsor_id" name="sponsor_id" required>

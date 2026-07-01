@@ -83,6 +83,7 @@ final class Document extends Model
 
     /** @var list<string> */
     private const FILLABLE = [
+        'incentive_project_id',
         'company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id', 'financial_entry_id', 'sponsor_dossier_id', 'collector_application_id',
         'title', 'description', 'category', 'status', 'access_level',
         'file_path', 'original_name', 'stored_name', 'extension', 'mime_type', 'size_bytes', 'checksum_sha256',
@@ -91,12 +92,13 @@ final class Document extends Model
     ];
 
     private const LIST_COLUMNS = '
-        d.`id`, d.`company_id`, d.`contact_id`, d.`opportunity_id`, d.`quota_id`, d.`proposal_id`, d.`lead_id`, d.`sponsor_id`, d.`counterpart_id`, d.`contract_id`, d.`financial_entry_id`, d.`sponsor_dossier_id`, d.`collector_application_id`,
+        d.`id`, d.`incentive_project_id`, d.`company_id`, d.`contact_id`, d.`opportunity_id`, d.`quota_id`, d.`proposal_id`, d.`lead_id`, d.`sponsor_id`, d.`counterpart_id`, d.`contract_id`, d.`financial_entry_id`, d.`sponsor_dossier_id`, d.`collector_application_id`,
         d.`title`, d.`description`, d.`category`, d.`status`, d.`access_level`,
         d.`original_name`, d.`extension`, d.`mime_type`, d.`size_bytes`, d.`checksum_sha256`,
         d.`version_number`, d.`parent_document_id`, d.`document_date`, d.`valid_until`,
         d.`responsible_user_id`, d.`notes`, d.`created_by`, d.`updated_by`,
         d.`created_at`, d.`updated_at`, d.`archived_at`,
+        ip.`project_name` AS project_name,
         co.`name` AS company_name,
         ct.`name` AS contact_name,
         o.`title` AS opportunity_title,
@@ -345,7 +347,7 @@ final class Document extends Model
             $params['q'] = '%' . $q . '%';
         }
 
-        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id', 'financial_entry_id', 'sponsor_dossier_id', 'collector_application_id', 'responsible_user_id'] as $fk) {
+        foreach (['incentive_project_id', 'company_id', 'contact_id', 'opportunity_id', 'quota_id', 'proposal_id', 'lead_id', 'sponsor_id', 'counterpart_id', 'contract_id', 'financial_entry_id', 'sponsor_dossier_id', 'collector_application_id', 'responsible_user_id'] as $fk) {
             $v = (int) ($filters[$fk] ?? 0);
             if ($v > 0) {
                 $conditions[] = 'd.`' . $fk . '` = :' . $fk;
@@ -387,6 +389,7 @@ final class Document extends Model
     private function fromJoins(): string
     {
         return ' FROM `documents` d
+                 LEFT JOIN `incentive_projects` ip ON ip.`id` = d.`incentive_project_id`
                  LEFT JOIN `companies` co ON co.`id` = d.`company_id`
                  LEFT JOIN `contacts` ct ON ct.`id` = d.`contact_id`
                  LEFT JOIN `opportunities` o ON o.`id` = d.`opportunity_id`

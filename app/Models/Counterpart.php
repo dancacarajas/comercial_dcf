@@ -15,6 +15,7 @@ final class Counterpart extends Model
 
     /** @var list<string> */
     private const FILLABLE = [
+        'incentive_project_id',
         'sponsor_id', 'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id',
         'evidence_document_id', 'title', 'category', 'delivery_type', 'description',
         'promised_quantity', 'delivered_quantity', 'unit', 'priority', 'status',
@@ -24,13 +25,14 @@ final class Counterpart extends Model
     ];
 
     private const LIST_COLUMNS =
-        'cp.`id`, cp.`sponsor_id`, cp.`company_id`, cp.`contact_id`, cp.`opportunity_id`, cp.`proposal_id`, cp.`quota_id`,
+        'cp.`id`, cp.`incentive_project_id`, cp.`sponsor_id`, cp.`company_id`, cp.`contact_id`, cp.`opportunity_id`, cp.`proposal_id`, cp.`quota_id`,
          cp.`evidence_document_id`, cp.`title`, cp.`category`, cp.`delivery_type`, cp.`description`,
          cp.`promised_quantity`, cp.`delivered_quantity`, cp.`unit`, cp.`priority`, cp.`status`,
          cp.`due_date`, cp.`started_at`, cp.`delivered_at`, cp.`approved_at`,
          cp.`evidence_description`, cp.`evidence_url`, cp.`responsible_user_id`, cp.`approved_by`,
          cp.`notes`, cp.`internal_notes`, cp.`created_by`, cp.`updated_by`, cp.`delivered_by`,
          cp.`created_at`, cp.`updated_at`, cp.`archived_at`,
+         ip.`project_name` AS project_name,
          sp.`sponsor_display_name` AS sponsor_name,
          co.`name` AS company_name,
          ct.`name` AS contact_name,
@@ -238,6 +240,10 @@ final class Counterpart extends Model
     {
         $errors = [];
 
+        if ((int) ($data['incentive_project_id'] ?? 0) <= 0) {
+            $errors['incentive_project_id'] = 'Selecione o projeto incentivado da contrapartida.';
+        }
+
         $sponsorId = (int) ($data['sponsor_id'] ?? 0);
         if ($sponsorId <= 0) {
             $errors['sponsor_id'] = 'Selecione o patrocinador / fechamento comercial.';
@@ -333,7 +339,7 @@ final class Counterpart extends Model
             $params['q7'] = $like;
         }
 
-        foreach (['sponsor_id', 'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id', 'responsible_user_id'] as $fk) {
+        foreach (['incentive_project_id', 'sponsor_id', 'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id', 'responsible_user_id'] as $fk) {
             $v = (int) ($filters[$fk] ?? 0);
             if ($v > 0) {
                 $conditions[] = 'cp.`' . $fk . '` = :' . $fk;
@@ -380,6 +386,7 @@ final class Counterpart extends Model
     private function fromJoins(): string
     {
         return ' FROM `counterparts` cp
+                 LEFT JOIN `incentive_projects` ip ON ip.`id` = cp.`incentive_project_id`
                  INNER JOIN `sponsors` sp ON sp.`id` = cp.`sponsor_id`
                  LEFT JOIN `companies` co ON co.`id` = cp.`company_id`
                  LEFT JOIN `contacts` ct ON ct.`id` = cp.`contact_id`

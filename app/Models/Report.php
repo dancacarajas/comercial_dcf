@@ -39,6 +39,7 @@ final class Report extends Model
             'period_start'         => $this->normalizeDate((string) ($input['period_start'] ?? '')),
             'period_end'           => $this->normalizeDate((string) ($input['period_end'] ?? '')),
             'responsible_user_id'  => max(0, (int) ($input['responsible_user_id'] ?? 0)),
+            'incentive_project_id' => max(0, (int) ($input['incentive_project_id'] ?? 0)),
             'company_id'           => max(0, (int) ($input['company_id'] ?? 0)),
             'sponsor_id'           => max(0, (int) ($input['sponsor_id'] ?? 0)),
             'quota_id'             => max(0, (int) ($input['quota_id'] ?? 0)),
@@ -97,6 +98,7 @@ final class Report extends Model
     public function buildCommonOptions(): array
     {
         return [
+            'projects'  => (new IncentiveProject())->options(true),
             'companies' => (new Company())->activeOptions(),
             'sponsors'  => $this->query(
                 'SELECT `id`, `sponsor_display_name` AS `name`
@@ -717,7 +719,7 @@ final class Report extends Model
     {
         $filters = $this->normalizeFilters($filters);
         foreach ([
-            'period_start', 'period_end', 'responsible_user_id',
+            'period_start', 'period_end', 'responsible_user_id', 'incentive_project_id',
             'company_id', 'sponsor_id', 'quota_id', 'status', 'source',
             'only_pending', 'only_overdue',
         ] as $key) {
@@ -756,6 +758,10 @@ final class Report extends Model
         }
         if ($filters['quota_id'] > 0 && $module !== 'company' && $module !== 'contact' && $module !== 'lead') {
             $base['quota_id'] = $filters['quota_id'];
+        }
+        if ($filters['incentive_project_id'] > 0
+            && in_array($module, ['opportunity', 'proposal', 'sponsor', 'contract', 'counterpart', 'financial', 'dossier', 'document'], true)) {
+            $base['incentive_project_id'] = $filters['incentive_project_id'];
         }
         if ($filters['status'] !== '') {
             $base['status'] = $filters['status'];

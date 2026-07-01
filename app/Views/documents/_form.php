@@ -4,6 +4,7 @@
  */
 $old             = $old ?? [];
 $errors          = $errors ?? [];
+$projects        = $projects ?? [];
 $companies       = $companies ?? [];
 $companyContacts = $companyContacts ?? [];
 $opportunities   = $opportunities ?? [];
@@ -30,6 +31,16 @@ $err = static function (string $k) use ($errors): string {
 
     <h3 class="h3-card form-section-title"><i data-lucide="link"></i> Vínculos</h3>
     <div class="form-grid">
+        <div class="form-grid-full">
+            <label for="incentive_project_id">Projeto incentivado</label>
+            <select id="incentive_project_id" name="incentive_project_id">
+                <option value="">— Opcional —</option>
+                <?php foreach ($projects as $project): ?>
+                    <option value="<?= (int) $project['id'] ?>" <?= (int) $val('incentive_project_id') === (int) $project['id'] ? 'selected' : '' ?>><?= e($project['label'] ?? '') ?></option>
+                <?php endforeach; ?>
+            </select>
+            <?= $err('incentive_project_id') ?>
+        </div>
         <div>
             <label for="company_id">Empresa</label>
             <select id="company_id" name="company_id">

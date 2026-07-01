@@ -15,6 +15,7 @@ final class SponsorDossier extends Model
 
     /** @var list<string> */
     private const FILLABLE = [
+        'incentive_project_id',
         'sponsor_id', 'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id', 'main_contract_id',
         'main_document_id', 'final_document_id', 'delivery_receipt_document_id',
         'dossier_number', 'title', 'dossier_type', 'status', 'delivery_status',
@@ -34,7 +35,7 @@ final class SponsorDossier extends Model
     ];
 
     private const LIST_COLUMNS =
-        'sd.`id`, sd.`sponsor_id`, sd.`company_id`, sd.`contact_id`, sd.`opportunity_id`, sd.`proposal_id`, sd.`quota_id`, sd.`main_contract_id`,
+        'sd.`id`, sd.`incentive_project_id`, sd.`sponsor_id`, sd.`company_id`, sd.`contact_id`, sd.`opportunity_id`, sd.`proposal_id`, sd.`quota_id`, sd.`main_contract_id`,
          sd.`main_document_id`, sd.`final_document_id`, sd.`delivery_receipt_document_id`,
          sd.`dossier_number`, sd.`title`, sd.`dossier_type`, sd.`status`, sd.`delivery_status`,
          sd.`period_start`, sd.`period_end`,
@@ -51,6 +52,7 @@ final class SponsorDossier extends Model
          sd.`generated_at`, sd.`approved_at`, sd.`delivered_at`,
          sd.`responsible_user_id`, sd.`generated_by`, sd.`approved_by`, sd.`delivered_by`, sd.`created_by`, sd.`updated_by`,
          sd.`created_at`, sd.`updated_at`, sd.`archived_at`,
+         ip.`project_name` AS project_name,
          sp.`sponsor_display_name` AS sponsor_name,
          co.`name` AS company_name,
          ctt.`name` AS contact_name,
@@ -183,6 +185,9 @@ final class SponsorDossier extends Model
     public function validate(array $data, string $mode = 'create'): array
     {
         $errors = [];
+        if ((int) ($data['incentive_project_id'] ?? 0) <= 0) {
+            $errors['incentive_project_id'] = 'Selecione o projeto incentivado do dossiê.';
+        }
         if ((int) ($data['sponsor_id'] ?? 0) <= 0) {
             $errors['sponsor_id'] = 'Selecione o patrocinador / fechamento comercial.';
         }
@@ -240,7 +245,7 @@ final class SponsorDossier extends Model
                 $params['q' . $i] = $like;
             }
         }
-        foreach (['sponsor_id', 'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id', 'responsible_user_id'] as $fk) {
+        foreach (['incentive_project_id', 'sponsor_id', 'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id', 'responsible_user_id'] as $fk) {
             $v = (int) ($filters[$fk] ?? 0);
             if ($v > 0) {
                 $conditions[] = 'sd.`' . $fk . '` = :' . $fk;
@@ -295,6 +300,7 @@ final class SponsorDossier extends Model
     private function fromJoins(): string
     {
         return ' FROM `sponsor_dossiers` sd
+                 LEFT JOIN `incentive_projects` ip ON ip.`id` = sd.`incentive_project_id`
                  INNER JOIN `sponsors` sp ON sp.`id` = sd.`sponsor_id`
                  LEFT JOIN `companies` co ON co.`id` = sd.`company_id`
                  LEFT JOIN `contacts` ctt ON ctt.`id` = sd.`contact_id`

@@ -1,5 +1,5 @@
 <?php
-$lead = $lead ?? []; $companies = $companies ?? []; $owners = $owners ?? [];
+$lead = $lead ?? []; $companies = $companies ?? []; $owners = $owners ?? []; $projects = $projects ?? [];
 $id = (int)($lead['id']??0);
 ?>
 <section class="section"><div class="container">
@@ -31,6 +31,7 @@ $id = (int)($lead['id']??0);
 <label class="check-inline"><input type="checkbox" name="do_opportunity" value="1"> Criar oportunidade</label>
 <div class="form-grid" style="margin-top:12px;">
 <div class="col-span-2"><label>Título</label><input type="text" name="opportunity_title" value="Oportunidade — <?= e($lead['company_name']??$lead['name']??'Lead') ?>"></div>
+<div class="col-span-2"><label>Projeto incentivado *</label><select name="incentive_project_id"><option value="">— Selecione —</option><?php foreach ($projects as $project): ?><option value="<?= (int)$project['id'] ?>"><?= e($project['label'] ?? '') ?></option><?php endforeach; ?></select></div>
 <div><label>Criar nova</label><input type="checkbox" name="create_opportunity" value="1" checked></div>
 </div></article>
 

@@ -13,6 +13,7 @@ use App\Models\Contract;
 use App\Models\Counterpart;
 use App\Models\Document;
 use App\Models\FinancialEntry;
+use App\Models\IncentiveProject;
 use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Quota;
@@ -117,6 +118,7 @@ final class SponsorDossierController extends Controller
             'company_id'     => (int) $opp['company_id'],
             'contact_id'     => $opp['contact_id'] ? (int) $opp['contact_id'] : null,
             'opportunity_id' => $id,
+            'incentive_project_id' => !empty($opp['incentive_project_id']) ? (int) $opp['incentive_project_id'] : null,
             'quota_id'       => $opp['quota_id'] ? (int) $opp['quota_id'] : null,
         ])), []);
     }
@@ -134,6 +136,7 @@ final class SponsorDossierController extends Controller
             'contact_id'     => $prop['contact_id'] ? (int) $prop['contact_id'] : null,
             'opportunity_id' => $prop['opportunity_id'] ? (int) $prop['opportunity_id'] : null,
             'proposal_id'    => $id,
+            'incentive_project_id' => !empty($prop['incentive_project_id']) ? (int) $prop['incentive_project_id'] : null,
             'quota_id'       => $prop['quota_id'] ? (int) $prop['quota_id'] : null,
         ])), []);
     }
@@ -148,6 +151,7 @@ final class SponsorDossierController extends Controller
         }
         $this->renderForm('sponsor_dossiers/create', 'Novo dossiê', $this->prefillFromQuery(array_merge($this->defaultFormData(), [
             'quota_id' => $id,
+            'incentive_project_id' => !empty($quota['incentive_project_id']) ? (int) $quota['incentive_project_id'] : null,
         ])), []);
     }
 
@@ -159,9 +163,9 @@ final class SponsorDossierController extends Controller
         if ($contract === null) {
             $this->abort(404, 'Contrato não encontrado.');
         }
-        $data = $this->applyFromContract($this->applyFromSponsor($this->prefillFromQuery(array_merge($this->defaultFormData(), [
+        $data = $this->applyProjectScope($this->applyFromContract($this->applyFromSponsor($this->prefillFromQuery(array_merge($this->defaultFormData(), [
             'main_contract_id' => $id,
-        ]))), $contract);
+        ]))), $contract));
         $this->renderForm('sponsor_dossiers/create', 'Novo dossiê', $data, []);
     }
 
@@ -172,7 +176,7 @@ final class SponsorDossierController extends Controller
 
         $model = new SponsorDossier();
         $data  = $this->collectInput($model);
-        $data  = $this->applyFromContract($this->applyFromSponsor($data));
+        $data  = $this->applyProjectScope($this->applyFromContract($this->applyFromSponsor($data)));
 
         if (trim((string) ($data['title'] ?? '')) === '') {
             $sponsorId = (int) ($data['sponsor_id'] ?? 0);
@@ -266,7 +270,7 @@ final class SponsorDossierController extends Controller
 
         $model  = new SponsorDossier();
         $data   = $this->collectInput($model);
-        $data   = $this->applyFromContract($this->applyFromSponsor($data));
+        $data   = $this->applyProjectScope($this->applyFromContract($this->applyFromSponsor($data)));
         $errors = $model->validate($data, 'update');
         $this->validateLinks($data, $errors);
 
@@ -624,6 +628,7 @@ final class SponsorDossierController extends Controller
 
         return [
             'q'                    => (string) input('q', ''),
+            'incentive_project_id' => (int) input('incentive_project_id', 0),
             'sponsor_id'           => (int) input('sponsor_id', 0),
             'company_id'           => (int) input('company_id', 0),
             'contact_id'           => (int) input('contact_id', 0),
@@ -651,6 +656,7 @@ final class SponsorDossierController extends Controller
     private function collectInput(SponsorDossier $model): array
     {
         return [
+            'incentive_project_id'           => ($projectId = (int) input('incentive_project_id', 0)) > 0 ? $projectId : null,
             'sponsor_id'                     => (int) input('sponsor_id', 0),
             'company_id'                     => input('company_id') !== null && input('company_id') !== '' ? (int) input('company_id') : null,
             'contact_id'                     => input('contact_id') !== null && input('contact_id') !== '' ? (int) input('contact_id') : null,
@@ -717,7 +723,7 @@ final class SponsorDossierController extends Controller
     private function prefillFromQuery(array $data): array
     {
         foreach ([
-            'sponsor_id', 'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id',
+            'incentive_project_id', 'sponsor_id', 'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id',
             'main_contract_id', 'main_document_id', 'final_document_id', 'delivery_receipt_document_id',
         ] as $k) {
             $q = input($k);
@@ -766,6 +772,10 @@ final class SponsorDossierController extends Controller
             }
         }
 
+        if (empty($data['incentive_project_id']) && !empty($sponsor['incentive_project_id'])) {
+            $data['incentive_project_id'] = (int) $sponsor['incentive_project_id'];
+        }
+
         if (empty($data['main_contract_id'])) {
             $contracts = (new Contract())->findBySponsor($sponsorId, 1);
             if ($contracts !== []) {
@@ -802,6 +812,30 @@ final class SponsorDossierController extends Controller
             }
         }
 
+        if (empty($data['incentive_project_id']) && !empty($contract['incentive_project_id'])) {
+            $data['incentive_project_id'] = (int) $contract['incentive_project_id'];
+        }
+
+        return $data;
+    }
+
+    /** @param array<string, mixed> $data @return array<string, mixed> */
+    private function applyProjectScope(array $data): array
+    {
+        foreach ([
+            'proposal_id' => new Proposal(),
+            'opportunity_id' => new Opportunity(),
+            'quota_id' => new Quota(),
+        ] as $field => $model) {
+            if (!empty($data['incentive_project_id']) || empty($data[$field])) {
+                continue;
+            }
+            $row = $model->findById((int) $data[$field]);
+            if ($row !== null && !empty($row['incentive_project_id'])) {
+                $data['incentive_project_id'] = (int) $row['incentive_project_id'];
+            }
+        }
+
         return $data;
     }
 
@@ -821,6 +855,21 @@ final class SponsorDossierController extends Controller
         $companyId = (int) ($data['company_id'] ?? 0);
         if ($companyId > 0 && (new Company())->findById($companyId) === null) {
             $errors['company_id'] = 'Empresa não encontrada.';
+        }
+
+        foreach ([
+            'sponsor_id' => [new Sponsor(), 'O patrocinador'],
+            'main_contract_id' => [new Contract(), 'O contrato'],
+            'proposal_id' => [new Proposal(), 'A proposta'],
+            'opportunity_id' => [new Opportunity(), 'A oportunidade'],
+            'quota_id' => [new Quota(), 'A cota'],
+        ] as $field => [$linkModel, $label]) {
+            $linkId = (int) ($data[$field] ?? 0);
+            if ($linkId <= 0 || empty($data['incentive_project_id'])) { continue; }
+            $row = $linkModel->findById($linkId);
+            if ($row !== null && (int) ($row['incentive_project_id'] ?? 0) !== (int) $data['incentive_project_id']) {
+                $errors[$field] = $label . ' nÃ£o pertence ao projeto incentivado informado.';
+            }
         }
 
         $docModel = new Document();
@@ -936,6 +985,7 @@ final class SponsorDossierController extends Controller
         $sponsorId      = (int) ($old['sponsor_id'] ?? 0);
         $companyId      = (int) ($old['company_id'] ?? 0);
         $mainContractId = (int) ($old['main_contract_id'] ?? 0);
+        $projectId      = (int) ($old['incentive_project_id'] ?? ($dossier['incentive_project_id'] ?? 0));
 
         $sponsors  = (new Sponsor())->paginate(['show_archived' => 0], 1, 300);
         $documents = [];
@@ -956,13 +1006,14 @@ final class SponsorDossierController extends Controller
             'dossierTypes'     => $model->getDossierTypes(),
             'statuses'         => $model->getStatuses(),
             'deliveryStatuses' => $model->getDeliveryStatuses(),
+            'projects'         => (new IncentiveProject())->options(true),
             'sponsors'         => $sponsors,
             'contracts'        => $this->contractFilterOptions(),
             'companies'        => (new Company())->activeOptions(),
             'contacts'         => $companyId > 0 ? (new Contact())->findByCompany($companyId, 200) : [],
             'opportunities'    => $this->linkOptions('opportunities', 'title'),
             'proposals'        => $this->linkOptions('proposals', 'title'),
-            'quotas'           => (new Quota())->activeOptions(),
+            'quotas'           => (new Quota())->activeOptions($projectId > 0 ? $projectId : null),
             'users'            => (new User())->activeList(),
             'documents'        => array_map(static fn ($d) => [
                 'id'    => (int) $d['id'],
