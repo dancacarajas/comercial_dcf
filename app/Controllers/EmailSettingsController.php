@@ -79,7 +79,7 @@ final class EmailSettingsController extends Controller
         (new MailSetting())->markTest($result['status'], $result['message']);
         (new ActivityLog())->record('email_settings_test_sent', $_SESSION['user_id'] ?? null, 'email_log', (int) $result['log_id']);
 
-        $kind = in_array($result['status'], ['sent', 'simulated', 'skipped'], true) ? 'success' : 'error';
+        $kind = $result['status'] === 'sent' ? 'success' : (in_array($result['status'], ['simulated', 'skipped'], true) ? 'warning' : 'error');
         flash($kind, 'Teste de e-mail: ' . $result['message']);
         $this->redirect('/settings/email');
     }
@@ -147,7 +147,7 @@ final class EmailSettingsController extends Controller
             'reply_to_name' => clean((string) input('reply_to_name', 'Equipe Danca Carajas')),
             'reply_to_email' => clean((string) input('reply_to_email', '')),
             'enabled' => (int) input('enabled', 0) === 1,
-            'dry_run' => (int) input('dry_run', 1) === 1,
+            'dry_run' => (int) input('dry_run', 0) === 1,
             'hourly_limit' => (int) input('hourly_limit', 20),
             'daily_limit' => (int) input('daily_limit', 100),
         ];

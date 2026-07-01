@@ -116,6 +116,8 @@ $controller = (string) file_get_contents($root . '/app/Controllers/EmailSettings
 foreach (['email_settings.view', 'email_settings.edit', 'email_settings.test', 'email_templates.view', 'email_logs.view', 'email_settings_updated', 'email_settings_test_sent'] as $needle) {
     is_ok(str_contains($controller, $needle), "Controller cobre: {$needle}", "Controller nao cobre: {$needle}");
 }
+is_ok(str_contains($controller, "input('dry_run', 0)"), 'Controller permite desmarcar dry-run', 'Controller reativa dry-run quando checkbox vem desmarcado');
+is_ok(str_contains($controller, "\$result['status'] === 'sent'"), 'Controller diferencia envio real de simulado', 'Controller trata simulado/skipped como sucesso real');
 
 $mailer = (string) file_get_contents($root . '/app/Services/MailerService.php');
 foreach (['dry_run', 'simulated', 'stream_socket_client', 'AUTH LOGIN', 'email_outbox', 'email_logs'] as $needle) {
