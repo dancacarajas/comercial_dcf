@@ -424,6 +424,11 @@ return function (Router $router): void {
     $router->get('/collector-deals/{id}/edit',                          'CollectorDealController@edit',                 ['AuthMiddleware']);
     $router->post('/collector-deals/{id}/update',                       'CollectorDealController@update',               ['AuthMiddleware']);
     $router->post('/collector-deals/{id}/archive',                      'CollectorDealController@archive',              ['AuthMiddleware']);
+    $router->get('/collector-deals/{id}/shares',                        'CollectorDealShareController@index',           ['AuthMiddleware']);
+    $router->post('/collector-deals/{id}/shares',                       'CollectorDealShareController@store',           ['AuthMiddleware']);
+    $router->post('/collector-deal-shares/{id}/update',                 'CollectorDealShareController@update',          ['AuthMiddleware']);
+    $router->post('/collector-deal-shares/{id}/archive',                'CollectorDealShareController@archive',         ['AuthMiddleware']);
+    $router->post('/collector-deals/{id}/shares/approve',               'CollectorDealShareController@approve',         ['AuthMiddleware']);
 
 
     // Etapa 18C Fase 2B - Portal do Captador (carteira propria do captador externo)

@@ -2428,6 +2428,28 @@ CREATE TABLE IF NOT EXISTS `commission_pools` (
     KEY `idx_commission_pools_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `collector_deal_shares` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `collector_deal_id` BIGINT UNSIGNED NOT NULL,
+    `incentive_project_id` BIGINT UNSIGNED NOT NULL,
+    `collector_id` BIGINT UNSIGNED NOT NULL,
+    `share_percent` DECIMAL(7,4) NOT NULL DEFAULT 0.0000,
+    `status` VARCHAR(30) NOT NULL DEFAULT 'rascunho',
+    `approved_by` BIGINT UNSIGNED NULL DEFAULT NULL,
+    `approved_at` DATETIME NULL DEFAULT NULL,
+    `notes` TEXT NULL DEFAULT NULL,
+    `created_by` BIGINT UNSIGNED NULL DEFAULT NULL,
+    `updated_by` BIGINT UNSIGNED NULL DEFAULT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NULL DEFAULT NULL,
+    `archived_at` DATETIME NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_collector_deal_shares_deal` (`collector_deal_id`),
+    KEY `idx_collector_deal_shares_project` (`incentive_project_id`),
+    KEY `idx_collector_deal_shares_collector` (`collector_id`),
+    KEY `idx_collector_deal_shares_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `collector_commissions` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `commission_pool_id` BIGINT UNSIGNED NOT NULL,
@@ -2473,7 +2495,7 @@ CREATE TABLE IF NOT EXISTS `collector_commissions` (
     `updated_at` DATETIME NULL DEFAULT NULL,
     `archived_at` DATETIME NULL DEFAULT NULL,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `uniq_collector_commission_financial_deal` (`financial_entry_id`, `collector_deal_id`),
+    UNIQUE KEY `uniq_collector_commission_financial_deal_collector` (`financial_entry_id`, `collector_deal_id`, `collector_id`),
     KEY `idx_collector_commissions_pool` (`commission_pool_id`),
     KEY `idx_collector_commissions_project` (`incentive_project_id`),
     KEY `idx_collector_commissions_collector` (`collector_id`),

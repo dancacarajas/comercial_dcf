@@ -177,6 +177,9 @@ $activeStatuses = ['solicitada', 'autorizada'];
                     <td>
                         <?php if (can('collector_deals.manage')): ?>
                             <a href="<?= e(app_url('/collector-deals/' . (int) $d['id'] . '/edit')) ?>" class="btn btn-xs btn-outline">Editar</a>
+                            <?php if (($d['attribution_type'] ?? '') === 'compartilhada'): ?>
+                                <a href="<?= e(app_url('/collector-deals/' . (int) $d['id'] . '/shares')) ?>" class="btn btn-xs btn-outline">Rateio</a>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </td>
                 </tr>

@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Core\Database;
 use App\Models\ActivityLog;
 use App\Models\CollectorCommission;
+use App\Models\CollectorDealShare;
 use App\Models\CommissionPool;
 use PDO;
 
@@ -53,6 +54,15 @@ final class CollectorCommissionCalculator
             return ['status' => 'blocked', 'message' => 'Collector deal pertence a outro projeto.'];
         }
 
+        $collector = $this->collector((int) $deal['collector_id']);
+        if (!$this->collectorEligible($collector, (string) ($entry['received_at'] ?? ''))) {
+            return ['status' => 'blocked', 'message' => 'Captador sem cadastro/contrato liberado para comissao.'];
+        }
+
+        if ((string) ($deal['attribution_type'] ?? '') === 'compartilhada') {
+            return $this->syncShared($entry, $project, $deal, $userId);
+        }
+
         $commissionModel = new CollectorCommission();
         $existingCommission = $commissionModel->findByFinancialAndDeal((int) $entry['id'], (int) $deal['id']);
         if ($existingCommission !== null && !$commissionModel->canRecalculate($existingCommission)) {
@@ -61,15 +71,6 @@ final class CollectorCommissionCalculator
                 'message' => 'Comissao aprovada, bloqueada ou com pagamento iniciado nao pode ser recalculada automaticamente.',
                 'commission_id' => (int) $existingCommission['id'],
             ];
-        }
-
-        $collector = $this->collector((int) $deal['collector_id']);
-        if (!$this->collectorEligible($collector, (string) ($entry['received_at'] ?? ''))) {
-            return ['status' => 'blocked', 'message' => 'Captador sem cadastro/contrato liberado para comissao.'];
-        }
-
-        if ((string) ($deal['attribution_type'] ?? '') === 'compartilhada') {
-            return ['status' => 'blocked', 'message' => 'Captacao compartilhada requer rateio antes do calculo automatico.'];
         }
 
         $poolModel = new CommissionPool();
@@ -142,6 +143,137 @@ final class CollectorCommissionCalculator
         (new ActivityLog())->record('collector_commission_calculated', $userId, 'collector_commission', $commissionId);
 
         return ['status' => 'calculated', 'message' => 'Comissao calculada.', 'commission_id' => $commissionId];
+    }
+
+    /**
+     * @param array<string, mixed> $entry
+     * @param array<string, mixed> $project
+     * @param array<string, mixed> $deal
+     * @return array{status:string,message:string,commission_id?:int,commission_ids?:array<int,int>}
+     */
+    private function syncShared(array $entry, array $project, array $deal, int|string|null $userId): array
+    {
+        $commissionModel = new CollectorCommission();
+        foreach ($commissionModel->findAllByFinancialAndDeal((int) $entry['id'], (int) $deal['id']) as $existing) {
+            if (!$commissionModel->canRecalculate($existing)) {
+                return [
+                    'status' => 'locked',
+                    'message' => 'Comissao compartilhada aprovada, bloqueada ou com pagamento iniciado nao pode ser recalculada automaticamente.',
+                    'commission_id' => (int) $existing['id'],
+                ];
+            }
+        }
+
+        $shares = (new CollectorDealShare())->approvedByDeal((int) $deal['id']);
+        if ($shares === []) {
+            return ['status' => 'blocked', 'message' => 'Captacao compartilhada requer rateio aprovado antes do calculo.'];
+        }
+        $sum = 0.0;
+        foreach ($shares as $share) {
+            $sum += (float) ($share['share_percent'] ?? 0);
+            $collector = $this->collector((int) $share['collector_id']);
+            if (!$this->collectorEligible($collector, (string) ($entry['received_at'] ?? ''))) {
+                return ['status' => 'blocked', 'message' => 'Rateio possui captador sem cadastro/contrato liberado.'];
+            }
+        }
+        if (abs(round($sum, 4) - 100.0) > 0.0001) {
+            return ['status' => 'blocked', 'message' => 'Rateio aprovado precisa somar 100%.'];
+        }
+
+        $poolModel = new CommissionPool();
+        $pool = $poolModel->ensureForProject($project);
+        $budget = (float) ($project['capture_commission_budget'] ?? 0);
+        $factor = (float) ($project['commission_factor'] ?? 0);
+        $received = round((float) ($entry['received_amount'] ?? 0), 2);
+        $totalGross = round($received * $factor, 2);
+        $used = $this->usedCommissionAmount((int) $project['id'], (int) $entry['id'], (int) $deal['id']);
+        $availableBefore = max(0, round($budget - $used, 2));
+        $totalCapped = min($totalGross, $availableBefore);
+        $availableAfter = max(0, round($availableBefore - $totalCapped, 2));
+        $calculationStatus = $totalCapped < $totalGross ? 'limitada_por_teto' : 'calculada';
+        if ($totalCapped <= 0) {
+            $calculationStatus = 'limitada_por_teto';
+        }
+
+        $ids = [];
+        $grossAllocated = 0.0;
+        $cappedAllocated = 0.0;
+        $last = count($shares) - 1;
+        foreach ($shares as $idx => $share) {
+            $percent = (float) $share['share_percent'];
+            if ($idx === $last) {
+                $gross = round($totalGross - $grossAllocated, 2);
+                $capped = round($totalCapped - $cappedAllocated, 2);
+            } else {
+                $gross = round($totalGross * ($percent / 100), 2);
+                $capped = round($totalCapped * ($percent / 100), 2);
+                $grossAllocated += $gross;
+                $cappedAllocated += $capped;
+            }
+
+            $collector = $this->collector((int) $share['collector_id']) ?? [];
+            $snapshot = [
+                'project_id' => (int) $project['id'],
+                'project_name' => (string) ($project['project_name'] ?? ''),
+                'approved_total_amount' => (float) ($project['approved_total_amount'] ?? 0),
+                'capture_commission_budget' => $budget,
+                'commission_factor' => $factor,
+                'financial_entry_id' => (int) $entry['id'],
+                'received_amount' => $received,
+                'received_at' => (string) ($entry['received_at'] ?? ''),
+                'collector_deal_id' => (int) $deal['id'],
+                'collector_deal_share_id' => (int) $share['id'],
+                'collector_id' => (int) $share['collector_id'],
+                'collector_name' => (string) ($collector['name'] ?? ''),
+                'attribution_type' => 'compartilhada',
+                'share_percent' => $percent,
+                'shared_total_gross' => $totalGross,
+                'shared_total_capped' => $totalCapped,
+                'available_before' => $availableBefore,
+                'gross_commission_amount' => $gross,
+                'capped_commission_amount' => $capped,
+                'available_after' => $availableAfter,
+                'calculated_by' => $userId !== null ? (int) $userId : null,
+                'calculated_at' => date('Y-m-d H:i:s'),
+                'engine_version' => '20B.3',
+            ];
+
+            $ids[] = $commissionModel->upsertForFinancialDeal([
+                'commission_pool_id' => (int) $pool['id'],
+                'incentive_project_id' => (int) $project['id'],
+                'collector_id' => (int) $share['collector_id'],
+                'collector_deal_id' => (int) $deal['id'],
+                'collector_deal_share_id' => (int) $share['id'],
+                'financial_entry_id' => (int) $entry['id'],
+                'company_id' => !empty($entry['company_id']) ? (int) $entry['company_id'] : null,
+                'sponsor_id' => !empty($entry['sponsor_id']) ? (int) $entry['sponsor_id'] : null,
+                'contract_id' => !empty($entry['contract_id']) ? (int) $entry['contract_id'] : null,
+                'opportunity_id' => !empty($entry['opportunity_id']) ? (int) $entry['opportunity_id'] : null,
+                'proposal_id' => !empty($entry['proposal_id']) ? (int) $entry['proposal_id'] : null,
+                'quota_id' => !empty($entry['quota_id']) ? (int) $entry['quota_id'] : null,
+                'attribution_type' => 'compartilhada',
+                'source' => (string) ($deal['source'] ?? ''),
+                'financial_received_amount' => $received,
+                'commission_factor_snapshot' => $factor,
+                'gross_commission_amount' => $gross,
+                'capped_commission_amount' => $capped,
+                'available_before' => $availableBefore,
+                'available_after' => $availableAfter,
+                'calculation_status' => $calculationStatus,
+                'approval_status' => 'pendente_aprovacao',
+                'payment_status' => 'nao_iniciado',
+                'block_reason' => null,
+                'calculation_snapshot_json' => json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'calculated_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        $poolModel->refreshForProject($project);
+        foreach ($ids as $id) {
+            (new ActivityLog())->record('collector_commission_calculated', $userId, 'collector_commission', $id);
+        }
+
+        return ['status' => 'calculated', 'message' => 'Comissoes compartilhadas calculadas.', 'commission_id' => $ids[0] ?? 0, 'commission_ids' => $ids];
     }
 
     /** @return array<string, mixed>|null */

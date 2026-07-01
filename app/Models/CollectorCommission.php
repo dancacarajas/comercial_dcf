@@ -83,12 +83,60 @@ final class CollectorCommission extends Model
         return $row !== false ? $row : null;
     }
 
+    /** @return array<int, array<string, mixed>> */
+    public function findAllByFinancialAndDeal(int|string $financialEntryId, int|string $collectorDealId): array
+    {
+        return $this->query(
+            'SELECT * FROM `collector_commissions`
+              WHERE `financial_entry_id` = :fid
+                AND `collector_deal_id` = :did
+                AND `archived_at` IS NULL',
+            ['fid' => $financialEntryId, 'did' => $collectorDealId]
+        )->fetchAll();
+    }
+
+    /** @return array<string, mixed>|null */
+    private function findExistingForPayload(array $data): ?array
+    {
+        $shareId = (int) ($data['collector_deal_share_id'] ?? 0);
+        if ($shareId > 0) {
+            $row = $this->query(
+                'SELECT * FROM `collector_commissions`
+                  WHERE `financial_entry_id` = :fid
+                    AND `collector_deal_id` = :did
+                    AND `collector_deal_share_id` = :sid
+                    AND `archived_at` IS NULL
+                  LIMIT 1',
+                ['fid' => (int) $data['financial_entry_id'], 'did' => (int) $data['collector_deal_id'], 'sid' => $shareId]
+            )->fetch();
+
+            return $row !== false ? $row : null;
+        }
+
+        $row = $this->query(
+            'SELECT * FROM `collector_commissions`
+              WHERE `financial_entry_id` = :fid
+                AND `collector_deal_id` = :did
+                AND `collector_id` = :cid
+                AND `collector_deal_share_id` IS NULL
+                AND `archived_at` IS NULL
+              LIMIT 1',
+            [
+                'fid' => (int) $data['financial_entry_id'],
+                'did' => (int) $data['collector_deal_id'],
+                'cid' => (int) $data['collector_id'],
+            ]
+        )->fetch();
+
+        return $row !== false ? $row : null;
+    }
+
     /**
      * @param array<string, mixed> $data
      */
     public function upsertForFinancialDeal(array $data): int
     {
-        $existing = $this->findByFinancialAndDeal((int) $data['financial_entry_id'], (int) $data['collector_deal_id']);
+        $existing = $this->findExistingForPayload($data);
         $data['payment_balance_amount'] = max(0, round((float) ($data['capped_commission_amount'] ?? 0), 2));
         if ($existing !== null) {
             $id = (int) $existing['id'];
