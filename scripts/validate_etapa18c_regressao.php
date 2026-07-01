@@ -36,6 +36,10 @@ function http(string $method, string $url, string $jar, $post = null, bool $foll
         CURLOPT_SSL_VERIFYPEER => false, CURLOPT_TIMEOUT => 40]);
     if ($method === 'POST') { curl_setopt($ch, CURLOPT_POST, true); curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post)); }
     $resp = curl_exec($ch); $hs = curl_getinfo($ch, CURLINFO_HEADER_SIZE); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    if ($resp === false) {
+        curl_close($ch);
+        return ['code' => $code, 'body' => '', 'loc' => ''];
+    }
     $hdr = substr($resp, 0, $hs); $body = substr($resp, $hs); curl_close($ch);
     preg_match('/Location:\s*(\S+)/i', $hdr, $m);
     return ['code' => $code, 'body' => $body, 'loc' => $m[1] ?? ''];
@@ -43,7 +47,7 @@ function http(string $method, string $url, string $jar, $post = null, bool $foll
 function csrf(string $h): string { return preg_match('/name="_csrf"\s+value="([^"]+)"/', $h, $m) ? $m[1] : ''; }
 function login(string $base, string $jar, string $email, string $pwd): bool {
     $g = http('GET', $base . '/login', $jar);
-    $r = http('POST', $base . '/login', $jar, ['_csrf' => csrf($g['body']), 'email' => $email, 'password' => $pwd]);
+    $r = http('POST', $base . '/login', $jar, ['_csrf' => csrf($g['body']), 'email' => $email, 'password' => $pwd], false);
     return in_array($r['code'], [200, 302], true);
 }
 
@@ -162,9 +166,11 @@ if ($req !== false) {
 // ======================================================================
 $companyId = (int) (new \App\Models\Company())->create(['name' => 'TESTE 18C REG Empresa Interna', 'priority' => 'B', 'status' => 'prospect', 'source' => 'indicação interna']);
 $ids['fase2_company'] = $companyId;
+$projectId = (int) $pdo->query("SELECT id FROM incentive_projects WHERE archived_at IS NULL AND project_status IN ('em_captacao','captado_parcial') ORDER BY id LIMIT 1")->fetchColumn();
+is_ok($projectId > 0, 'Fase 2: projeto de captacao disponivel', 'Fase 2: nenhum projeto disponivel para atribuicao');
 
 $f = http('GET', $BASE . '/collectors/' . $colId . '/assignments/create', $jarA); $tok = csrf($f['body']);
-http('POST', $BASE . '/collectors/' . $colId . '/assignments', $jarA, ['_csrf' => $tok, 'company_id' => $companyId, 'assignment_type' => 'exclusiva', 'exclusive_until' => '', 'notes' => 'TESTE 18C REG'], false);
+http('POST', $BASE . '/collectors/' . $colId . '/assignments', $jarA, ['_csrf' => $tok, 'incentive_project_id' => $projectId, 'company_id' => $companyId, 'assignment_type' => 'exclusiva', 'exclusive_until' => '', 'notes' => 'TESTE 18C REG'], false);
 $a1 = $pdo->query("SELECT id,status FROM collector_assignments WHERE collector_id={$colId} AND company_id={$companyId} ORDER BY id DESC LIMIT 1")->fetch();
 $aid = (int) ($a1['id'] ?? 0); $ids['fase2_assignment'] = $aid;
 is_ok($aid > 0, 'Fase 2: atribuicao interna criada', 'Fase 2: falha ao criar atribuicao');
@@ -175,7 +181,7 @@ is_ok($st === 'autorizada', 'Fase 2: abordagem autorizada', 'Fase 2: autorizacao
 
 // segunda exclusiva vigente -> bloqueia
 $f2 = http('GET', $BASE . '/collectors/' . $colId . '/assignments/create', $jarA); $tok2 = csrf($f2['body']);
-http('POST', $BASE . '/collectors/' . $colId . '/assignments', $jarA, ['_csrf' => $tok2, 'company_id' => $companyId, 'assignment_type' => 'exclusiva', 'exclusive_until' => '', 'notes' => 'TESTE 18C REG dup'], false);
+http('POST', $BASE . '/collectors/' . $colId . '/assignments', $jarA, ['_csrf' => $tok2, 'incentive_project_id' => $projectId, 'company_id' => $companyId, 'assignment_type' => 'exclusiva', 'exclusive_until' => '', 'notes' => 'TESTE 18C REG dup'], false);
 $cntAtiva = (int) $pdo->query("SELECT COUNT(*) FROM collector_assignments WHERE company_id={$companyId} AND assignment_type='exclusiva' AND status IN ('solicitada','autorizada') AND archived_at IS NULL")->fetchColumn();
 is_ok($cntAtiva === 1, 'Fase 2: segunda exclusiva vigente bloqueada', 'Fase 2: criou exclusiva duplicada (ativas=' . $cntAtiva . ')');
 

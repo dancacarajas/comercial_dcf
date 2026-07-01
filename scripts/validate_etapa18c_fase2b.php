@@ -159,7 +159,7 @@ $coSpon = $mk($pdo, "$T Empresa Patrocinadora");
 $coOpp  = $mk($pdo, "$T Empresa Oportunidade Interna");
 $pdo->prepare("INSERT INTO collector_assignments (collector_id,company_id,assignment_type,status,created_by,created_at,notes) VALUES (?,?,'exclusiva','autorizada',1,NOW(),'F2B other')")->execute([$otherId, $coExcl]);
 $pdo->prepare("INSERT INTO sponsors (company_id,sponsor_display_name,status,created_by,created_at) VALUES (?,?,?,1,NOW())")->execute([$coSpon, "$T Patroc", 'confirmado']);
-$pdo->prepare("INSERT INTO opportunities (company_id,title,status,source,created_at) VALUES (?,?,?,?,NOW())")->execute([$coOpp, "$T Opp", 'prospect_identificado', 'outbound']);
+$pdo->prepare("INSERT INTO opportunities (company_id,title,status,source,opened_at,created_at) VALUES (?,?,?,?,NOW(),NOW())")->execute([$coOpp, "$T Opp", 'prospect_identificado', 'outbound']);
 
 // ----------------------------------------------------------------------
 // 5) Motor de conflito (Service)
@@ -206,6 +206,11 @@ $http = function (string $method, string $url, $post = null, bool $follow = true
         CURLOPT_SSL_VERIFYPEER => false, CURLOPT_TIMEOUT => 30]);
     if ($method === 'POST') { curl_setopt($ch, CURLOPT_POST, true); curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post)); }
     $resp = curl_exec($ch); $hs = curl_getinfo($ch, CURLINFO_HEADER_SIZE); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    if ($resp === false) {
+        $err = curl_error($ch);
+        curl_close($ch);
+        return ['code' => $code, 'body' => '', 'loc' => '', 'error' => $err];
+    }
     $hdr = substr($resp, 0, $hs); $body = substr($resp, $hs); curl_close($ch);
     preg_match('/Location:\s*(\S+)/i', $hdr, $m);
     return ['code' => $code, 'body' => $body, 'loc' => $m[1] ?? ''];
@@ -213,8 +218,8 @@ $http = function (string $method, string $url, $post = null, bool $follow = true
 $csrf = static function (string $h): string { return preg_match('/name="_csrf"\s+value="([^"]+)"/', $h, $m) ? $m[1] : ''; };
 
 $tok = $csrf($http('GET', $BASE . '/login')['body']);
-$login = $http('POST', $BASE . '/login', ['_csrf' => $tok, 'email' => 'teste18c.f2b.captador@example.com', 'password' => $PWD]);
-is_ok($login['code'] === 200 && str_contains($login['body'], 'Minha carteira'), 'Login captador → portal', 'Login captador falhou');
+$login = $http('POST', $BASE . '/login', ['_csrf' => $tok, 'email' => 'teste18c.f2b.captador@example.com', 'password' => $PWD], false);
+is_ok($login['code'] === 302, 'Login captador redireciona apos autenticar', 'Login captador falhou: ' . $login['code']);
 $dash = $http('GET', $BASE . '/dashboard', null, false);
 is_ok($dash['code'] === 302 && str_contains($dash['loc'], '/portal'), 'Dashboard → redireciona ao portal', 'Dashboard não redirecionou: ' . $dash['code']);
 $portal = $http('GET', $BASE . '/portal');
@@ -222,7 +227,9 @@ is_ok($portal['code'] === 200, 'GET /portal = 200', 'GET /portal = ' . $portal['
 $pf = $http('GET', $BASE . '/portal/prospects/create');
 $tok2 = $csrf($pf['body']);
 is_ok($pf['code'] === 200 && $tok2 !== '', 'Formulário de prospect carrega', 'Formulário de prospect falhou');
-$store = $http('POST', $BASE . '/portal/prospects', ['_csrf' => $tok2, 'name' => "$T Portal HTTP Empresa", 'cnpj' => '', 'segment' => 'tecnologia', 'city' => 'Parauapebas', 'state' => 'PA', 'email' => 'c@f2bhttp.example.com', 'phone' => '94999990000', 'notes' => 'via portal'], false);
+$portalProjectId = (int) $pdo->query("SELECT id FROM incentive_projects WHERE archived_at IS NULL AND project_status IN ('em_captacao','captado_parcial') ORDER BY id LIMIT 1")->fetchColumn();
+is_ok($portalProjectId > 0, 'Projeto de captacao disponivel para o portal', 'Nenhum projeto de captacao disponivel para teste HTTP');
+$store = $http('POST', $BASE . '/portal/prospects', ['_csrf' => $tok2, 'incentive_project_id' => $portalProjectId, 'name' => "$T Portal HTTP Empresa", 'cnpj' => '', 'segment' => 'tecnologia', 'city' => 'Parauapebas', 'state' => 'PA', 'email' => 'c@f2bhttp.example.com', 'phone' => '94999990000', 'notes' => 'via portal'], false);
 is_ok($store['code'] === 302 && str_contains($store['loc'], '/portal/deals/'), 'Cadastro de prospect cria captação', 'Cadastro de prospect falhou: ' . $store['code']);
 $deal = $pdo->query("SELECT id,source,deal_status,company_id FROM collector_deals WHERE collector_id={$capId} ORDER BY id DESC LIMIT 1")->fetch();
 is_ok($deal && $deal['source'] === 'portal_captador', 'Captação HTTP origem portal_captador', 'Origem HTTP incorreta');
@@ -260,11 +267,15 @@ $reqB = function (string $method, string $url, $post = null, bool $follow = true
         CURLOPT_SSL_VERIFYPEER => false, CURLOPT_TIMEOUT => 30]);
     if ($method === 'POST') { curl_setopt($ch, CURLOPT_POST, true); curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($post)); }
     $resp = curl_exec($ch); $hs = curl_getinfo($ch, CURLINFO_HEADER_SIZE); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    if ($resp === false) {
+        curl_close($ch);
+        return ['code' => $code, 'body' => ''];
+    }
     $body = substr($resp, $hs); curl_close($ch);
     return ['code' => $code, 'body' => $body];
 };
 $tokB = $csrf($reqB('GET', $BASE . '/login')['body']);
-$reqB('POST', $BASE . '/login', ['_csrf' => $tokB, 'email' => 'teste18c.f2b.block@example.com', 'password' => $PWD]);
+$reqB('POST', $BASE . '/login', ['_csrf' => $tokB, 'email' => 'teste18c.f2b.block@example.com', 'password' => $PWD], false);
 $portalB = $reqB('GET', $BASE . '/portal');
 is_ok($portalB['code'] === 403 && str_contains($portalB['body'], 'ainda nao esta liberado'), 'Portal bloqueia captador sem credenciamento final', 'Portal nao bloqueou captador sem credenciamento: ' . $portalB['code']);
 @unlink($jarB);

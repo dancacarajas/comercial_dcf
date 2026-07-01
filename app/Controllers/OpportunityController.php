@@ -303,6 +303,10 @@ final class OpportunityController extends Controller
         $data  = $this->collectInput($model);
 
         $errors = $model->validate($data, 'update');
+        // Etapa 19: toda oportunidade precisa manter um projeto incentivado.
+        if (empty($data['incentive_project_id'])) {
+            $errors['incentive_project_id'] = 'Selecione o projeto incentivado da oportunidade.';
+        }
         $this->checkCompany($data, $errors);
         $this->checkContact($data, $errors);
         $this->checkOwner($data, $errors);

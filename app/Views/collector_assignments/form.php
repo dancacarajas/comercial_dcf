@@ -3,6 +3,7 @@ $collector = $collector ?? [];
 $data = $data ?? [];
 $errors = $errors ?? [];
 $companies = $companies ?? [];
+$projects = $projects ?? [];
 $types = $types ?? [];
 
 $collectorId = (int) ($collector['id'] ?? 0);
@@ -35,6 +36,15 @@ $sel = static fn (string $k, string $val): string => (string) ($data[$k] ?? '') 
                 <?php endforeach; ?>
             </select>
             <?php if (!empty($errors['company_id'])): ?><span class="field-error"><?= e($errors['company_id']) ?></span><?php endif; ?>
+        </div>
+        <div class="form-grid-full"><label for="incentive_project_id">Projeto incentivado *</label>
+            <select id="incentive_project_id" name="incentive_project_id" class="input" required>
+                <option value="">Selecione o projeto</option>
+                <?php foreach ($projects as $p): ?>
+                    <option value="<?= (int) $p['id'] ?>" <?= $sel('incentive_project_id', (string) $p['id']) ?>><?= e($p['label'] ?? ('#' . (int) $p['id'])) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <?php if (!empty($errors['incentive_project_id'])): ?><span class="field-error"><?= e($errors['incentive_project_id']) ?></span><?php endif; ?>
         </div>
         <div><label for="assignment_type">Tipo *</label>
             <select id="assignment_type" name="assignment_type" class="input" required>

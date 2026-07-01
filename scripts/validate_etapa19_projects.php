@@ -53,6 +53,16 @@ $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 $files = [
     'app/Models/IncentiveProject.php',
     'app/Models/IncentiveProjectBudgetItem.php',
+    'app/Models/CollectorAssignment.php',
+    'app/Controllers/CollectorAssignmentController.php',
+    'app/Views/collector_assignments/form.php',
+    'app/Controllers/OpportunityController.php',
+    'app/Controllers/ProposalController.php',
+    'app/Views/proposals/_form.php',
+    'app/Models/Proposal.php',
+    'app/Controllers/SponsorController.php',
+    'app/Views/sponsors/_form.php',
+    'app/Models/Sponsor.php',
     'app/Controllers/IncentiveProjectController.php',
     'app/Views/incentive_projects/index.php',
     'app/Views/incentive_projects/_form.php',
@@ -190,9 +200,11 @@ is_ok($quotaProj === $projAId, 'Cota pertence ao projeto', 'Cota não vinculada 
 $oppCtrl = (string) file_get_contents($root . '/app/Controllers/OpportunityController.php');
 is_ok(str_contains($oppCtrl, "empty(\$data['incentive_project_id'])") && str_contains($oppCtrl, 'projeto incentivado da oportunidade'),
     'OpportunityController bloqueia criar sem projeto', 'Regra de projeto obrigatório ausente na oportunidade');
+is_ok(substr_count($oppCtrl, "empty(\$data['incentive_project_id'])") >= 2,
+    'OpportunityController bloqueia update sem projeto', 'Update de oportunidade ainda permite remover projeto');
 
 // Oportunidade real (com projeto) para herança
-$pdo->prepare("INSERT INTO opportunities (incentive_project_id,company_id,title,status,source,created_at) VALUES (?,?,?,?,?,NOW())")
+$pdo->prepare("INSERT INTO opportunities (incentive_project_id,company_id,title,status,source,opened_at,created_at) VALUES (?,?,?,?,?,NOW(),NOW())")
     ->execute([$projAId, $coMulti, "$T Opp A", 'prospect_identificado', 'outbound']);
 $oppId = (int) $pdo->lastInsertId();
 
@@ -202,6 +214,12 @@ $pc = $rc->newInstanceWithoutConstructor();
 $m = $rc->getMethod('applyAutofill'); $m->setAccessible(true);
 $propData = $m->invoke($pc, new \App\Models\Proposal(), ['opportunity_id' => $oppId, 'proposed_value' => '', 'quota_id' => null]);
 is_ok((int) ($propData['incentive_project_id'] ?? 0) === $projAId, 'Proposta herda projeto da oportunidade', 'Proposta não herdou projeto: ' . var_export($propData['incentive_project_id'] ?? null, true));
+$proposalCtrl = (string) file_get_contents($root . '/app/Controllers/ProposalController.php');
+$proposalForm = (string) file_get_contents($root . '/app/Views/proposals/_form.php');
+is_ok(str_contains($proposalCtrl, "'incentive_project_id'") && str_contains($proposalCtrl, 'projeto incentivado da proposta'),
+    'Proposta direta sem projeto bloqueia no controller', 'ProposalController nao exige incentive_project_id');
+is_ok(str_contains($proposalForm, 'name="incentive_project_id"') && str_contains($proposalForm, 'required'),
+    'Formulario de proposta tem projeto obrigatorio', 'Formulario de proposta sem projeto obrigatorio');
 
 // Proposta real para herança do sponsor
 $pdo->prepare("INSERT INTO proposals (incentive_project_id,company_id,opportunity_id,title,type,proposed_value,status,created_on,created_at) VALUES (?,?,?,?,?,?,?,CURDATE(),NOW())")
@@ -214,6 +232,12 @@ $sc = $rcS->newInstanceWithoutConstructor();
 $mS = $rcS->getMethod('applyAutofill'); $mS->setAccessible(true);
 $sponData = $mS->invoke($sc, ['proposal_id' => $propId]);
 is_ok((int) ($sponData['incentive_project_id'] ?? 0) === $projAId, 'Patrocinador herda projeto da proposta', 'Patrocinador não herdou projeto: ' . var_export($sponData['incentive_project_id'] ?? null, true));
+$sponsorCtrl = (string) file_get_contents($root . '/app/Controllers/SponsorController.php');
+$sponsorForm = (string) file_get_contents($root . '/app/Views/sponsors/_form.php');
+is_ok(str_contains($sponsorCtrl, "'incentive_project_id'") && str_contains($sponsorCtrl, 'projeto incentivado do patrocinador'),
+    'Patrocinador direto sem projeto bloqueia no controller', 'SponsorController nao exige incentive_project_id');
+is_ok(str_contains($sponsorForm, 'name="incentive_project_id"') && str_contains($sponsorForm, 'required'),
+    'Formulario de patrocinador tem projeto obrigatorio', 'Formulario de patrocinador sem projeto obrigatorio');
 
 // Patrocinador real para herança do financeiro
 $pdo->prepare("INSERT INTO sponsors (incentive_project_id,company_id,proposal_id,opportunity_id,sponsor_display_name,status,confirmed_amount,created_at) VALUES (?,?,?,?,?,?,?,NOW())")
@@ -243,6 +267,36 @@ $pdo->prepare('UPDATE collectors SET user_id=? WHERE id=?')->execute([$uid, $cap
 
 $collector = (new \App\Models\Collector())->findByUserId($uid);
 $svc = new \App\Services\CollectorProspectIntake();
+$assignModel = new \App\Models\CollectorAssignment();
+
+// Test 10A — atribuicao interna exige projeto
+$assignErrors = $assignModel->validate([
+    'collector_id' => $capId,
+    'company_id' => $coMulti,
+    'assignment_type' => 'exclusiva',
+    'status' => 'solicitada',
+]);
+is_ok(isset($assignErrors['incentive_project_id']), 'Atribuicao interna exige projeto', 'CollectorAssignment::validate nao exige projeto');
+
+// Test 10B — collectInput interno captura projeto
+$_POST['company_id'] = (string) $coMulti;
+$_POST['incentive_project_id'] = (string) $projAId;
+$_POST['assignment_type'] = 'exclusiva';
+$_POST['exclusive_until'] = '';
+$_POST['notes'] = '';
+$rcA = new ReflectionClass(\App\Controllers\CollectorAssignmentController::class);
+$ac = $rcA->newInstanceWithoutConstructor();
+$mA = $rcA->getMethod('collectInput'); $mA->setAccessible(true);
+$assignmentInput = $mA->invoke($ac);
+is_ok((int) ($assignmentInput['incentive_project_id'] ?? 0) === $projAId,
+    'collectInput de atribuicao captura projeto', 'collectInput de atribuicao nao capturou incentive_project_id');
+$_POST = [];
+
+// Test 10C — convert interno preserva projeto e bloqueia legado sem projeto
+$assignmentCtrl = (string) file_get_contents($root . '/app/Controllers/CollectorAssignmentController.php');
+is_ok(str_contains($assignmentCtrl, 'Nao e possivel converter uma atribuicao sem projeto incentivado.')
+        && str_contains($assignmentCtrl, "'incentive_project_id' => \$projectId"),
+    'Conversao interna exige e propaga projeto', 'Conversao interna nao bloqueia/propaga projeto');
 
 // Test 10/11 — captador cadastra prospect para projeto; assignment/deal vinculados
 $rPortal = $svc->intake($collector, ['name' => "$T Prospect Portal", 'cnpj' => ''], $uid, $projAId);
@@ -257,6 +311,10 @@ $pdo->prepare("INSERT INTO companies (name,priority,status,source,created_at) VA
 $coExcl = (int) $pdo->lastInsertId();
 $pdo->prepare("INSERT INTO collector_assignments (incentive_project_id,collector_id,company_id,assignment_type,status,created_by,created_at) VALUES (?,?,?,'exclusiva','autorizada',1,NOW())")
     ->execute([$projAId, $otherId, $coExcl]);
+$directConflictA = $assignModel->findExclusiveConflict($coExcl, 'exclusiva', null, null, $projAId);
+$directConflictB = $assignModel->findExclusiveConflict($coExcl, 'exclusiva', null, null, $projBId);
+is_ok($directConflictA !== null, 'findExclusiveConflict bloqueia no mesmo projeto', 'findExclusiveConflict nao bloqueou no mesmo projeto');
+is_ok($directConflictB === null, 'findExclusiveConflict permite outro projeto', 'findExclusiveConflict bloqueou indevidamente outro projeto');
 $rBlock = $svc->intake($collector, ['name' => "$T Empresa Exclusiva", 'cnpj' => ''], $uid, $projAId);
 is_ok($rBlock['status'] === 'bloqueado', 'Exclusiva de outro bloqueia no mesmo projeto', 'Exclusiva não bloqueou no mesmo projeto: ' . $rBlock['status']);
 

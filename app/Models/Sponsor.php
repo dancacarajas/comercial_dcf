@@ -758,6 +758,13 @@ final class Sponsor extends Model
         $row['public_announcement_allowed'] = !empty($data['public_announcement_allowed']) ? 1 : 0;
         $row['project_year'] = (int) ($row['project_year'] ?? 2026);
 
+        foreach (['incentive_project_id', 'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id',
+            'primary_document_id', 'responsible_user_id', 'created_by', 'updated_by', 'confirmed_by'] as $intCol) {
+            if (array_key_exists($intCol, $row)) {
+                $row[$intCol] = $row[$intCol] !== null && $row[$intCol] !== '' ? (int) $row[$intCol] : null;
+            }
+        }
+
         if ($isCreate && empty($row['closed_at'])) {
             $row['closed_at'] = date('Y-m-d H:i:s');
         }

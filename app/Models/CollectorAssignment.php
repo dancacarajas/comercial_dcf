@@ -120,7 +120,8 @@ final class CollectorAssignment extends Model
         int|string $companyId,
         string $assignmentType,
         ?string $exclusiveUntil,
-        int|string|null $ignoreId = null
+        int|string|null $ignoreId = null,
+        int|string|null $incentiveProjectId = null
     ): ?array {
         if ($assignmentType !== 'exclusiva') {
             return null;
@@ -140,6 +141,13 @@ final class CollectorAssignment extends Model
                    AND a.`assignment_type` = 'exclusiva'
                    AND a.`archived_at` IS NULL
                    AND a.`status` IN ({$placeholders})";
+
+        if ($incentiveProjectId !== null && (int) $incentiveProjectId > 0) {
+            $sql .= ' AND a.`incentive_project_id` = ?';
+            $params[] = (int) $incentiveProjectId;
+        } else {
+            $sql .= ' AND a.`incentive_project_id` IS NULL';
+        }
 
         if ($ignoreId !== null) {
             $sql .= ' AND a.`id` <> ?';
@@ -170,6 +178,9 @@ final class CollectorAssignment extends Model
         }
         if ((int) ($data['company_id'] ?? 0) <= 0) {
             $errors['company_id'] = 'Empresa é obrigatória.';
+        }
+        if ((int) ($data['incentive_project_id'] ?? 0) <= 0) {
+            $errors['incentive_project_id'] = 'Projeto incentivado e obrigatorio.';
         }
         if (!array_key_exists((string) ($data['assignment_type'] ?? ''), $this->getTypes())) {
             $errors['assignment_type'] = 'Tipo de atribuição inválido.';
