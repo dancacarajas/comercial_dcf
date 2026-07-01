@@ -1699,3 +1699,119 @@ FROM `users` u
 JOIN `roles` r ON r.`slug` = 'administrador-geral'
 WHERE u.`email` = 'admin@dancacarajas.com'
 ON DUPLICATE KEY UPDATE `user_id` = `user_roles`.`user_id`;
+
+-- ---------------------------------------------------------------------
+-- ETAPA 21A - E-mail transacional
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `mail_settings` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `provider` VARCHAR(40) NOT NULL DEFAULT 'gmail',
+    `smtp_host` VARCHAR(190) NULL DEFAULT NULL,
+    `smtp_port` INT NOT NULL DEFAULT 587,
+    `smtp_encryption` VARCHAR(20) NOT NULL DEFAULT 'tls',
+    `smtp_username` VARCHAR(190) NULL DEFAULT NULL,
+    `smtp_password_encrypted` TEXT NULL DEFAULT NULL,
+    `from_name` VARCHAR(190) NULL DEFAULT NULL,
+    `from_email` VARCHAR(190) NULL DEFAULT NULL,
+    `reply_to_name` VARCHAR(190) NULL DEFAULT NULL,
+    `reply_to_email` VARCHAR(190) NULL DEFAULT NULL,
+    `enabled` TINYINT(1) NOT NULL DEFAULT 0,
+    `dry_run` TINYINT(1) NOT NULL DEFAULT 1,
+    `hourly_limit` INT NOT NULL DEFAULT 20,
+    `daily_limit` INT NOT NULL DEFAULT 100,
+    `last_tested_at` DATETIME NULL DEFAULT NULL,
+    `last_test_status` VARCHAR(40) NULL DEFAULT NULL,
+    `last_test_message` TEXT NULL DEFAULT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NULL DEFAULT NULL,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `email_templates` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `event_key` VARCHAR(120) NOT NULL,
+    `name` VARCHAR(190) NOT NULL,
+    `subject` VARCHAR(255) NOT NULL,
+    `body_text` MEDIUMTEXT NULL DEFAULT NULL,
+    `body_html` MEDIUMTEXT NULL DEFAULT NULL,
+    `enabled` TINYINT(1) NOT NULL DEFAULT 1,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_email_templates_event` (`event_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `email_outbox` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `event_key` VARCHAR(120) NOT NULL,
+    `recipient_email` VARCHAR(190) NOT NULL,
+    `recipient_name` VARCHAR(190) NULL DEFAULT NULL,
+    `subject` VARCHAR(255) NOT NULL,
+    `body_text` MEDIUMTEXT NULL DEFAULT NULL,
+    `body_html` MEDIUMTEXT NULL DEFAULT NULL,
+    `payload_json` JSON NULL DEFAULT NULL,
+    `status` VARCHAR(40) NOT NULL DEFAULT 'pending',
+    `error_message` TEXT NULL DEFAULT NULL,
+    `sent_at` DATETIME NULL DEFAULT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_email_outbox_event` (`event_key`),
+    KEY `idx_email_outbox_status` (`status`),
+    KEY `idx_email_outbox_recipient` (`recipient_email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `email_logs` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `event_key` VARCHAR(120) NOT NULL,
+    `recipient_email` VARCHAR(190) NOT NULL,
+    `recipient_name` VARCHAR(190) NULL DEFAULT NULL,
+    `subject` VARCHAR(255) NOT NULL,
+    `status` VARCHAR(40) NOT NULL,
+    `error_message` TEXT NULL DEFAULT NULL,
+    `payload_json` JSON NULL DEFAULT NULL,
+    `sent_at` DATETIME NULL DEFAULT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_email_logs_event` (`event_key`),
+    KEY `idx_email_logs_status` (`status`),
+    KEY `idx_email_logs_recipient` (`recipient_email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `email_event_rules` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `event_key` VARCHAR(120) NOT NULL,
+    `template_event_key` VARCHAR(120) NOT NULL,
+    `recipient_type` VARCHAR(40) NOT NULL DEFAULT 'captador',
+    `enabled` TINYINT(1) NOT NULL DEFAULT 1,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_email_event_rules` (`event_key`, `recipient_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `mail_settings`
+    (`provider`, `smtp_host`, `smtp_port`, `smtp_encryption`, `smtp_username`,
+     `from_name`, `from_email`, `reply_to_name`, `reply_to_email`, `enabled`, `dry_run`, `hourly_limit`, `daily_limit`, `created_at`, `updated_at`)
+SELECT 'gmail', 'smtp.gmail.com', 587, 'tls', 'dancacarajas@gmail.com',
+       'Danca Carajas Captacao', 'dancacarajas@gmail.com', 'Equipe Danca Carajas', 'dancacarajas@gmail.com',
+       0, 1, 20, 100, NOW(), NOW()
+ WHERE NOT EXISTS (SELECT 1 FROM `mail_settings`);
+
+INSERT INTO `permissions` (`name`, `slug`, `description`) VALUES
+    ('E-mail: visualizar configuracao', 'email_settings.view', 'Visualizar configuracao SMTP transacional'),
+    ('E-mail: editar configuracao', 'email_settings.edit', 'Editar configuracao SMTP transacional'),
+    ('E-mail: testar envio', 'email_settings.test', 'Enviar teste controlado de e-mail'),
+    ('Templates de e-mail: visualizar', 'email_templates.view', 'Visualizar templates transacionais'),
+    ('Templates de e-mail: editar', 'email_templates.edit', 'Editar templates transacionais'),
+    ('Logs de e-mail: visualizar', 'email_logs.view', 'Visualizar logs transacionais de e-mail')
+ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `description` = VALUES(`description`);
+
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
+SELECT r.`id`, p.`id`
+  FROM `roles` r
+  JOIN `permissions` p ON p.`slug` IN (
+       'email_settings.view','email_settings.edit','email_settings.test',
+       'email_templates.view','email_templates.edit','email_logs.view'
+  )
+ WHERE r.`slug` = 'administrador-geral';

@@ -47,6 +47,13 @@ return function (Router $router): void {
     // -----------------------------------------------------------------
     $router->get('/dashboard', 'DashboardController@index', ['AuthMiddleware']);
 
+    // Configuracao de e-mail transacional (Etapa 21A)
+    $router->get('/settings/email',           'EmailSettingsController@index',     ['AuthMiddleware']);
+    $router->post('/settings/email',          'EmailSettingsController@update',    ['AuthMiddleware']);
+    $router->post('/settings/email/test',     'EmailSettingsController@test',      ['AuthMiddleware']);
+    $router->get('/settings/email/templates', 'EmailSettingsController@templates', ['AuthMiddleware']);
+    $router->get('/settings/email/logs',      'EmailSettingsController@logs',      ['AuthMiddleware']);
+
     // Projetos Incentivados / PRONACs / Plano de Captação (Etapa 19)
     // Rotas estaticas antes das dinamicas {id}.
     $router->get('/projects',                       'IncentiveProjectController@index',          ['AuthMiddleware']);

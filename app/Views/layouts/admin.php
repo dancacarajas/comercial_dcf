@@ -252,6 +252,14 @@ $navIsActive = static function (string $base) use ($navPath): bool {
                                 <span>Assinaturas</span>
                             </a>
                         <?php endif; ?>
+                        <?php if (can('email_settings.view')): ?>
+                            <?php $active = $navIsActive('/settings/email'); ?>
+                            <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/settings/email')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="mail" aria-hidden="true"></i>
+                                <span>E-mail</span>
+                            </a>
+                        <?php endif; ?>
                         <?php if (can('users.view')): ?>
                             <?php $active = $navIsActive('/users'); ?>
                             <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
