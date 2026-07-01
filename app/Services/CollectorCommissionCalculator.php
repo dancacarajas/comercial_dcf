@@ -53,6 +53,16 @@ final class CollectorCommissionCalculator
             return ['status' => 'blocked', 'message' => 'Collector deal pertence a outro projeto.'];
         }
 
+        $commissionModel = new CollectorCommission();
+        $existingCommission = $commissionModel->findByFinancialAndDeal((int) $entry['id'], (int) $deal['id']);
+        if ($existingCommission !== null && !$commissionModel->canRecalculate($existingCommission)) {
+            return [
+                'status' => 'locked',
+                'message' => 'Comissao aprovada, bloqueada ou com pagamento iniciado nao pode ser recalculada automaticamente.',
+                'commission_id' => (int) $existingCommission['id'],
+            ];
+        }
+
         $collector = $this->collector((int) $deal['collector_id']);
         if (!$this->collectorEligible($collector, (string) ($entry['received_at'] ?? ''))) {
             return ['status' => 'blocked', 'message' => 'Captador sem cadastro/contrato liberado para comissao.'];
@@ -100,7 +110,7 @@ final class CollectorCommissionCalculator
             'engine_version' => '20A.1',
         ];
 
-        $commissionId = (new CollectorCommission())->upsertForFinancialDeal([
+        $commissionId = $commissionModel->upsertForFinancialDeal([
             'commission_pool_id' => (int) $pool['id'],
             'incentive_project_id' => (int) $project['id'],
             'collector_id' => (int) $deal['collector_id'],

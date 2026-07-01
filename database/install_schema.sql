@@ -2434,6 +2434,7 @@ CREATE TABLE IF NOT EXISTS `collector_commissions` (
     `incentive_project_id` BIGINT UNSIGNED NOT NULL,
     `collector_id` BIGINT UNSIGNED NOT NULL,
     `collector_deal_id` BIGINT UNSIGNED NOT NULL,
+    `collector_deal_share_id` BIGINT UNSIGNED NULL DEFAULT NULL,
     `financial_entry_id` BIGINT UNSIGNED NOT NULL,
     `company_id` BIGINT UNSIGNED NULL DEFAULT NULL,
     `sponsor_id` BIGINT UNSIGNED NULL DEFAULT NULL,
@@ -2452,13 +2453,22 @@ CREATE TABLE IF NOT EXISTS `collector_commissions` (
     `calculation_status` VARCHAR(40) NOT NULL DEFAULT 'calculada',
     `approval_status` VARCHAR(40) NOT NULL DEFAULT 'pendente_aprovacao',
     `payment_status` VARCHAR(40) NOT NULL DEFAULT 'nao_iniciado',
+    `payment_total_amount` DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+    `payment_balance_amount` DECIMAL(14,2) NOT NULL DEFAULT 0.00,
+    `payment_started_at` DATETIME NULL DEFAULT NULL,
+    `paid_at` DATETIME NULL DEFAULT NULL,
     `block_reason` VARCHAR(255) NULL DEFAULT NULL,
     `calculation_snapshot_json` JSON NULL DEFAULT NULL,
     `calculated_at` DATETIME NULL DEFAULT NULL,
     `approved_by` BIGINT UNSIGNED NULL DEFAULT NULL,
     `approved_at` DATETIME NULL DEFAULT NULL,
+    `approval_notes` TEXT NULL DEFAULT NULL,
     `blocked_by` BIGINT UNSIGNED NULL DEFAULT NULL,
     `blocked_at` DATETIME NULL DEFAULT NULL,
+    `block_notes` TEXT NULL DEFAULT NULL,
+    `reopened_by` BIGINT UNSIGNED NULL DEFAULT NULL,
+    `reopened_at` DATETIME NULL DEFAULT NULL,
+    `reopen_reason` TEXT NULL DEFAULT NULL,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NULL DEFAULT NULL,
     `archived_at` DATETIME NULL DEFAULT NULL,
@@ -2468,6 +2478,7 @@ CREATE TABLE IF NOT EXISTS `collector_commissions` (
     KEY `idx_collector_commissions_project` (`incentive_project_id`),
     KEY `idx_collector_commissions_collector` (`collector_id`),
     KEY `idx_collector_commissions_deal` (`collector_deal_id`),
+    KEY `idx_collector_commissions_share` (`collector_deal_share_id`),
     KEY `idx_collector_commissions_financial` (`financial_entry_id`),
     KEY `idx_collector_commissions_calc_status` (`calculation_status`),
     KEY `idx_collector_commissions_approval` (`approval_status`),
@@ -2485,3 +2496,11 @@ INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
 SELECT r.`id`, p.`id` FROM `roles` r JOIN `permissions` p ON p.`slug` IN (
     'commissions.view','commissions.calculate','commissions.approve','commissions.block'
 ) WHERE r.`slug` = 'administrador-geral';
+
+INSERT INTO `permissions` (`name`, `slug`, `description`) VALUES
+    ('Comissoes: reabrir', 'commissions.reopen', 'Reabrir comissoes bloqueadas sem pagamento')
+ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `description` = VALUES(`description`);
+
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
+SELECT r.`id`, p.`id` FROM `roles` r JOIN `permissions` p ON p.`slug` = 'commissions.reopen'
+WHERE r.`slug` = 'administrador-geral';

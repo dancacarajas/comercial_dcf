@@ -6,6 +6,7 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Middlewares\AuthMiddleware;
+use App\Models\ActivityLog;
 use App\Models\Collector;
 use App\Models\CollectorCommission;
 use App\Models\CommissionPool;
@@ -95,6 +96,54 @@ final class CollectorCommissionController extends Controller
         $result = (new CollectorCommissionCalculator())->syncForFinancialEntry($financialEntryId, $_SESSION['user_id'] ?? null);
         flash($result['status'] === 'calculated' ? 'success' : 'warning', $result['message']);
         $this->redirect('/financials/' . $financialEntryId);
+    }
+
+    public function approve(array $params): void
+    {
+        AuthMiddleware::requirePermission('commissions.approve');
+        csrf_verify();
+
+        $id = (int) ($params['id'] ?? 0);
+        try {
+            (new CollectorCommission())->approve($id, $_SESSION['user_id'] ?? 0, trim((string) input('approval_notes', '')));
+            (new ActivityLog())->record('collector_commission_approved', $_SESSION['user_id'] ?? null, 'collector_commission', $id);
+            flash('success', 'Comissao aprovada e marcada como a pagar.');
+        } catch (\Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+        $this->redirect('/commissions/' . $id);
+    }
+
+    public function block(array $params): void
+    {
+        AuthMiddleware::requirePermission('commissions.block');
+        csrf_verify();
+
+        $id = (int) ($params['id'] ?? 0);
+        try {
+            (new CollectorCommission())->blockManual($id, $_SESSION['user_id'] ?? 0, trim((string) input('block_reason', '')));
+            (new ActivityLog())->record('collector_commission_blocked', $_SESSION['user_id'] ?? null, 'collector_commission', $id);
+            flash('success', 'Comissao bloqueada.');
+        } catch (\Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+        $this->redirect('/commissions/' . $id);
+    }
+
+    public function reopen(array $params): void
+    {
+        AuthMiddleware::requirePermission('commissions.reopen');
+        csrf_verify();
+
+        $id = (int) ($params['id'] ?? 0);
+        try {
+            (new CollectorCommission())->reopen($id, $_SESSION['user_id'] ?? 0, trim((string) input('reopen_reason', '')));
+            (new ActivityLog())->record('collector_commission_reopened', $_SESSION['user_id'] ?? null, 'collector_commission', $id);
+            flash('success', 'Comissao reaberta para aprovacao.');
+        } catch (\Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+        $this->redirect('/commissions/' . $id);
     }
 
     /** @return array<string, mixed> */
