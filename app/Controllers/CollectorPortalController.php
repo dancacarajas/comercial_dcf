@@ -10,6 +10,8 @@ use App\Models\ActivityLog;
 use App\Models\Collector;
 use App\Models\CollectorApplication;
 use App\Models\CollectorAssignment;
+use App\Models\CollectorCommission;
+use App\Models\CollectorCommissionPayment;
 use App\Models\CollectorDeal;
 use App\Models\Company;
 use App\Models\Contact;
@@ -26,6 +28,8 @@ use App\Services\CollectorProspectIntake;
  */
 final class CollectorPortalController extends Controller
 {
+    private const COMMISSIONS_PER_PAGE = 20;
+
     /** @return array<string,mixed>|null */
     private function currentCollector(): ?array
     {
@@ -114,18 +118,74 @@ final class CollectorPortalController extends Controller
 
         $assignmentModel = new CollectorAssignment();
         $dealModel       = new CollectorDeal();
+        $commissionModel = new CollectorCommission();
 
         $assignments = $assignmentModel->forCollector((int) $collector['id']);
         $deals       = $dealModel->forCollector((int) $collector['id']);
+        $commissionFilters = ['collector_id' => (int) $collector['id']];
 
         $this->view('portal/dashboard', [
             'title'         => 'Minha carteira',
             'collector'     => $collector,
             'assignments'   => $assignments,
             'deals'         => $deals,
+            'commissionSummary' => $commissionModel->summary($commissionFilters),
             'assignTypes'   => $assignmentModel->getTypes(),
             'assignStatuses'=> $assignmentModel->getStatuses(),
             'dealStatuses'  => $dealModel->getStatuses(),
+        ], 'layouts/portal');
+    }
+
+    public function commissions(): void
+    {
+        $collector = $this->guard();
+
+        $model = new CollectorCommission();
+        $filters = $this->portalCommissionFilters((int) $collector['id']);
+        $page = max(1, (int) input('page', 1));
+        $total = $model->count($filters);
+        $pages = (int) max(1, ceil($total / self::COMMISSIONS_PER_PAGE));
+        $page = min($page, $pages);
+
+        $this->view('portal/commissions', [
+            'title' => 'Minhas comissoes',
+            'collector' => $collector,
+            'items' => $model->paginate($filters, $page, self::COMMISSIONS_PER_PAGE),
+            'filters' => $filters,
+            'summary' => $model->summary($filters),
+            'projects' => $model->reportByProject(['collector_id' => (int) $collector['id']], 100),
+            'calculationStatuses' => $model->getCalculationStatuses(),
+            'approvalStatuses' => $model->getApprovalStatuses(),
+            'paymentStatuses' => $model->getPaymentStatuses(),
+            'statusGroups' => $this->portalCommissionStatusGroups(),
+            'page' => $page,
+            'pages' => $pages,
+            'total' => $total,
+        ], 'layouts/portal');
+    }
+
+    public function commissionShow(array $params): void
+    {
+        $collector = $this->guard();
+
+        $id = (int) ($params['id'] ?? 0);
+        $commission = $id > 0 ? (new CollectorCommission())->findById($id) : null;
+        if ($commission === null || (int) ($commission['collector_id'] ?? 0) !== (int) $collector['id']) {
+            $this->abort(404, 'Comissao nao encontrada no seu extrato.');
+        }
+
+        $paymentModel = new CollectorCommissionPayment();
+        $this->view('portal/commission_show', [
+            'title' => 'Comissao #' . $id,
+            'collector' => $collector,
+            'commission' => $commission,
+            'payments' => $paymentModel->findByCommission($id),
+            'paymentMethods' => $paymentModel->getMethods(),
+            'paymentStatuses' => $paymentModel->getStatuses(),
+            'calculationStatuses' => (new CollectorCommission())->getCalculationStatuses(),
+            'approvalStatuses' => (new CollectorCommission())->getApprovalStatuses(),
+            'commissionPaymentStatuses' => (new CollectorCommission())->getPaymentStatuses(),
+            'snapshot' => json_decode((string) ($commission['calculation_snapshot_json'] ?? ''), true) ?: [],
         ], 'layouts/portal');
     }
 
@@ -341,5 +401,32 @@ final class CollectorPortalController extends Controller
             }
         }
         return false;
+    }
+
+    /** @return array<string, mixed> */
+    private function portalCommissionFilters(int $collectorId): array
+    {
+        return [
+            'collector_id' => $collectorId,
+            'incentive_project_id' => (int) input('incentive_project_id', 0),
+            'status_group' => trim((string) input('status_group', '')),
+            'payment_status' => trim((string) input('payment_status', '')),
+            'date_from' => trim((string) input('date_from', '')),
+            'date_to' => trim((string) input('date_to', '')),
+            'q' => trim((string) input('q', '')),
+        ];
+    }
+
+    /** @return array<string, string> */
+    private function portalCommissionStatusGroups(): array
+    {
+        return [
+            'pendente' => 'Pendente',
+            'aprovada' => 'Aprovada',
+            'a_pagar' => 'A pagar',
+            'parcialmente_paga' => 'Parcialmente paga',
+            'paga' => 'Paga',
+            'bloqueada' => 'Bloqueada',
+        ];
     }
 }

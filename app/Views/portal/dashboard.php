@@ -5,6 +5,7 @@ $assignments = $assignments ?? [];
 $dealStatuses = $dealStatuses ?? [];
 $assignStatuses = $assignStatuses ?? [];
 $assignTypes = $assignTypes ?? [];
+$commissionSummary = $commissionSummary ?? [];
 ?>
 <div class="pt-card">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
@@ -13,6 +14,20 @@ $assignTypes = $assignTypes ?? [];
             <p class="pt-muted" style="margin:0">Empresas e prospects que você captou. Cadastre novas empresas para ampliar sua carteira.</p>
         </div>
         <a class="pt-btn" href="<?= e(app_url('/portal/prospects/create')) ?>"><i data-lucide="plus"></i> Novo prospect</a>
+    </div>
+</div>
+
+<div class="pt-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+        <div>
+            <h3>Minhas comissoes</h3>
+            <p class="pt-muted" style="margin:0">
+                Gerada <?= e(money_br($commissionSummary['generated_total'] ?? 0)) ?> ·
+                paga <?= e(money_br($commissionSummary['paid_total'] ?? 0)) ?> ·
+                saldo <?= e(money_br($commissionSummary['balance_total'] ?? 0)) ?>
+            </p>
+        </div>
+        <a class="pt-btn secondary" href="<?= e(app_url('/portal/commissions')) ?>"><i data-lucide="receipt"></i> Ver extrato</a>
     </div>
 </div>
 

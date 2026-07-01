@@ -16,7 +16,8 @@ $flashSuccess = flash('success');
 $flashError   = flash('error');
 $flashInfo    = flash('info');
 $current = (string) ($_SERVER['REQUEST_URI'] ?? '');
-$isCarteira = !str_contains($current,'/prospects') && !str_contains($current,'/deals');
+$isCommissions = str_contains($current, '/portal/commissions');
+$isCarteira = !$isCommissions && !str_contains($current,'/prospects') && !str_contains($current,'/deals');
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -73,6 +74,7 @@ $isCarteira = !str_contains($current,'/prospects') && !str_contains($current,'/d
         </a>
         <nav class="pt-nav">
             <a href="<?= e(app_url('/portal')) ?>"<?= $isCarteira ? ' aria-current="page"' : '' ?>>Minha carteira</a>
+            <a href="<?= e(app_url('/portal/commissions')) ?>"<?= $isCommissions ? ' aria-current="page"' : '' ?>>Minhas comissões</a>
             <a href="<?= e(app_url('/portal/prospects/create')) ?>"<?= str_contains($current,'/prospects') ? ' aria-current="page"' : '' ?>>Novo prospect</a>
         </nav>
         <div class="pt-user">
