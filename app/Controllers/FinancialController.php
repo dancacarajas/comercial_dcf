@@ -13,11 +13,13 @@ use App\Models\Contract;
 use App\Models\Document;
 use App\Models\FinancialEntry;
 use App\Models\IncentiveProject;
+use App\Models\CollectorCommission;
 use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Quota;
 use App\Models\Sponsor;
 use App\Models\User;
+use App\Services\CollectorCommissionCalculator;
 
 /**
  * Módulo Financeiro Detalhado / Parcelas (Etapa 15).
@@ -267,6 +269,9 @@ final class FinancialController extends Controller
             $documents       = $documentModel->paginate(['sponsor_id' => $sid], 1, 10);
             $documentSummary = $documentModel->summaryBySponsor($sid);
         }
+        $commissions = can('commissions.view')
+            ? (new CollectorCommission())->paginate(['financial_entry_id' => $eid], 1, 10)
+            : [];
 
         $this->view('financials/show', [
             'title'             => $entry['title'] ?? 'Lançamento financeiro',
@@ -280,6 +285,7 @@ final class FinancialController extends Controller
             'documents'         => $documents,
             'documentSummary'   => $documentSummary,
             'documentModel'     => $documentModel,
+            'commissions'       => $commissions,
         ]);
     }
 
@@ -425,6 +431,10 @@ final class FinancialController extends Controller
             (new ActivityLog())->record('financial_fiscal_status_changed', $userId, 'financial_entry', $id);
         }
 
+        if ($statusChanged) {
+            $this->syncCommissionForFinancialStatus($id, $newStatus, $userId);
+        }
+
         flash('success', 'Status atualizado.');
         $this->redirect('/financials/' . $id);
     }
@@ -476,6 +486,8 @@ final class FinancialController extends Controller
             (new ActivityLog())->record('financial_partial_payment_confirmed', $userId ?: null, 'financial_entry', $id);
         }
 
+        $this->syncCommissionForFinancialStatus($id, (string) ($updated['status'] ?? 'recebido'), $userId);
+
         flash('success', 'Recebimento confirmado com sucesso.');
         $this->redirect('/financials/' . $id);
     }
@@ -497,6 +509,7 @@ final class FinancialController extends Controller
         ], $userId);
 
         (new ActivityLog())->record('financial_reconciled', $userId ?: null, 'financial_entry', $id);
+        $this->syncCommissionForFinancialStatus($id, 'conciliado', $userId);
 
         flash('success', 'Lançamento conciliado com sucesso.');
         $this->redirect('/financials/' . $id);
@@ -839,6 +852,18 @@ final class FinancialController extends Controller
     private function linkOptions(string $table, string $labelCol): array
     {
         return (new Proposal())->filterLinkOptions($table, $labelCol);
+    }
+
+    private function syncCommissionForFinancialStatus(int $financialEntryId, string $status, int|string|null $userId): void
+    {
+        if (in_array($status, ['recebido', 'recebido_parcial', 'conciliado'], true)) {
+            (new CollectorCommissionCalculator())->syncForFinancialEntry($financialEntryId, $userId);
+            return;
+        }
+
+        if (in_array($status, ['cancelado', 'suspenso', 'arquivado'], true)) {
+            (new CollectorCommission())->blockByFinancialEntry($financialEntryId, 'Lancamento financeiro ' . $status . '.');
+        }
     }
 
     /** @return array<string, mixed> */

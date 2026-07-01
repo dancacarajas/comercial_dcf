@@ -135,6 +135,14 @@ $navIsActive = static function (string $base) use ($navPath): bool {
                                 <span>Financeiro</span>
                             </a>
                         <?php endif; ?>
+                        <?php if (can('commissions.view')): ?>
+                            <?php $active = $navIsActive('/commissions'); ?>
+                            <a class="dcx-nav-primary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/commissions')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="badge-dollar-sign" aria-hidden="true"></i>
+                                <span>Comissoes</span>
+                            </a>
+                        <?php endif; ?>
                         <?php if (can('reports.view')): ?>
                             <?php $active = $navIsActive('/reports'); ?>
                             <a class="dcx-nav-primary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"

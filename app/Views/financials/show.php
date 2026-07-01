@@ -9,6 +9,7 @@ $fiscalStatuses = $fiscalStatuses ?? [];
 $documents = $documents ?? [];
 $documentSummary = $documentSummary ?? [];
 $documentModel = $documentModel ?? null;
+$commissions = $commissions ?? [];
 
 $eid = (int) ($entry['id'] ?? 0);
 $sid = (int) ($entry['sponsor_id'] ?? 0);
@@ -125,6 +126,42 @@ if (!empty($entry['installment_number']) || !empty($entry['installments_total'])
             $emptyText = 'Nenhum documento vinculado a este lançamento financeiro.';
             require __DIR__ . '/../documents/_summary_block.php';
             ?>
+        <?php endif; ?>
+
+        <?php if (can('commissions.view')): ?>
+            <article class="card financial-card" style="margin-top:18px;">
+                <div class="page-head" style="margin-bottom:12px;">
+                    <div>
+                        <h3 class="h3-card"><i data-lucide="badge-dollar-sign"></i> Comissoes do captador</h3>
+                        <p class="page-sub">Motor 20A: calculo proporcional, pendente de aprovacao e sem pagamento.</p>
+                    </div>
+                    <?php if (can('commissions.calculate') && !$isArchived): ?>
+                        <form method="post" action="<?= e(app_url('/financials/' . $eid . '/commissions/recalculate')) ?>">
+                            <?= csrf_field() ?>
+                            <button type="submit" class="btn btn-sm btn-outline"><i data-lucide="refresh-cw"></i> Recalcular</button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead><tr><th>Captador</th><th>Recebido</th><th>Comissao</th><th>Status</th><th></th></tr></thead>
+                        <tbody>
+                            <?php foreach ($commissions as $commission): ?>
+                                <tr>
+                                    <td><?= e($commission['collector_name'] ?? '') ?><br><small><?= e($commission['collector_code'] ?? '') ?></small></td>
+                                    <td><?= e(money_br($commission['financial_received_amount'] ?? 0)) ?></td>
+                                    <td><strong><?= e(money_br($commission['capped_commission_amount'] ?? 0)) ?></strong></td>
+                                    <td><span class="pill"><?= e($commission['calculation_status'] ?? '') ?></span> <span class="pill"><?= e($commission['approval_status'] ?? '') ?></span></td>
+                                    <td><a class="btn btn-sm btn-outline" href="<?= e(app_url('/commissions/' . (int) $commission['id'])) ?>">Abrir</a></td>
+                                </tr>
+                            <?php endforeach; ?>
+                            <?php if ($commissions === []): ?>
+                                <tr><td colspan="5" class="text-muted">Nenhuma comissao calculada para este recebimento.</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </article>
         <?php endif; ?>
 
         <div class="financial-actions actions-row" style="margin-top:22px;">

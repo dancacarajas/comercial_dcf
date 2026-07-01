@@ -283,6 +283,12 @@ return function (Router $router): void {
     $router->post('/financials/{id}/restore',      'FinancialController@restore',      ['AuthMiddleware']);
     $router->get('/financials/{id}/documents/create', 'DocumentController@createForFinancialEntry', ['AuthMiddleware']);
 
+    // Comissoes dos captadores (Etapa 20A - motor de calculo)
+    $router->get('/commissions',                         'CollectorCommissionController@index',                ['AuthMiddleware']);
+    $router->get('/commissions/pools',                   'CollectorCommissionController@pools',                ['AuthMiddleware']);
+    $router->get('/commissions/{id}',                    'CollectorCommissionController@show',                 ['AuthMiddleware']);
+    $router->post('/financials/{id}/commissions/recalculate', 'CollectorCommissionController@recalculateFinancial', ['AuthMiddleware']);
+
     // Rotas contextuais de dossiês (Etapa 16)
     $router->get('/companies/{id}/dossiers/create',     'SponsorDossierController@createForCompany',     ['AuthMiddleware']);
     $router->get('/contacts/{id}/dossiers/create',      'SponsorDossierController@createForContact',      ['AuthMiddleware']);
