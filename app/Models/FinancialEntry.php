@@ -15,6 +15,7 @@ final class FinancialEntry extends Model
 
     /** @var list<string> */
     private const FILLABLE = [
+        'incentive_project_id',
         'sponsor_id', 'contract_id', 'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id',
         'proof_document_id', 'receipt_document_id', 'fiscal_document_id',
         'entry_number', 'title', 'entry_type', 'funding_mechanism', 'payment_method',

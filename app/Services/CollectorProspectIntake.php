@@ -37,9 +37,10 @@ final class CollectorProspectIntake
     /**
      * @param array<string,mixed> $collector  linha do captador (collectors)
      * @param array<string,mixed> $input       dados do formulário do portal
+     * @param ?int                 $projectId   projeto incentivado escolhido (Etapa 19)
      * @return array{status:string,message:string,company_id:?int,assignment_id:?int,deal_id:?int,conflicts:array<int,string>}
      */
-    public function intake(array $collector, array $input, ?int $userId): array
+    public function intake(array $collector, array $input, ?int $userId, ?int $projectId = null): array
     {
         $companyModel = new Company();
         $collectorId  = (int) ($collector['id'] ?? 0);
@@ -61,28 +62,32 @@ final class CollectorProspectIntake
         $soft = [];
 
         if ($companyId !== null) {
-            // Já está na carteira deste próprio captador.
-            if ($this->hasActiveAssignment($companyId, $collectorId)) {
+            // Já está na carteira deste próprio captador (no mesmo projeto).
+            if ($this->hasActiveAssignment($companyId, $collectorId, $projectId)) {
                 return $this->result(
                     'ja_na_carteira',
-                    'Esta empresa já está na sua carteira.',
+                    'Esta empresa já está na sua carteira para este projeto.',
                     $companyId,
                     null,
                     null,
                     []
                 );
             }
-            // Conflito forte: exclusiva ativa de OUTRO captador.
-            if ($this->activeExclusiveByOther($companyId, $collectorId) !== null) {
-                $hard[] = 'Empresa já possui atribuição exclusiva ativa de outro captador.';
+            // Conflito forte: exclusiva ativa de OUTRO captador no mesmo projeto.
+            if ($this->activeExclusiveByOther($companyId, $collectorId, $projectId) !== null) {
+                $hard[] = 'Empresa já possui atribuição exclusiva ativa de outro captador neste projeto.';
             }
-            // Conflito forte: empresa já é patrocinadora.
-            if ($this->isActiveSponsor($companyId)) {
-                $hard[] = 'Empresa já é patrocinadora confirmada.';
+            // Conflito forte: empresa já é patrocinadora confirmada deste projeto.
+            if ($this->isActiveSponsor($companyId, $projectId)) {
+                $hard[] = 'Empresa já é patrocinadora confirmada deste projeto.';
             }
-            // Conflito brando: já em oportunidade interna ativa.
-            if ($this->hasActiveInternalOpportunity($companyId)) {
-                $soft[] = 'Empresa já possui oportunidade interna em andamento.';
+            // Conflito brando: já em oportunidade interna ativa neste projeto.
+            if ($this->hasActiveInternalOpportunity($companyId, $projectId)) {
+                $soft[] = 'Empresa já possui oportunidade interna em andamento neste projeto.';
+            }
+            // Conflito brando: empresa já patrocinou outro projeto anterior.
+            if ($projectId !== null && $this->sponsoredOtherProject($companyId, $projectId)) {
+                $soft[] = 'Empresa já patrocinou outro projeto/edição anteriormente.';
             }
         } elseif ($name !== '') {
             // Empresa nova: alerta de possível duplicidade por nome semelhante.
@@ -133,6 +138,7 @@ final class CollectorProspectIntake
 
         // 4) Cria a atribuição (reserva) e o deal (rastreabilidade), origem portal.
         $assignmentId = (int) (new CollectorAssignment())->create([
+            'incentive_project_id' => $projectId,
             'collector_id'    => $collectorId,
             'company_id'      => $companyId,
             'assignment_type' => 'exclusiva',
@@ -142,6 +148,7 @@ final class CollectorProspectIntake
         ]);
 
         $dealId = (int) (new CollectorDeal())->create([
+            'incentive_project_id'    => $projectId,
             'collector_id'            => $collectorId,
             'collector_assignment_id' => $assignmentId,
             'company_id'              => $companyId,
@@ -276,54 +283,80 @@ final class CollectorProspectIntake
         return trim($s);
     }
 
-    private function hasActiveAssignment(int $companyId, int $collectorId): bool
+    private function hasActiveAssignment(int $companyId, int $collectorId, ?int $projectId): bool
     {
-        $row = Database::run(
-            "SELECT `id` FROM `collector_assignments`
+        $sql = "SELECT `id` FROM `collector_assignments`
               WHERE `company_id` = :co AND `collector_id` = :cl
-                AND `archived_at` IS NULL AND `status` IN ('solicitada','autorizada') LIMIT 1",
-            ['co' => $companyId, 'cl' => $collectorId]
-        )->fetch(PDO::FETCH_ASSOC);
+                AND `archived_at` IS NULL AND `status` IN ('solicitada','autorizada')";
+        $params = ['co' => $companyId, 'cl' => $collectorId];
+        if ($projectId !== null) {
+            $sql .= ' AND `incentive_project_id` = :pj';
+            $params['pj'] = $projectId;
+        }
+        $row = Database::run($sql . ' LIMIT 1', $params)->fetch(PDO::FETCH_ASSOC);
 
         return $row !== false;
     }
 
     /** @return array<string,mixed>|null */
-    private function activeExclusiveByOther(int $companyId, int $collectorId): ?array
+    private function activeExclusiveByOther(int $companyId, int $collectorId, ?int $projectId): ?array
     {
-        $row = Database::run(
-            "SELECT `id`, `collector_id` FROM `collector_assignments`
+        $sql = "SELECT `id`, `collector_id` FROM `collector_assignments`
               WHERE `company_id` = :co AND `collector_id` <> :cl
                 AND `assignment_type` = 'exclusiva' AND `archived_at` IS NULL
                 AND `status` IN ('solicitada','autorizada')
-                AND (`exclusive_until` IS NULL OR `exclusive_until` >= CURDATE())
-              ORDER BY `id` DESC LIMIT 1",
-            ['co' => $companyId, 'cl' => $collectorId]
-        )->fetch(PDO::FETCH_ASSOC);
+                AND (`exclusive_until` IS NULL OR `exclusive_until` >= CURDATE())";
+        $params = ['co' => $companyId, 'cl' => $collectorId];
+        if ($projectId !== null) {
+            $sql .= ' AND `incentive_project_id` = :pj';
+            $params['pj'] = $projectId;
+        }
+        $row = Database::run($sql . ' ORDER BY `id` DESC LIMIT 1', $params)->fetch(PDO::FETCH_ASSOC);
 
         return $row !== false ? $row : null;
     }
 
-    private function isActiveSponsor(int $companyId): bool
+    private function isActiveSponsor(int $companyId, ?int $projectId): bool
+    {
+        $sql = "SELECT `id` FROM `sponsors`
+              WHERE `company_id` = :co AND `archived_at` IS NULL
+                AND `status` <> 'cancelado'";
+        $params = ['co' => $companyId];
+        if ($projectId !== null) {
+            $sql .= ' AND `incentive_project_id` = :pj';
+            $params['pj'] = $projectId;
+        }
+        $row = Database::run($sql . ' LIMIT 1', $params)->fetch(PDO::FETCH_ASSOC);
+
+        return $row !== false;
+    }
+
+    /** Empresa que já patrocinou algum projeto DIFERENTE do atual (conflito brando). */
+    private function sponsoredOtherProject(int $companyId, int $projectId): bool
     {
         $row = Database::run(
             "SELECT `id` FROM `sponsors`
               WHERE `company_id` = :co AND `archived_at` IS NULL
-                AND `status` <> 'cancelado' LIMIT 1",
-            ['co' => $companyId]
+                AND `status` <> 'cancelado'
+                AND `incentive_project_id` IS NOT NULL
+                AND `incentive_project_id` <> :pj LIMIT 1",
+            ['co' => $companyId, 'pj' => $projectId]
         )->fetch(PDO::FETCH_ASSOC);
 
         return $row !== false;
     }
 
-    private function hasActiveInternalOpportunity(int $companyId): bool
+    private function hasActiveInternalOpportunity(int $companyId, ?int $projectId): bool
     {
-        $row = Database::run(
-            "SELECT `id` FROM `opportunities`
+        $sql = "SELECT `id` FROM `opportunities`
               WHERE `company_id` = :co AND `archived_at` IS NULL
-                AND `status` NOT IN ('fechado','perdido') LIMIT 1",
-            ['co' => $companyId]
-        )->fetch(PDO::FETCH_ASSOC);
+                AND `status` NOT IN ('fechado','perdido')";
+        $params = ['co' => $companyId];
+        if ($projectId !== null) {
+            $sql .= ' AND `incentive_project_id` = :pj';
+            $params['pj'] = $projectId;
+        }
+        $row = Database::run($sql . ' LIMIT 1', $params)->fetch(PDO::FETCH_ASSOC);
 
         return $row !== false;
     }

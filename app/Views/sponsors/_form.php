@@ -13,6 +13,7 @@ $companyContacts = $companyContacts ?? [];
 $opportunities = $opportunities ?? [];
 $proposals = $proposals ?? [];
 $quotas = $quotas ?? [];
+$projects = $projects ?? [];
 $users = $users ?? [];
 $documents = $documents ?? [];
 
@@ -76,6 +77,16 @@ $err = static function (string $k) use ($errors): string {
                 <?php endforeach; ?>
             </select>
             <?= $err('quota_id') ?>
+        </div>
+        <div>
+            <label for="incentive_project_id">Projeto incentivado *</label>
+            <select id="incentive_project_id" name="incentive_project_id" required>
+                <option value="">â€” Selecione â€”</option>
+                <?php foreach ($projects as $p): ?>
+                    <option value="<?= (int) $p['id'] ?>" <?= (int) $val('incentive_project_id') === (int) $p['id'] ? 'selected' : '' ?>><?= e($p['label'] ?? '') ?></option>
+                <?php endforeach; ?>
+            </select>
+            <?= $err('incentive_project_id') ?>
         </div>
         <?php if ($documents !== []): ?>
         <div>

@@ -18,6 +18,7 @@ $sources             = $sources ?? [];
 $urgencyLevels       = $urgencyLevels ?? [];
 $lostReasons         = $lostReasons ?? [];
 $owners              = $owners ?? [];
+$projects            = $projects ?? [];
 
 $val = static fn (string $k, string $default = ''): string => (string) ($old[$k] ?? $default);
 $err = static function (string $k) use ($errors): string {
@@ -47,6 +48,18 @@ $probJson = htmlspecialchars(json_encode($statusProbabilities, JSON_UNESCAPED_UN
 
     <h3 class="h3-card form-section-title"><i data-lucide="link"></i> Vínculo</h3>
     <div class="form-grid">
+        <div>
+            <label for="incentive_project_id">Projeto incentivado *</label>
+            <select id="incentive_project_id" name="incentive_project_id" required>
+                <option value="">— Selecione o projeto —</option>
+                <?php foreach ($projects as $p): ?>
+                    <option value="<?= (int) $p['id'] ?>" <?= (int) $val('incentive_project_id') === (int) $p['id'] ? 'selected' : '' ?>>
+                        <?= e((string) $p['label']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <?= $err('incentive_project_id') ?>
+        </div>
         <div>
             <label for="company_id">Empresa *</label>
             <select id="company_id" name="company_id" required>

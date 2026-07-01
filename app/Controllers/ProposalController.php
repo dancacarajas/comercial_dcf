@@ -11,6 +11,7 @@ use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Document;
 use App\Models\FinancialEntry;
+use App\Models\IncentiveProject;
 use App\Models\SponsorDossier;
 use App\Models\Opportunity;
 use App\Models\Proposal;
@@ -113,6 +114,7 @@ final class ProposalController extends Controller
             'contact_id' => $opp['contact_id'] ? (int) $opp['contact_id'] : null,
             'opportunity_id' => $id,
             'quota_id' => $opp['quota_id'] ? (int) $opp['quota_id'] : null,
+            'incentive_project_id' => !empty($opp['incentive_project_id']) ? (int) $opp['incentive_project_id'] : null,
             'proposed_value' => $opp['estimated_value'],
             'type' => 'proposta_por_cota', 'status' => 'rascunho', 'version_number' => 1,
             'created_on' => date('Y-m-d'), 'responsible_user_id' => $_SESSION['user_id'] ?? null,
@@ -129,6 +131,7 @@ final class ProposalController extends Controller
         }
         $this->renderForm('proposals/create', 'Nova proposta', $this->prefillFromQuery([
             'quota_id' => $id, 'proposed_value' => $quota['amount'],
+            'incentive_project_id' => !empty($quota['incentive_project_id']) ? (int) $quota['incentive_project_id'] : null,
             'type' => 'proposta_por_cota', 'status' => 'rascunho', 'version_number' => 1,
             'created_on' => date('Y-m-d'), 'responsible_user_id' => $_SESSION['user_id'] ?? null,
         ]), []);
@@ -144,6 +147,9 @@ final class ProposalController extends Controller
         $data  = $this->applyAutofill($model, $data);
 
         $errors = $model->validate($data, 'create');
+        if (empty($data['incentive_project_id'])) {
+            $errors['incentive_project_id'] = 'Selecione o projeto incentivado da proposta.';
+        }
         $this->validateLinks($data, $errors);
         $uploadErrors = $model->validateUpload($_FILES['pdf_file'] ?? []);
         $errors = array_merge($errors, $uploadErrors);
@@ -310,6 +316,9 @@ final class ProposalController extends Controller
         $data   = $this->collectInput($model);
         $data   = $this->applyAutofill($model, $data);
         $errors = $model->validate($data, 'update');
+        if (empty($data['incentive_project_id'])) {
+            $errors['incentive_project_id'] = 'Selecione o projeto incentivado da proposta.';
+        }
         $this->validateLinks($data, $errors);
         $uploadErrors = $model->validateUpload($_FILES['pdf_file'] ?? []);
         $errors = array_merge($errors, $uploadErrors);
@@ -525,6 +534,7 @@ final class ProposalController extends Controller
     {
         return [
             'company_id'          => (int) input('company_id', 0),
+            'incentive_project_id'=> ($projectId = (int) input('incentive_project_id', 0)) > 0 ? $projectId : null,
             'contact_id'          => input('contact_id') !== null && input('contact_id') !== '' ? (int) input('contact_id') : null,
             'opportunity_id'      => input('opportunity_id') !== null && input('opportunity_id') !== '' ? (int) input('opportunity_id') : null,
             'quota_id'            => input('quota_id') !== null && input('quota_id') !== '' ? (int) input('quota_id') : null,
@@ -545,7 +555,7 @@ final class ProposalController extends Controller
     /** @param array<string, mixed> $data @return array<string, mixed> */
     private function prefillFromQuery(array $data): array
     {
-        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id'] as $k) {
+        foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'incentive_project_id'] as $k) {
             $q = input($k);
             if ($q !== null && $q !== '') {
                 $data[$k] = (int) $q;
@@ -579,6 +589,20 @@ final class ProposalController extends Controller
             $quota = (new Quota())->findById((int) $data['quota_id']);
             if ($quota !== null && $quota['amount'] !== null) {
                 $data['proposed_value'] = $quota['amount'];
+            }
+        }
+
+        // Etapa 19: a proposta herda o projeto da oportunidade (ou da cota).
+        if (empty($data['incentive_project_id']) && !empty($data['opportunity_id'])) {
+            $opp = (new Opportunity())->findById((int) $data['opportunity_id']);
+            if ($opp !== null && !empty($opp['incentive_project_id'])) {
+                $data['incentive_project_id'] = (int) $opp['incentive_project_id'];
+            }
+        }
+        if (empty($data['incentive_project_id']) && !empty($data['quota_id'])) {
+            $quota = (new Quota())->findById((int) $data['quota_id']);
+            if ($quota !== null && !empty($quota['incentive_project_id'])) {
+                $data['incentive_project_id'] = (int) $quota['incentive_project_id'];
             }
         }
 
@@ -680,6 +704,7 @@ final class ProposalController extends Controller
             'companies'       => (new Company())->activeOptions(),
             'opportunities'   => $this->linkOptions('opportunities', 'title'),
             'quotas'          => (new Quota())->activeOptions(),
+            'projects'        => (new IncentiveProject())->options(true),
             'users'           => (new User())->activeList(),
             'companyContacts' => $companyContacts,
         ]);

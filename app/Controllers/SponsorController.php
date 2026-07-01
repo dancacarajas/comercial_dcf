@@ -13,6 +13,7 @@ use App\Models\Contract;
 use App\Models\Counterpart;
 use App\Models\Document;
 use App\Models\FinancialEntry;
+use App\Models\IncentiveProject;
 use App\Models\Opportunity;
 use App\Models\Proposal;
 use App\Models\Quota;
@@ -126,6 +127,7 @@ final class SponsorController extends Controller
             'contact_id' => $opp['contact_id'] ? (int) $opp['contact_id'] : null,
             'opportunity_id' => $id,
             'quota_id' => $opp['quota_id'] ? (int) $opp['quota_id'] : null,
+            'incentive_project_id' => !empty($opp['incentive_project_id']) ? (int) $opp['incentive_project_id'] : null,
             'committed_amount' => $opp['estimated_value'],
             'sponsor_display_name' => (string) ($opp['title'] ?? ''),
             'sponsorship_type' => 'patrocinio_direto', 'funding_mechanism' => 'lei_rouanet',
@@ -149,6 +151,7 @@ final class SponsorController extends Controller
             'opportunity_id' => $prop['opportunity_id'] ? (int) $prop['opportunity_id'] : null,
             'proposal_id' => $id,
             'quota_id' => $prop['quota_id'] ? (int) $prop['quota_id'] : null,
+            'incentive_project_id' => !empty($prop['incentive_project_id']) ? (int) $prop['incentive_project_id'] : null,
             'committed_amount' => $prop['proposed_value'],
             'sponsor_display_name' => (string) ($prop['title'] ?? ''),
             'sponsorship_type' => 'patrocinio_direto', 'funding_mechanism' => 'lei_rouanet',
@@ -168,6 +171,7 @@ final class SponsorController extends Controller
         }
         $this->renderForm('sponsors/create', 'Novo fechamento comercial', $this->prefillFromQuery([
             'quota_id' => $id,
+            'incentive_project_id' => !empty($quota['incentive_project_id']) ? (int) $quota['incentive_project_id'] : null,
             'committed_amount' => $quota['amount'],
             'sponsor_display_name' => (string) ($quota['name'] ?? ''),
             'sponsorship_type' => 'patrocinio_direto', 'funding_mechanism' => 'lei_rouanet',
@@ -187,6 +191,9 @@ final class SponsorController extends Controller
         $data  = $this->applyAutofill($data);
 
         $errors = $model->validate($data, 'create');
+        if (empty($data['incentive_project_id'])) {
+            $errors['incentive_project_id'] = 'Selecione o projeto incentivado do patrocinador.';
+        }
         $this->validateLinks($data, $errors);
 
         if ($errors !== []) {
@@ -321,6 +328,9 @@ final class SponsorController extends Controller
         $data   = $this->collectInput($model);
         $data   = $this->applyAutofill($data);
         $errors = $model->validate($data, 'update');
+        if (empty($data['incentive_project_id'])) {
+            $errors['incentive_project_id'] = 'Selecione o projeto incentivado do patrocinador.';
+        }
         $this->validateLinks($data, $errors);
 
         if ($errors !== []) {
@@ -507,6 +517,7 @@ final class SponsorController extends Controller
 
         return [
             'company_id'                 => $companyId,
+            'incentive_project_id'       => ($projectId = (int) input('incentive_project_id', 0)) > 0 ? $projectId : null,
             'contact_id'                 => input('contact_id') !== null && input('contact_id') !== '' ? (int) input('contact_id') : null,
             'opportunity_id'             => input('opportunity_id') !== null && input('opportunity_id') !== '' ? (int) input('opportunity_id') : null,
             'proposal_id'                => input('proposal_id') !== null && input('proposal_id') !== '' ? (int) input('proposal_id') : null,
@@ -541,7 +552,7 @@ final class SponsorController extends Controller
     /** @param array<string, mixed> $data @return array<string, mixed> */
     private function prefillFromQuery(array $data): array
     {
-        foreach (['company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id', 'primary_document_id'] as $k) {
+        foreach (['company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id', 'primary_document_id', 'incentive_project_id'] as $k) {
             $q = input($k);
             if ($q !== null && $q !== '') {
                 $data[$k] = (int) $q;
@@ -575,6 +586,10 @@ final class SponsorController extends Controller
                 if (empty($data['sponsor_display_name'])) {
                     $data['sponsor_display_name'] = (string) ($prop['title'] ?? '');
                 }
+                // Etapa 19: patrocinador herda o projeto da proposta.
+                if (empty($data['incentive_project_id']) && !empty($prop['incentive_project_id'])) {
+                    $data['incentive_project_id'] = (int) $prop['incentive_project_id'];
+                }
             }
         }
 
@@ -593,6 +608,17 @@ final class SponsorController extends Controller
                 if (($data['committed_amount'] ?? null) === null && $opp['estimated_value'] !== null) {
                     $data['committed_amount'] = $opp['estimated_value'];
                 }
+                // Etapa 19: patrocinador herda o projeto da oportunidade.
+                if (empty($data['incentive_project_id']) && !empty($opp['incentive_project_id'])) {
+                    $data['incentive_project_id'] = (int) $opp['incentive_project_id'];
+                }
+            }
+        }
+
+        if (empty($data['incentive_project_id']) && !empty($data['quota_id'])) {
+            $quota = (new Quota())->findById((int) $data['quota_id']);
+            if ($quota !== null && !empty($quota['incentive_project_id'])) {
+                $data['incentive_project_id'] = (int) $quota['incentive_project_id'];
             }
         }
 
@@ -725,6 +751,7 @@ final class SponsorController extends Controller
             'opportunities'     => $this->linkOptions('opportunities', 'title'),
             'proposals'         => $this->linkOptions('proposals', 'title'),
             'quotas'            => (new Quota())->activeOptions(),
+            'projects'          => (new IncentiveProject())->options(true),
             'users'             => (new User())->activeList(),
             'companyContacts'   => $companyContacts,
             'documents'         => $documents,

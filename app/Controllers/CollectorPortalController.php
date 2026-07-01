@@ -13,6 +13,7 @@ use App\Models\CollectorAssignment;
 use App\Models\CollectorDeal;
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\IncentiveProject;
 use App\Services\CollectorProspectIntake;
 
 /**
@@ -132,14 +133,22 @@ final class CollectorPortalController extends Controller
     {
         $collector = $this->guard();
         $companyModel = new Company();
+        $projects = (new IncentiveProject())->options(true);
+
+        if ($projects === []) {
+            flash('error', 'Não há projetos liberados para captação no momento. Procure a equipe Dança Carajás.');
+            $this->redirect('/portal');
+            return;
+        }
 
         $this->view('portal/prospect_form', [
             'title'     => 'Novo prospect',
             'collector' => $collector,
-            'data'      => [],
+            'data'      => ['incentive_project_id' => count($projects) === 1 ? $projects[0]['id'] : ''],
             'errors'    => [],
             'segments'  => $companyModel->getSegments(),
             'states'    => $companyModel->getStates(),
+            'projects'  => $projects,
         ], 'layouts/portal');
     }
 
@@ -150,7 +159,10 @@ final class CollectorPortalController extends Controller
         csrf_verify();
 
         $companyModel = new Company();
+        $projects = (new IncentiveProject())->options(true);
+        $projectIds = array_map(static fn ($p) => (int) $p['id'], $projects);
         $data = [
+            'incentive_project_id' => (int) input('incentive_project_id', 0),
             'name'    => clean((string) input('name', '')),
             'cnpj'    => clean((string) input('cnpj', '')),
             'segment' => clean((string) input('segment', '')),
@@ -162,6 +174,9 @@ final class CollectorPortalController extends Controller
         ];
 
         $errors = [];
+        if ($data['incentive_project_id'] <= 0 || !in_array($data['incentive_project_id'], $projectIds, true)) {
+            $errors['incentive_project_id'] = 'Selecione um projeto liberado para captação.';
+        }
         if ($data['name'] === '' || mb_strlen($data['name']) < 2) {
             $errors['name'] = 'Informe o nome da empresa/prospect (mínimo 2 caracteres).';
         }
@@ -185,11 +200,17 @@ final class CollectorPortalController extends Controller
                 'errors'    => $errors,
                 'segments'  => $companyModel->getSegments(),
                 'states'    => $companyModel->getStates(),
+                'projects'  => $projects,
             ], 'layouts/portal');
             return;
         }
 
-        $res = (new CollectorProspectIntake())->intake($collector, $data, (int) ($_SESSION['user_id'] ?? 0));
+        $res = (new CollectorProspectIntake())->intake(
+            $collector,
+            $data,
+            (int) ($_SESSION['user_id'] ?? 0),
+            $data['incentive_project_id']
+        );
 
         if (in_array($res['status'], ['criado', 'analise_interna'], true)) {
             flash('success', $res['message']);

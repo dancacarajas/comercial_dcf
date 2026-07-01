@@ -11,6 +11,7 @@ use App\Models\Collector;
 use App\Models\CollectorAssignment;
 use App\Models\CollectorDeal;
 use App\Models\Company;
+use App\Models\IncentiveProject;
 use App\Models\Opportunity;
 
 /**
@@ -54,7 +55,9 @@ final class CollectorAssignmentController extends Controller
         $conflict = $model->findExclusiveConflict(
             (int) $data['company_id'],
             (string) $data['assignment_type'],
-            $data['exclusive_until'] ?? null
+            $data['exclusive_until'] ?? null,
+            null,
+            $data['incentive_project_id'] ?? null
         );
         if ($conflict !== null) {
             $errors['company_id'] = 'Já existe atribuição exclusiva ativa desta empresa para o captador "'
@@ -85,7 +88,8 @@ final class CollectorAssignmentController extends Controller
             (int) $assignment['company_id'],
             (string) $assignment['assignment_type'],
             $assignment['exclusive_until'] ?? null,
-            (int) $assignment['id']
+            (int) $assignment['id'],
+            $assignment['incentive_project_id'] ?? null
         );
         if ($conflict !== null) {
             flash('error', 'Não é possível autorizar: já existe atribuição exclusiva ativa desta empresa para outro captador.');
@@ -136,8 +140,17 @@ final class CollectorAssignmentController extends Controller
 
         $userId = $_SESSION['user_id'] ?? null;
         $companyName = (string) ($assignment['company_name'] ?? 'Empresa');
+        $projectId = isset($assignment['incentive_project_id']) && $assignment['incentive_project_id'] !== null
+            ? (int) $assignment['incentive_project_id']
+            : null;
+        if ($projectId === null || $projectId <= 0) {
+            flash('error', 'Nao e possivel converter uma atribuicao sem projeto incentivado.');
+            $this->redirect('/collectors/' . (int) $assignment['collector_id']);
+            return;
+        }
 
         $opportunityId = (int) (new Opportunity())->create([
+            'incentive_project_id' => $projectId,
             'company_id'  => (int) $assignment['company_id'],
             'title'       => 'Captação — ' . $companyName,
             'status'      => 'prospect_identificado',
@@ -149,6 +162,7 @@ final class CollectorAssignmentController extends Controller
         ]);
 
         $dealId = (int) (new CollectorDeal())->create([
+            'incentive_project_id'    => $projectId,
             'collector_id'            => (int) $assignment['collector_id'],
             'collector_assignment_id' => (int) $assignment['id'],
             'company_id'              => (int) $assignment['company_id'],
@@ -182,6 +196,7 @@ final class CollectorAssignmentController extends Controller
             'data'       => $data,
             'errors'     => $errors,
             'companies'  => (new Company())->activeOptions(),
+            'projects'   => (new IncentiveProject())->options(true),
             'types'      => $model->getTypes(),
         ]);
     }
@@ -190,6 +205,7 @@ final class CollectorAssignmentController extends Controller
     private function collectInput(): array
     {
         return [
+            'incentive_project_id' => ($projectId = (int) input('incentive_project_id', 0)) > 0 ? $projectId : null,
             'company_id'      => (int) input('company_id', 0),
             'assignment_type' => trim((string) input('assignment_type', 'exclusiva')),
             'status'          => 'solicitada',

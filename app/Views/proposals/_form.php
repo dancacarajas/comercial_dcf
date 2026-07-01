@@ -8,6 +8,7 @@ $companies       = $companies ?? [];
 $companyContacts = $companyContacts ?? [];
 $opportunities   = $opportunities ?? [];
 $quotas          = $quotas ?? [];
+$projects        = $projects ?? [];
 $users           = $users ?? [];
 $types           = $types ?? [];
 $statuses        = $statuses ?? [];
@@ -69,6 +70,16 @@ $dtLocal = static function (string $k) use ($old): string {
                 <?php endforeach; ?>
             </select>
             <?= $err('quota_id') ?>
+        </div>
+        <div>
+            <label for="incentive_project_id">Projeto incentivado *</label>
+            <select id="incentive_project_id" name="incentive_project_id" required>
+                <option value="">â€” Selecione â€”</option>
+                <?php foreach ($projects as $p): ?>
+                    <option value="<?= (int) $p['id'] ?>" <?= (int) $val('incentive_project_id') === (int) $p['id'] ? 'selected' : '' ?>><?= e($p['label'] ?? '') ?></option>
+                <?php endforeach; ?>
+            </select>
+            <?= $err('incentive_project_id') ?>
         </div>
     </div>
 

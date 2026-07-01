@@ -14,6 +14,7 @@ final class Proposal extends Model
     protected string $table = 'proposals';
 
     private const FILLABLE = [
+        'incentive_project_id',
         'company_id', 'contact_id', 'opportunity_id', 'quota_id',
         'title', 'type', 'proposed_value', 'version_number', 'parent_proposal_id',
         'status', 'created_on', 'sent_at', 'valid_until', 'responsible_user_id',
@@ -21,7 +22,7 @@ final class Proposal extends Model
     ];
 
     private const LIST_COLUMNS =
-        'p.`id`, p.`company_id`, p.`contact_id`, p.`opportunity_id`, p.`quota_id`,
+        'p.`id`, p.`incentive_project_id`, p.`company_id`, p.`contact_id`, p.`opportunity_id`, p.`quota_id`,
          p.`title`, p.`type`, p.`proposed_value`, p.`version_number`, p.`parent_proposal_id`,
          p.`status`, p.`created_on`, p.`sent_at`, p.`valid_until`, p.`responsible_user_id`,
          p.`pdf_file_path`, p.`pdf_original_name`, p.`revision_notes`, p.`notes`,
@@ -632,6 +633,7 @@ final class Proposal extends Model
         }
 
         $merged = array_merge([
+            'incentive_project_id' => $base['incentive_project_id'],
             'company_id'          => $base['company_id'],
             'contact_id'          => $base['contact_id'],
             'opportunity_id'      => $base['opportunity_id'],
@@ -827,7 +829,8 @@ final class Proposal extends Model
         }
 
         foreach (['company_id', 'contact_id', 'opportunity_id', 'quota_id', 'version_number',
-            'parent_proposal_id', 'responsible_user_id', 'created_by', 'updated_by', 'sent_by'] as $intCol) {
+            'parent_proposal_id', 'responsible_user_id', 'created_by', 'updated_by', 'sent_by',
+            'incentive_project_id'] as $intCol) {
             if (array_key_exists($intCol, $row)) {
                 $row[$intCol] = $row[$intCol] !== null && $row[$intCol] !== '' ? (int) $row[$intCol] : null;
             }

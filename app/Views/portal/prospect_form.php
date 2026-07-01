@@ -1,9 +1,11 @@
 <?php
-/** @var array $data @var array $errors @var array $segments @var array $states */
+/** @var array $data @var array $errors @var array $segments @var array $states @var array $projects */
 $data = $data ?? [];
 $errors = $errors ?? [];
 $segments = $segments ?? [];
 $states = $states ?? [];
+$projects = $projects ?? [];
+$selectedProject = (int) ($data['incentive_project_id'] ?? 0);
 $val = static fn (string $k): string => e((string) ($data[$k] ?? ''));
 $err = static fn (string $k): string => isset($errors[$k]) ? '<span class="err">' . e((string) $errors[$k]) . '</span>' : '';
 ?>
@@ -13,6 +15,19 @@ $err = static fn (string $k): string => isset($errors[$k]) ? '<span class="err">
 
     <form method="post" action="<?= e(app_url('/portal/prospects')) ?>" novalidate>
         <?= csrf_field() ?>
+        <div class="pt-field">
+            <label for="incentive_project_id">Projeto de captação *</label>
+            <select id="incentive_project_id" name="incentive_project_id" required<?= count($projects) === 1 ? ' disabled' : '' ?>>
+                <option value="">— selecione o projeto —</option>
+                <?php foreach ($projects as $p): ?>
+                    <option value="<?= (int) $p['id'] ?>"<?= $selectedProject === (int) $p['id'] ? ' selected' : '' ?>><?= e((string) $p['label']) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <?php if (count($projects) === 1): ?>
+                <input type="hidden" name="incentive_project_id" value="<?= (int) $projects[0]['id'] ?>">
+            <?php endif; ?>
+            <?= $err('incentive_project_id') ?>
+        </div>
         <div class="pt-field">
             <label for="name">Nome da empresa / prospect *</label>
             <input type="text" id="name" name="name" value="<?= $val('name') ?>" required maxlength="180">

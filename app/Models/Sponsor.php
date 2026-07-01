@@ -15,6 +15,7 @@ final class Sponsor extends Model
 
     /** @var list<string> */
     private const FILLABLE = [
+        'incentive_project_id',
         'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id', 'primary_document_id',
         'sponsor_display_name', 'sponsorship_type', 'funding_mechanism',
         'project_year', 'festival_edition', 'quota_snapshot_name', 'quota_snapshot_amount',
@@ -26,7 +27,7 @@ final class Sponsor extends Model
     ];
 
     private const LIST_COLUMNS =
-        's.`id`, s.`company_id`, s.`contact_id`, s.`opportunity_id`, s.`proposal_id`, s.`quota_id`,
+        's.`id`, s.`incentive_project_id`, s.`company_id`, s.`contact_id`, s.`opportunity_id`, s.`proposal_id`, s.`quota_id`,
          s.`primary_document_id`, s.`sponsor_display_name`, s.`sponsorship_type`, s.`funding_mechanism`,
          s.`project_year`, s.`festival_edition`, s.`quota_snapshot_name`, s.`quota_snapshot_amount`,
          s.`committed_amount`, s.`confirmed_amount`, s.`in_kind_description`, s.`in_kind_estimated_value`,
@@ -756,6 +757,13 @@ final class Sponsor extends Model
 
         $row['public_announcement_allowed'] = !empty($data['public_announcement_allowed']) ? 1 : 0;
         $row['project_year'] = (int) ($row['project_year'] ?? 2026);
+
+        foreach (['incentive_project_id', 'company_id', 'contact_id', 'opportunity_id', 'proposal_id', 'quota_id',
+            'primary_document_id', 'responsible_user_id', 'created_by', 'updated_by', 'confirmed_by'] as $intCol) {
+            if (array_key_exists($intCol, $row)) {
+                $row[$intCol] = $row[$intCol] !== null && $row[$intCol] !== '' ? (int) $row[$intCol] : null;
+            }
+        }
 
         if ($isCreate && empty($row['closed_at'])) {
             $row['closed_at'] = date('Y-m-d H:i:s');

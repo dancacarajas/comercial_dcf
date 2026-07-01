@@ -653,6 +653,11 @@ final class FinancialController extends Controller
             }
         }
 
+        // Etapa 19: o financeiro herda o projeto do patrocinador.
+        if (empty($data['incentive_project_id']) && !empty($sponsor['incentive_project_id'])) {
+            $data['incentive_project_id'] = (int) $sponsor['incentive_project_id'];
+        }
+
         if (($data['planned_amount'] ?? null) === null || $data['planned_amount'] === '') {
             if ($sponsor['confirmed_amount'] !== null && $sponsor['confirmed_amount'] !== '') {
                 $data['planned_amount'] = $sponsor['confirmed_amount'];
