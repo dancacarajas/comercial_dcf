@@ -42,10 +42,95 @@ final class CollectorCommissionController extends Controller
             'calculationStatuses' => $model->getCalculationStatuses(),
             'approvalStatuses' => $model->getApprovalStatuses(),
             'paymentStatuses' => $model->getPaymentStatuses(),
+            'statusGroups' => $this->statusGroups(),
+            'attributionTypes' => $this->attributionTypes(),
+            'summary' => $model->summary($filters),
             'page' => $page,
             'pages' => $pages,
             'total' => $total,
         ]);
+    }
+
+    public function dashboard(): void
+    {
+        AuthMiddleware::requirePermission('commissions.view');
+
+        $model = new CollectorCommission();
+        $filters = $this->collectFilters();
+
+        $this->view('collector_commissions/dashboard', [
+            'title' => 'Dashboard de Comissoes',
+            'filters' => $filters,
+            'projects' => (new IncentiveProject())->options(false),
+            'collectors' => $this->collectorOptions(),
+            'statusGroups' => $this->statusGroups(),
+            'summary' => $model->summary($filters),
+            'byProject' => $model->reportByProject($filters),
+            'byCollector' => $model->reportByCollector($filters),
+            'byFinancial' => $model->reportByFinancial($filters),
+            'byStatus' => $model->reportByStatus($filters),
+            'alerts' => $model->operationalAlerts($filters),
+        ]);
+    }
+
+    public function export(): void
+    {
+        AuthMiddleware::requirePermission('commissions.view');
+
+        $model = new CollectorCommission();
+        $rows = $model->exportRows($this->collectFilters(), 5000);
+        $filename = 'comissoes-captadores-' . date('Ymd-His') . '.csv';
+
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        $out = fopen('php://output', 'w');
+        if ($out === false) {
+            return;
+        }
+        fputcsv($out, [
+            'id',
+            'projeto',
+            'captador',
+            'codigo_captador',
+            'financeiro',
+            'status_financeiro',
+            'empresa',
+            'patrocinador',
+            'tipo_atribuicao',
+            'valor_recebido',
+            'comissao_bruta',
+            'comissao_limitada',
+            'valor_pago',
+            'saldo_pagamento',
+            'status_calculo',
+            'status_aprovacao',
+            'status_pagamento',
+            'calculado_em',
+        ], ';');
+        foreach ($rows as $row) {
+            fputcsv($out, [
+                (int) ($row['id'] ?? 0),
+                (string) ($row['project_name'] ?? ''),
+                (string) ($row['collector_name'] ?? ''),
+                (string) ($row['collector_code'] ?? ''),
+                (string) ($row['financial_title'] ?? ''),
+                (string) ($row['financial_status'] ?? ''),
+                (string) ($row['company_name'] ?? ''),
+                (string) ($row['sponsor_name'] ?? ''),
+                (string) ($row['attribution_type'] ?? ''),
+                number_format((float) ($row['financial_received_amount'] ?? 0), 2, ',', ''),
+                number_format((float) ($row['gross_commission_amount'] ?? 0), 2, ',', ''),
+                number_format((float) ($row['capped_commission_amount'] ?? 0), 2, ',', ''),
+                number_format((float) ($row['payment_total_amount'] ?? 0), 2, ',', ''),
+                number_format((float) ($row['payment_balance_amount'] ?? 0), 2, ',', ''),
+                (string) ($row['calculation_status'] ?? ''),
+                (string) ($row['approval_status'] ?? ''),
+                (string) ($row['payment_status'] ?? ''),
+                (string) ($row['calculated_at'] ?? ''),
+            ], ';');
+        }
+        fclose($out);
+        exit;
     }
 
     public function pools(): void
@@ -202,9 +287,39 @@ final class CollectorCommissionController extends Controller
             'incentive_project_id' => (int) input('incentive_project_id', 0),
             'collector_id' => (int) input('collector_id', 0),
             'financial_entry_id' => (int) input('financial_entry_id', 0),
+            'company_id' => (int) input('company_id', 0),
+            'sponsor_id' => (int) input('sponsor_id', 0),
             'calculation_status' => trim((string) input('calculation_status', '')),
             'approval_status' => trim((string) input('approval_status', '')),
             'payment_status' => trim((string) input('payment_status', '')),
+            'status_group' => trim((string) input('status_group', '')),
+            'attribution_type' => trim((string) input('attribution_type', '')),
+            'date_from' => trim((string) input('date_from', '')),
+            'date_to' => trim((string) input('date_to', '')),
+            'q' => trim((string) input('q', '')),
+        ];
+    }
+
+    /** @return array<string, string> */
+    private function statusGroups(): array
+    {
+        return [
+            'pendente' => 'Pendente',
+            'aprovada' => 'Aprovada',
+            'a_pagar' => 'A pagar',
+            'parcialmente_paga' => 'Parcialmente paga',
+            'paga' => 'Paga',
+            'bloqueada' => 'Bloqueada',
+        ];
+    }
+
+    /** @return array<string, string> */
+    private function attributionTypes(): array
+    {
+        return [
+            'direta' => 'Direta',
+            'indicacao' => 'Indicacao',
+            'compartilhada' => 'Compartilhada',
         ];
     }
 

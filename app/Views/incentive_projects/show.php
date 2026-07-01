@@ -24,6 +24,7 @@ $factorPct = $project['commission_factor'] !== null
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <a href="<?= e(app_url('/projects/' . $id . '/dashboard')) ?>" class="btn btn-sm btn-outline">Painel</a>
         <a href="<?= e(app_url('/projects/' . $id . '/budget')) ?>" class="btn btn-sm btn-outline">Orçamento</a>
+        <?php if (can('commissions.view')): ?><a href="<?= e(app_url('/commissions?incentive_project_id=' . $id)) ?>" class="btn btn-sm btn-outline">Comissoes</a><?php endif; ?>
         <?php if (can('incentive_projects.edit') && !$archived): ?><a href="<?= e(app_url('/projects/' . $id . '/edit')) ?>" class="btn btn-sm btn-yellow">Editar</a><?php endif; ?>
         <a href="<?= e(app_url('/projects')) ?>" class="btn btn-sm btn-outline">Voltar</a>
     </div>
@@ -65,6 +66,9 @@ $factorPct = $project['commission_factor'] !== null
     </div>
     <div class="actions-row" style="margin-top:12px;">
         <a href="<?= e(app_url('/quotas?incentive_project_id=' . $id)) ?>" class="btn btn-sm btn-outline">Ver cotas do projeto</a>
+        <?php if (can('commissions.view')): ?>
+            <a href="<?= e(app_url('/commissions/dashboard?incentive_project_id=' . $id)) ?>" class="btn btn-sm btn-outline">Dashboard de comissoes</a>
+        <?php endif; ?>
         <?php if (can('quotas.create')): ?>
             <a href="<?= e(app_url('/quotas/create?incentive_project_id=' . $id)) ?>" class="btn btn-sm btn-yellow">Nova cota para este projeto</a>
         <?php endif; ?>

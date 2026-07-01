@@ -36,6 +36,9 @@ $activeStatuses = ['solicitada', 'autorizada'];
                 <a href="<?= e(app_url('/collector-applications/' . $appId . '/collector/edit')) ?>" class="btn btn-sm btn-yellow">Editar cadastro</a>
             <?php endif; ?>
         <?php endif; ?>
+        <?php if (can('commissions.view')): ?>
+            <a href="<?= e(app_url('/commissions?collector_id=' . $collectorId)) ?>" class="btn btn-sm btn-outline">Comissoes</a>
+        <?php endif; ?>
         <a href="<?= e(app_url('/collectors')) ?>" class="btn btn-sm btn-outline">Voltar</a>
     </div>
 </div>

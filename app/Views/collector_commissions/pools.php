@@ -8,11 +8,14 @@ $statuses = $statuses ?? [];
     <div class="container">
         <div class="page-head">
             <div>
-                <span class="kicker kicker-dark">Etapa 20A</span>
+                <span class="kicker kicker-dark">Etapa 20C</span>
                 <h1 class="h2-section">Pools de Comissao</h1>
                 <p class="page-sub">Teto da rubrica de captacao, consumo e saldo por projeto incentivado.</p>
             </div>
-            <a href="<?= e(app_url('/commissions')) ?>" class="btn btn-sm btn-outline"><i data-lucide="list"></i> Comissoes</a>
+            <div class="actions-row">
+                <a href="<?= e(app_url('/commissions/dashboard')) ?>" class="btn btn-sm btn-outline"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+                <a href="<?= e(app_url('/commissions')) ?>" class="btn btn-sm btn-outline"><i data-lucide="list"></i> Comissoes</a>
+            </div>
         </div>
 
         <form method="get" class="filters-bar">
@@ -40,6 +43,9 @@ $statuses = $statuses ?? [];
                         <th>Rubrica</th>
                         <th>Fator</th>
                         <th>Gerado</th>
+                        <th>Aprovado</th>
+                        <th>Pago</th>
+                        <th>Saldo a pagar</th>
                         <th>Saldo</th>
                         <th>Status</th>
                     </tr>
@@ -52,12 +58,15 @@ $statuses = $statuses ?? [];
                             <td><?= e(money_br($item['capture_commission_budget_snapshot'] ?? 0)) ?></td>
                             <td><?= e(number_format(((float) ($item['commission_factor_snapshot'] ?? 0)) * 100, 6, ',', '.')) ?>%</td>
                             <td><?= e(money_br($item['commission_generated_total'] ?? 0)) ?></td>
+                            <td><?= e(money_br($item['commission_approved_total'] ?? 0)) ?></td>
+                            <td><?= e(money_br($item['commission_paid_total'] ?? 0)) ?></td>
+                            <td><?= e(money_br($item['commission_payable_balance'] ?? 0)) ?></td>
                             <td><strong><?= e(money_br($item['commission_available_balance'] ?? 0)) ?></strong></td>
                             <td><span class="pill"><?= e($statuses[$item['status'] ?? ''] ?? ($item['status'] ?? '')) ?></span></td>
                         </tr>
                     <?php endforeach; ?>
                     <?php if ($items === []): ?>
-                        <tr><td colspan="7" class="text-muted">Nenhum pool encontrado.</td></tr>
+                        <tr><td colspan="10" class="text-muted">Nenhum pool encontrado.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>

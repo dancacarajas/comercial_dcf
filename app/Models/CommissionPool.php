@@ -143,10 +143,14 @@ final class CommissionPool extends Model
         }
 
         return $this->query(
-            'SELECT cp.*, ip.`project_name`, ip.`edition_year`
+            'SELECT cp.*, ip.`project_name`, ip.`edition_year`,
+                    COALESCE(SUM(cc.`payment_total_amount`), 0) AS commission_paid_total,
+                    COALESCE(SUM(cc.`payment_balance_amount`), 0) AS commission_payable_balance
                FROM `commission_pools` cp
-               LEFT JOIN `incentive_projects` ip ON ip.`id` = cp.`incentive_project_id`' .
-            $where . ' ORDER BY ip.`edition_year` DESC, ip.`project_name` ASC LIMIT ' . $perPage . ' OFFSET ' . $offset,
+               LEFT JOIN `incentive_projects` ip ON ip.`id` = cp.`incentive_project_id`
+               LEFT JOIN `collector_commissions` cc ON cc.`commission_pool_id` = cp.`id` AND cc.`archived_at` IS NULL' .
+            $where . ' GROUP BY cp.`id`, ip.`project_name`, ip.`edition_year`
+              ORDER BY ip.`edition_year` DESC, ip.`project_name` ASC LIMIT ' . $perPage . ' OFFSET ' . $offset,
             $params
         )->fetchAll();
     }
