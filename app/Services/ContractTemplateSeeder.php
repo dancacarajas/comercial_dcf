@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Core\Database;
+use App\Data\CaptadorConfidencialidadeTemplate;
 use App\Data\CaptadorExternoContractTemplate;
 use PDO;
 
@@ -65,6 +66,100 @@ final class ContractTemplateSeeder
             $payload['content_html'],
             $payload['default_signer_role'],
             $payload['is_default'],
+        ]);
+
+        return (int) $pdo->lastInsertId();
+    }
+
+    public static function upsertCaptadorConfidencialidadeDefault(?PDO $pdo = null): int
+    {
+        $pdo ??= Database::connection();
+        $html = CaptadorConfidencialidadeTemplate::contentHtml();
+        if (trim(strip_tags($html)) === '') {
+            throw new \RuntimeException('Conteudo HTML do termo de confidencialidade ausente ou invalido.');
+        }
+
+        $key = CaptadorConfidencialidadeTemplate::TEMPLATE_KEY;
+        $stmt = $pdo->prepare('SELECT id FROM contract_templates WHERE template_key = ? LIMIT 1');
+        $stmt->execute([$key]);
+        $existingId = $stmt->fetchColumn();
+
+        $payload = [
+            'title'               => CaptadorConfidencialidadeTemplate::TITLE,
+            'description'         => CaptadorConfidencialidadeTemplate::DESCRIPTION,
+            'template_type'       => CaptadorConfidencialidadeTemplate::TEMPLATE_TYPE,
+            'status'              => 'ativo',
+            'content_html'        => $html,
+            'content_text'        => trim(strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $html))),
+            'available_placeholders_json' => json_encode([
+                'collector.name',
+                'collector.legal_type',
+                'collector.document_number',
+                'collector.city_state',
+                'collector.email',
+                'collector.phone_whatsapp',
+                'collector.company_or_activity',
+                'application.application_number',
+                'organization.name',
+                'organization.document',
+                'organization.address',
+                'contract.forum',
+                'signature.request_number',
+                'date.today',
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'default_signer_role' => 'captador',
+            'is_default'          => 1,
+            'collector_signature_stage_enabled' => 1,
+            'collector_signature_required' => 1,
+            'collector_signature_order' => 20,
+        ];
+
+        if ($existingId) {
+            $pdo->prepare(
+                'UPDATE contract_templates SET title = ?, description = ?, template_type = ?, status = ?,
+                    content_html = ?, content_text = ?, available_placeholders_json = ?,
+                    default_signer_role = ?, is_default = ?,
+                    collector_signature_stage_enabled = ?, collector_signature_required = ?, collector_signature_order = ?,
+                    updated_at = NOW() WHERE id = ?'
+            )->execute([
+                $payload['title'],
+                $payload['description'],
+                $payload['template_type'],
+                $payload['status'],
+                $payload['content_html'],
+                $payload['content_text'],
+                $payload['available_placeholders_json'],
+                $payload['default_signer_role'],
+                $payload['is_default'],
+                $payload['collector_signature_stage_enabled'],
+                $payload['collector_signature_required'],
+                $payload['collector_signature_order'],
+                (int) $existingId,
+            ]);
+
+            return (int) $existingId;
+        }
+
+        $pdo->prepare(
+            'INSERT INTO contract_templates
+                (template_key, title, description, template_type, status, content_html, content_text,
+                 available_placeholders_json, default_signer_role, is_default,
+                 collector_signature_stage_enabled, collector_signature_required, collector_signature_order, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())'
+        )->execute([
+            $key,
+            $payload['title'],
+            $payload['description'],
+            $payload['template_type'],
+            $payload['status'],
+            $payload['content_html'],
+            $payload['content_text'],
+            $payload['available_placeholders_json'],
+            $payload['default_signer_role'],
+            $payload['is_default'],
+            $payload['collector_signature_stage_enabled'],
+            $payload['collector_signature_required'],
+            $payload['collector_signature_order'],
         ]);
 
         return (int) $pdo->lastInsertId();
