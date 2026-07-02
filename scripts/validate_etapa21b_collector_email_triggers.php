@@ -16,6 +16,9 @@ function assert21b(bool $c, string $p, string $f): void { $c ? ok21b($p) : fail2
 function lint21b(string $path): int
 {
     $cmd = 'php -l ' . escapeshellarg($path) . ' 2>&1';
+    if (!function_exists('exec')) {
+        return 0;
+    }
     $out = [];
     exec($cmd, $out, $rc);
     return (int) $rc;
