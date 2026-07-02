@@ -21,6 +21,7 @@ use App\Models\CollectorApplicationDocument;
 use App\Models\Role;
 
 use App\Models\User;
+use App\Services\EmailEventService;
 
 use Throwable;
 
@@ -306,8 +307,16 @@ final class CollectorPublicController extends Controller
             (new ActivityLog())->record('collector_document_uploaded', null, 'collector_application_document', $slotId);
 
             $progress = $model->documentProgress((int) $app['id']);
+            $updated = $model->findById((int) $app['id']) ?? $app;
+            (new EmailEventService())->sendToCollector('collector_document_uploaded', $updated, [
+                'public_url' => app_url('/captadores/credenciamento/' . rawurlencode($token)),
+            ]);
 
             if ($model->allDocumentsSubmitted((int) $app['id'])) {
+                (new EmailEventService())->sendToCollector('collector_documents_completed', $updated, [
+                    'public_url' => app_url('/captadores/credenciamento/' . rawurlencode($token)),
+                ]);
+                (new EmailEventService())->sendToTeam('collector_documents_completed_internal', $updated);
 
                 flash('success', 'Documento enviado. Pacote documental completo! A equipe iniciará a análise em breve.');
 
@@ -519,6 +528,8 @@ final class CollectorPublicController extends Controller
             (new ActivityLog())->record('collector_access_self_registered', $userId, 'collector_application', $appId);
 
             (new ActivityLog())->record('collector_public_token_revoked', $userId, 'collector_application', $appId);
+            (new EmailEventService())->sendToCollector('collector_access_self_registered', $model->findById($appId) ?? $app);
+            (new EmailEventService())->sendToTeam('collector_access_self_registered_internal', $model->findById($appId) ?? $app);
 
 
 

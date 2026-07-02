@@ -7,7 +7,9 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Middlewares\AuthMiddleware;
 use App\Models\ActivityLog;
+use App\Models\CollectorApplication;
 use App\Models\SignatureRequest;
+use App\Services\EmailEventService;
 
 final class SignatureRequestController extends Controller
 {
@@ -78,6 +80,22 @@ final class SignatureRequestController extends Controller
 
         (new SignatureRequest())->send($id, $_SESSION['user_id'] ?? null);
         (new ActivityLog())->record('signature_request_sent', $_SESSION['user_id'] ?? null, 'signature_request', $id);
+        $updated = (new SignatureRequest())->findById($id) ?? $item;
+        if ((string) ($updated['source_type'] ?? '') === 'collector_application' && (int) ($updated['source_id'] ?? 0) > 0) {
+            $application = (new CollectorApplication())->findById((int) $updated['source_id']);
+            $captadorLink = '';
+            foreach ((new SignatureRequest())->signersForRequest($id) as $signer) {
+                if ((string) ($signer['signer_role'] ?? '') === 'captador' && !empty($signer['public_token'])) {
+                    $captadorLink = app_url('/assinatura/' . rawurlencode((string) $signer['public_token']));
+                    break;
+                }
+            }
+            if ($application !== null) {
+                (new EmailEventService())->sendToCollector('signature_request_sent', $application, [
+                    'signature_url' => $captadorLink,
+                ]);
+            }
+        }
         flash('success', 'Processo de assinatura enviado.');
         $this->redirect('/signature-requests/' . $id);
     }

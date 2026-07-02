@@ -15,11 +15,14 @@ final class EmailLog extends Model
     {
         $this->query(
             'INSERT INTO `email_logs`
-                (`event_key`, `recipient_email`, `recipient_name`, `subject`, `status`, `error_message`, `payload_json`, `sent_at`, `created_at`)
+                (`event_key`, `entity_type`, `entity_id`, `recipient_type`, `recipient_email`, `recipient_name`, `subject`, `status`, `error_message`, `payload_json`, `sent_at`, `created_at`)
              VALUES
-                (:event_key, :recipient_email, :recipient_name, :subject, :status, :error_message, :payload_json, :sent_at, NOW())',
+                (:event_key, :entity_type, :entity_id, :recipient_type, :recipient_email, :recipient_name, :subject, :status, :error_message, :payload_json, :sent_at, NOW())',
             [
                 'event_key' => (string) ($data['event_key'] ?? ''),
+                'entity_type' => trim((string) ($data['entity_type'] ?? '')) ?: null,
+                'entity_id' => (int) ($data['entity_id'] ?? 0) ?: null,
+                'recipient_type' => trim((string) ($data['recipient_type'] ?? '')) ?: null,
                 'recipient_email' => (string) ($data['recipient_email'] ?? ''),
                 'recipient_name' => (string) ($data['recipient_name'] ?? ''),
                 'subject' => (string) ($data['subject'] ?? ''),

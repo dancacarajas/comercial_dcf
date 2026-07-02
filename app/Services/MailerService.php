@@ -42,24 +42,27 @@ final class MailerService
         $bodyText = (string) ($message['body_text'] ?? '');
         $bodyHtml = (string) ($message['body_html'] ?? '');
         $payload = (array) ($message['payload'] ?? []);
+        $entityType = trim((string) ($message['entity_type'] ?? ''));
+        $entityId = (int) ($message['entity_id'] ?? 0);
+        $recipientType = trim((string) ($message['recipient_type'] ?? ''));
 
-        $outboxId = $this->createOutbox($eventKey, $toEmail, $toName, $subject, $bodyText, $bodyHtml, $payload);
+        $outboxId = $this->createOutbox($eventKey, $toEmail, $toName, $subject, $bodyText, $bodyHtml, $payload, $entityType, $entityId, $recipientType);
 
         if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
-            return $this->finish($outboxId, $eventKey, $toEmail, $toName, $subject, 'failed', 'Destinatario invalido.', $payload);
+            return $this->finish($outboxId, $eventKey, $toEmail, $toName, $subject, 'failed', 'Destinatario invalido.', $payload, false, $entityType, $entityId, $recipientType);
         }
         if ((string) ($settings['provider'] ?? '') === 'disabled' || (int) ($settings['enabled'] ?? 0) !== 1) {
-            return $this->finish($outboxId, $eventKey, $toEmail, $toName, $subject, 'skipped', 'Envio desativado em mail_settings.', $payload);
+            return $this->finish($outboxId, $eventKey, $toEmail, $toName, $subject, 'skipped', 'Envio desativado em mail_settings.', $payload, false, $entityType, $entityId, $recipientType);
         }
         if ((int) ($settings['dry_run'] ?? 1) === 1) {
-            return $this->finish($outboxId, $eventKey, $toEmail, $toName, $subject, 'simulated', 'Dry-run ativo: e-mail registrado sem envio real.', $payload, true);
+            return $this->finish($outboxId, $eventKey, $toEmail, $toName, $subject, 'simulated', 'Dry-run ativo: e-mail registrado sem envio real.', $payload, true, $entityType, $entityId, $recipientType);
         }
 
         try {
             $this->sendSmtp($settings, $settingsModel->decryptedPassword($settings), $toEmail, $toName, $subject, $bodyText, $bodyHtml);
-            return $this->finish($outboxId, $eventKey, $toEmail, $toName, $subject, 'sent', 'E-mail enviado.', $payload, true);
+            return $this->finish($outboxId, $eventKey, $toEmail, $toName, $subject, 'sent', 'E-mail enviado.', $payload, true, $entityType, $entityId, $recipientType);
         } catch (\Throwable $e) {
-            return $this->finish($outboxId, $eventKey, $toEmail, $toName, $subject, 'failed', $e->getMessage(), $payload);
+            return $this->finish($outboxId, $eventKey, $toEmail, $toName, $subject, 'failed', $e->getMessage(), $payload, false, $entityType, $entityId, $recipientType);
         }
     }
 
@@ -149,16 +152,19 @@ final class MailerService
         fclose($socket);
     }
 
-    private function createOutbox(string $eventKey, string $toEmail, string $toName, string $subject, string $bodyText, string $bodyHtml, array $payload): ?int
+    private function createOutbox(string $eventKey, string $toEmail, string $toName, string $subject, string $bodyText, string $bodyHtml, array $payload, string $entityType = '', int $entityId = 0, string $recipientType = ''): ?int
     {
         try {
             Database::run(
                 'INSERT INTO `email_outbox`
-                    (`event_key`, `recipient_email`, `recipient_name`, `subject`, `body_text`, `body_html`, `payload_json`, `status`, `created_at`, `updated_at`)
+                    (`event_key`, `entity_type`, `entity_id`, `recipient_type`, `recipient_email`, `recipient_name`, `subject`, `body_text`, `body_html`, `payload_json`, `status`, `created_at`, `updated_at`)
                  VALUES
-                    (:event_key, :email, :name, :subject, :body_text, :body_html, :payload, :status, NOW(), NOW())',
+                    (:event_key, :entity_type, :entity_id, :recipient_type, :email, :name, :subject, :body_text, :body_html, :payload, :status, NOW(), NOW())',
                 [
                     'event_key' => $eventKey,
+                    'entity_type' => $entityType !== '' ? $entityType : null,
+                    'entity_id' => $entityId > 0 ? $entityId : null,
+                    'recipient_type' => $recipientType !== '' ? $recipientType : null,
                     'email' => $toEmail,
                     'name' => $toName,
                     'subject' => $subject,
@@ -175,7 +181,7 @@ final class MailerService
     }
 
     /** @return array{status:string,message:string,log_id:int,outbox_id:int|null} */
-    private function finish(?int $outboxId, string $eventKey, string $toEmail, string $toName, string $subject, string $status, string $message, array $payload, bool $sent = false): array
+    private function finish(?int $outboxId, string $eventKey, string $toEmail, string $toName, string $subject, string $status, string $message, array $payload, bool $sent = false, string $entityType = '', int $entityId = 0, string $recipientType = ''): array
     {
         if ($outboxId !== null) {
             Database::run(
@@ -188,6 +194,9 @@ final class MailerService
         // Registra em email_logs via EmailLog para auditoria do envio.
         $logId = (new EmailLog())->record([
             'event_key' => $eventKey,
+            'entity_type' => $entityType,
+            'entity_id' => $entityId,
+            'recipient_type' => $recipientType,
             'recipient_email' => $toEmail,
             'recipient_name' => $toName,
             'subject' => $subject,

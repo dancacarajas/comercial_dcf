@@ -13,6 +13,7 @@ use App\Models\CollectorApplicationDocument;
 use App\Models\ContractTemplate;
 use App\Models\SignatureRequest;
 use App\Models\User;
+use App\Services\EmailEventService;
 
 final class CollectorApplicationController extends Controller
 {
@@ -215,6 +216,17 @@ final class CollectorApplicationController extends Controller
             'review_notes'=> trim((string) input('review_notes', '')),
         ]);
         (new ActivityLog())->record('collector_application_status_changed', $_SESSION['user_id'] ?? null, 'collector_application', $id);
+        $updated = $model->findById($id) ?? $app;
+        if ($status === 'em_triagem') {
+            (new EmailEventService())->sendToCollector('collector_application_triage_started', $updated);
+        } elseif ($status === 'em_analise_documental') {
+            (new EmailEventService())->sendToCollector('collector_application_in_document_review', $updated);
+        } elseif ($status === 'ajustes_solicitados') {
+            (new EmailEventService())->sendToCollector('collector_application_adjustments_requested', $updated, [
+                'review_notes' => trim((string) input('review_notes', '')),
+                'public_url' => !empty($updated['public_token']) ? app_url('/captadores/credenciamento/' . rawurlencode((string) $updated['public_token'])) : '',
+            ]);
+        }
         flash('success', 'Status atualizado.');
         $this->redirect('/collector-applications/' . $id);
     }
@@ -247,6 +259,12 @@ final class CollectorApplicationController extends Controller
         (new ActivityLog())->record('collector_public_token_generated', $_SESSION['user_id'] ?? null, 'collector_application', $id);
 
         $url = app_url('/captadores/credenciamento/' . rawurlencode($token));
+        $updated = $model->findById($id) ?? $app;
+        $labels = $docModel->labelsForTypeKeys(array_values(array_map('strval', $types)));
+        (new EmailEventService())->sendToCollector('collector_documents_requested', $updated, [
+            'public_url' => $url,
+            'documents_list' => $labels !== [] ? implode("\n- ", [''] + array_values($labels)) : '',
+        ]);
         flash('success', 'Documentos solicitados. Link público: ' . $url);
         $this->redirect('/collector-applications/' . $id);
     }
@@ -271,6 +289,13 @@ final class CollectorApplicationController extends Controller
         $docModel->review($slotId, $status, $notes, $_SESSION['user_id'] ?? null);
         (new CollectorApplication())->syncDocumentStatus((int) $app['id']);
         (new ActivityLog())->record('collector_document_reviewed', $_SESSION['user_id'] ?? null, 'collector_application_document', $slotId);
+        if (in_array($status, ['substituir', 'reprovado'], true)) {
+            $updated = (new CollectorApplication())->findById((int) $app['id']) ?? $app;
+            (new EmailEventService())->sendToCollector('collector_document_reviewed_pending_correction', $updated, [
+                'review_notes' => $notes,
+                'public_url' => !empty($updated['public_token']) ? app_url('/captadores/credenciamento/' . rawurlencode((string) $updated['public_token'])) : '',
+            ]);
+        }
         flash('success', 'Documento atualizado.');
         $this->redirect('/collector-applications/' . (int) $app['id']);
     }
@@ -368,6 +393,7 @@ final class CollectorApplicationController extends Controller
             'updated_by'      => $_SESSION['user_id'] ?? null,
         ]);
         (new ActivityLog())->record('collector_application_approved', $_SESSION['user_id'] ?? null, 'collector_application', $id);
+        (new EmailEventService())->sendToCollector('collector_application_approved', (new CollectorApplication())->findById($id) ?? $app);
 
         $updated = (new CollectorApplication())->findById($id) ?? $app;
         if (can('signature_requests.create')) {
@@ -403,6 +429,9 @@ final class CollectorApplicationController extends Controller
             'updated_by'       => $_SESSION['user_id'] ?? null,
         ]);
         (new ActivityLog())->record('collector_application_rejected', $_SESSION['user_id'] ?? null, 'collector_application', $id);
+        (new EmailEventService())->sendToCollector('collector_application_rejected', (new CollectorApplication())->findById($id) ?? $app, [
+            'rejection_reason' => trim((string) input('rejection_reason', '')),
+        ]);
         flash('success', 'Candidatura reprovada.');
         $this->redirect('/collector-applications/' . $id);
     }
@@ -515,6 +544,9 @@ final class CollectorApplicationController extends Controller
             'updated_by'         => $_SESSION['user_id'] ?? null,
         ]);
         (new ActivityLog())->record('collector_access_released', $_SESSION['user_id'] ?? null, 'collector_application', $id);
+        (new EmailEventService())->sendToCollector('collector_access_released', (new CollectorApplication())->findById($id) ?? $app, [
+            'public_url' => !empty($app['public_token']) ? app_url('/captadores/credenciamento/' . rawurlencode((string) $app['public_token'])) : '',
+        ]);
         flash('success', 'Acesso liberado. O captador deve concluir o cadastro (usuário e senha) pelo link público.');
         $this->redirect('/collector-applications/' . $id);
     }

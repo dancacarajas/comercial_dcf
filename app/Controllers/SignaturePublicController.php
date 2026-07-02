@@ -7,7 +7,9 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Helpers\ContractDocumentHelper;
 use App\Models\ActivityLog;
+use App\Models\CollectorApplication;
 use App\Models\SignatureRequest;
+use App\Services\EmailEventService;
 
 final class SignaturePublicController extends Controller
 {
@@ -98,13 +100,26 @@ final class SignaturePublicController extends Controller
 
         (new ActivityLog())->record('signature_request_signed', null, 'signature_request', (int) ($signer['request_id'] ?? 0));
         if ((string) ($signer['signer_role'] ?? '') === 'captador') {
-            (new ActivityLog())->record('collector_contract_signed', null, 'collector_application', (int) (
-                (new SignatureRequest())->findById((int) ($signer['request_id'] ?? 0))['source_id'] ?? 0
-            ));
+            $signedRequest = (new SignatureRequest())->findById((int) ($signer['request_id'] ?? 0));
+            $applicationId = (int) ($signedRequest['source_id'] ?? 0);
+            (new ActivityLog())->record('collector_contract_signed', null, 'collector_application', $applicationId);
+            $application = $applicationId > 0 ? (new CollectorApplication())->findById($applicationId) : null;
+            if ($application !== null) {
+                (new EmailEventService())->sendToCollector('collector_contract_signed', $application);
+                (new EmailEventService())->sendToTeam('collector_contract_signed_internal', $application);
+            }
         }
 
         $request = $model->findById((int) ($signer['request_id'] ?? 0));
         $fullySigned = is_array($request) && (string) ($request['status'] ?? '') === 'assinado';
+        if ($fullySigned && (string) ($request['source_type'] ?? '') === 'collector_application') {
+            $application = (new CollectorApplication())->findById((int) ($request['source_id'] ?? 0));
+            if ($application !== null) {
+                (new EmailEventService())->sendToCollector('collector_contract_fully_signed', $application, [
+                    'signature_url' => $this->documentUrl($token),
+                ]);
+            }
+        }
 
         $this->view('signatures/public/signed', [
             'title'         => $fullySigned ? 'Assinatura concluída' : 'Assinatura registrada',

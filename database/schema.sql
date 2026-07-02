@@ -1744,6 +1744,9 @@ CREATE TABLE IF NOT EXISTS `email_templates` (
 CREATE TABLE IF NOT EXISTS `email_outbox` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `event_key` VARCHAR(120) NOT NULL,
+    `entity_type` VARCHAR(80) NULL DEFAULT NULL,
+    `entity_id` BIGINT UNSIGNED NULL DEFAULT NULL,
+    `recipient_type` VARCHAR(40) NULL DEFAULT NULL,
     `recipient_email` VARCHAR(190) NOT NULL,
     `recipient_name` VARCHAR(190) NULL DEFAULT NULL,
     `subject` VARCHAR(255) NOT NULL,
@@ -1757,13 +1760,18 @@ CREATE TABLE IF NOT EXISTS `email_outbox` (
     `updated_at` DATETIME NULL DEFAULT NULL,
     PRIMARY KEY (`id`),
     KEY `idx_email_outbox_event` (`event_key`),
+    KEY `idx_email_outbox_entity` (`entity_type`, `entity_id`, `event_key`),
     KEY `idx_email_outbox_status` (`status`),
-    KEY `idx_email_outbox_recipient` (`recipient_email`)
+    KEY `idx_email_outbox_recipient` (`recipient_email`),
+    UNIQUE KEY `uniq_email_outbox_event_entity_recipient` (`event_key`, `entity_type`, `entity_id`, `recipient_type`, `recipient_email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `email_logs` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `event_key` VARCHAR(120) NOT NULL,
+    `entity_type` VARCHAR(80) NULL DEFAULT NULL,
+    `entity_id` BIGINT UNSIGNED NULL DEFAULT NULL,
+    `recipient_type` VARCHAR(40) NULL DEFAULT NULL,
     `recipient_email` VARCHAR(190) NOT NULL,
     `recipient_name` VARCHAR(190) NULL DEFAULT NULL,
     `subject` VARCHAR(255) NOT NULL,
@@ -1774,6 +1782,7 @@ CREATE TABLE IF NOT EXISTS `email_logs` (
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     KEY `idx_email_logs_event` (`event_key`),
+    KEY `idx_email_logs_entity` (`entity_type`, `entity_id`, `event_key`),
     KEY `idx_email_logs_status` (`status`),
     KEY `idx_email_logs_recipient` (`recipient_email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

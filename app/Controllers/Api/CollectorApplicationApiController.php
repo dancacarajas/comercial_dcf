@@ -7,6 +7,7 @@ namespace App\Controllers\Api;
 use App\Core\Controller;
 use App\Models\ActivityLog;
 use App\Models\CollectorApplication;
+use App\Services\EmailEventService;
 use Throwable;
 
 /**
@@ -80,6 +81,10 @@ final class CollectorApplicationApiController extends Controller
             $id = $model->create($mapped);
             $this->registerRateAttempt($ip);
             (new ActivityLog())->record('collector_application_received', null, 'collector_application', $id);
+            $application = $model->findById($id) ?? ['id' => $id] + $mapped;
+            $events = new EmailEventService();
+            $events->sendToCollector('collector_application_received', $application);
+            $events->sendToTeam('collector_application_received_internal', $application);
             $this->json([
                 'success'        => true,
                 'message'        => 'Manifestação recebida com sucesso.',
