@@ -98,7 +98,7 @@ final class EmailSettingsController extends Controller
 
         $this->view('email_settings/templates', [
             'title' => 'Templates de E-mail',
-            'items' => $model->paginate($page, $perPage),
+            'items' => $this->prepareTemplatePreviews($model->paginate($page, $perPage)),
             'page' => $page,
             'pages' => $pages,
             'total' => $total,
@@ -198,5 +198,63 @@ final class EmailSettingsController extends Controller
             'hourly_limit' => (int) input('hourly_limit', 20),
             'daily_limit' => (int) input('daily_limit', 100),
         ];
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $items
+     * @return array<int, array<string, mixed>>
+     */
+    private function prepareTemplatePreviews(array $items): array
+    {
+        $vars = $this->previewVariables();
+
+        foreach ($items as &$item) {
+            $item['preview_subject'] = $this->renderTemplateText((string) ($item['subject'] ?? ''), $vars);
+            $item['preview_text'] = $this->renderTemplateText((string) ($item['body_text'] ?? ''), $vars);
+            $item['preview_html'] = $this->renderTemplateText((string) ($item['body_html'] ?? ''), $vars);
+        }
+        unset($item);
+
+        return $items;
+    }
+
+    /** @return array<string, string> */
+    private function previewVariables(): array
+    {
+        $config = require dirname(__DIR__, 2) . '/config/app.php';
+        $baseUrl = rtrim((string) ($config['url'] ?? ''), '/');
+        if ($baseUrl === '') {
+            $baseUrl = 'https://comercial.dancacarajas.com.br';
+        }
+
+        $branding = (array) ($config['organization']['branding'] ?? []);
+        $festivalLogo = trim((string) ($branding['festival_logo'] ?? 'assets/img/branding/danca-carajas-logo.png'), '/');
+        $producerLogo = trim((string) ($branding['producer_logo'] ?? 'assets/img/branding/ja-producoes-logo.png'), '/');
+
+        return [
+            'name' => 'JARBAS TESTE 2026 EMAIL',
+            'email' => 'jarbasrh@gmail.com',
+            'application_number' => 'CAP-2026-748A6D',
+            'city_state' => 'Parauapebas/PA',
+            'public_url' => $baseUrl . '/captadores/credenciamento/preview-token',
+            'login_url' => $baseUrl . '/login',
+            'documents_list' => "- Documento de identificacao\n- Comprovante de endereco\n- Dados bancarios\n- Termo de credenciamento",
+            'review_notes' => 'Ajuste o comprovante de endereco e envie novamente pelo link seguro.',
+            'rejection_reason' => 'Criterios internos de credenciamento nao atendidos neste momento.',
+            'signature_url' => $baseUrl . '/assinaturas/preview-token',
+            'festival_logo_url' => $baseUrl . '/' . $festivalLogo,
+            'producer_logo_url' => $baseUrl . '/' . $producerLogo,
+            'support_email' => trim((string) (($config['organization']['email'] ?? '') ?: 'dancacarajas@gmail.com')),
+        ];
+    }
+
+    /** @param array<string, string> $vars */
+    private function renderTemplateText(string $text, array $vars): string
+    {
+        foreach ($vars as $key => $value) {
+            $text = str_replace('{{' . $key . '}}', $value, $text);
+        }
+
+        return $text;
     }
 }
