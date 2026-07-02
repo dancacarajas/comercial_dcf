@@ -4680,6 +4680,15 @@ tr.task-overdue > td:first-child { box-shadow: inset 3px 0 0 #d34a4a; }
     max-width: 860px;
 }
 
+.dcx-main--admin .container:not(.container--narrow) {
+    width: calc(100% - clamp(24px, 2.5vw, 56px));
+    max-width: none;
+}
+
+.dcx-main--admin .container--narrow {
+    width: min(860px, calc(100% - clamp(24px, 2.5vw, 56px)));
+}
+
 @media (max-width: 720px) {
     .contract-doc-premium__header,
     .contract-doc-premium__title-block,

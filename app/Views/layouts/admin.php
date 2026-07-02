@@ -10,6 +10,8 @@ $appConfig = require dirname(__DIR__, 3) . '/config/app.php';
 $appName   = $appConfig['name'] ?? 'Dança Carajás Captação';
 $pageTitle = isset($title) ? ($title . ' — ' . $appName) : $appName;
 
+$isLoggedIn = !empty($_SESSION['user_id']);
+
 $navPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $navPath = rtrim($navPath, '/') ?: '/';
 
@@ -132,7 +134,7 @@ $activeSecondaryNav = $secondaryNav[$navSection] ?? [];
 
     <header class="dcx-admin-header dcx-topbar">
         <div class="container dcx-admin-header__grid topbar-inner">
-            <?php if (!empty($_SESSION['user_id'])): ?>
+            <?php if ($isLoggedIn): ?>
                 <a class="dcx-admin-brand dcx-brand" href="<?= e(app_url('/dashboard')) ?>">
                     <span class="dcx-admin-brand__mark brand-icon" aria-hidden="true">
                         <i data-lucide="sparkles"></i>
@@ -466,7 +468,7 @@ $activeSecondaryNav = $secondaryNav[$navSection] ?? [];
         </div>
     </header>
 
-    <main>
+    <main class="dcx-main<?= $isLoggedIn ? ' dcx-main--admin' : ' dcx-main--public' ?>">
         <?php
         $flashSuccess = flash('success');
         $flashError   = flash('error');
