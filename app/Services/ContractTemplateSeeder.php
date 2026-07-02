@@ -9,6 +9,7 @@ use App\Data\CaptadorConfidencialidadeTemplate;
 use App\Data\CaptadorCondutaTemplate;
 use App\Data\CaptadorExternoContractTemplate;
 use App\Data\CaptadorLgpdTemplate;
+use App\Data\CaptadorPortalUsoTemplate;
 use PDO;
 
 /** Insere ou atualiza modelos de contrato padrão no banco. */
@@ -200,6 +201,24 @@ final class ContractTemplateSeeder
             'template_type' => CaptadorCondutaTemplate::TEMPLATE_TYPE,
             'content_html' => $html,
             'collector_signature_order' => 40,
+        ]);
+    }
+
+    public static function upsertCaptadorPortalUsoDefault(?PDO $pdo = null): int
+    {
+        $pdo ??= Database::connection();
+        $html = CaptadorPortalUsoTemplate::contentHtml();
+        if (trim(strip_tags($html)) === '') {
+            throw new \RuntimeException('Conteudo HTML do termo de uso do portal ausente ou invalido.');
+        }
+
+        return self::upsertCollectorSignatureTemplate($pdo, [
+            'template_key' => CaptadorPortalUsoTemplate::TEMPLATE_KEY,
+            'title' => CaptadorPortalUsoTemplate::TITLE,
+            'description' => CaptadorPortalUsoTemplate::DESCRIPTION,
+            'template_type' => CaptadorPortalUsoTemplate::TEMPLATE_TYPE,
+            'content_html' => $html,
+            'collector_signature_order' => 50,
         ]);
     }
 
