@@ -517,7 +517,10 @@ $activeSecondaryNav = $secondaryNav[$navSection] ?? [];
     -->
     <script src="/assets/vendor/lucide/lucide.min.js" defer></script>
 
-    <!-- JS leve do sistema (inicializa os ícones Lucide) -->
+    <!-- Biblioteca de gráficos oficial do dashboard (Chart.js local, sem CDN em runtime). -->
+    <script src="/assets/vendor/chartjs/chart.umd.min.js" defer></script>
+
+    <!-- JS leve do sistema (inicializa os ícones Lucide e gráficos do painel) -->
     <script src="/assets/js/app.js" defer></script>
 </body>
 </html>

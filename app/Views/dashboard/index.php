@@ -76,16 +76,6 @@ $showKpiFinancial   = can('financials.view');
 
 $dateLabel = (new DateTime('now', new DateTimeZone('America/Belem')))->format('d/m/Y');
 
-$maxValue = static function (array $series): float {
-    $max = 0.0;
-    foreach ($series as $item) {
-        $max = max($max, (float) ($item['value'] ?? 0));
-    }
-    return $max > 0 ? $max : 1.0;
-};
-
-$barWidth = static fn (float $value, float $max): string => number_format(max(0, min(100, ($value / $max) * 100)), 2, '.', '');
-
 $commercialSeries = array_values(array_filter([
     $companiesCount !== null ? ['label' => 'Empresas', 'value' => (float) $companiesCount, 'display' => (string) (int) $companiesCount] : null,
     $contactsCount !== null ? ['label' => 'Contatos', 'value' => (float) $contactsCount, 'display' => (string) (int) $contactsCount] : null,
@@ -108,10 +98,6 @@ $operationalSeries = array_values(array_filter([
     $documentsExpiring !== null ? ['label' => 'Documentos vencendo', 'value' => (float) $documentsExpiring, 'display' => (string) (int) $documentsExpiring] : null,
 ], static fn ($item): bool => $item !== null));
 
-$commercialMax = $maxValue($commercialSeries);
-$financialMax = $maxValue($financialSeries);
-$operationalMax = $maxValue($operationalSeries);
-
 $attentionTotal = $criticalAlertsCount
     + (int) ($tasksOverdue ?? 0)
     + (int) ($financialsOverdue ?? 0)
@@ -123,6 +109,28 @@ $healthyPct = 100 - $attentionPct;
 
 $funnel = $visualizations['funnel'] ?? [];
 $reportKey = 'executive';
+
+$chartPayload = [
+    'financial' => [
+        'labels' => array_map(static fn (array $item): string => (string) $item['label'], $financialSeries),
+        'values' => array_map(static fn (array $item): float => (float) $item['value'], $financialSeries),
+        'display' => array_map(static fn (array $item): string => (string) $item['display'], $financialSeries),
+    ],
+    'commercial' => [
+        'labels' => array_map(static fn (array $item): string => (string) $item['label'], $commercialSeries),
+        'values' => array_map(static fn (array $item): float => (float) $item['value'], $commercialSeries),
+        'display' => array_map(static fn (array $item): string => (string) $item['display'], $commercialSeries),
+    ],
+    'operational' => [
+        'labels' => array_map(static fn (array $item): string => (string) $item['label'], $operationalSeries),
+        'values' => array_map(static fn (array $item): float => (float) $item['value'], $operationalSeries),
+        'display' => array_map(static fn (array $item): string => (string) $item['display'], $operationalSeries),
+    ],
+    'health' => [
+        'labels' => ['Pontos de atencao', 'Operacao estavel'],
+        'values' => [(float) $attentionTotal, (float) $healthyTotal],
+    ],
+];
 ?>
 
 <div class="dashboard-main">
@@ -254,11 +262,8 @@ $reportKey = 'executive';
                         </div>
                     </header>
                     <div class="dashboard-health">
-                        <div class="dashboard-donut" style="--attention: <?= e(number_format($attentionPct, 2, '.', '')) ?>%; --healthy: <?= e(number_format($healthyPct, 2, '.', '')) ?>%;">
-                            <div class="dashboard-donut__center">
-                                <strong><?= $attentionTotal ?></strong>
-                                <span>pontos de atencao</span>
-                            </div>
+                        <div class="dashboard-chart-wrap dashboard-chart-wrap--donut">
+                            <canvas data-dashboard-chart="health" aria-label="Grafico de saude operacional"></canvas>
                         </div>
                         <dl class="dashboard-health__legend">
                             <div><dt>Criticas</dt><dd><?= $criticalAlertsCount ?></dd></div>
@@ -272,21 +277,23 @@ $reportKey = 'executive';
                     <header class="dashboard-panel__header">
                         <div>
                             <h2><i data-lucide="wallet" aria-hidden="true"></i> Grafico financeiro</h2>
-                            <p>Previsto, recebido e saldo proporcional</p>
+                            <p>Curva comparativa entre previsto, recebido e saldo</p>
                         </div>
                         <?php if (can('financials.view')): ?>
                             <a href="<?= e(app_url('/financials')) ?>">Abrir financeiro</a>
                         <?php endif; ?>
                     </header>
-                    <div class="dashboard-bars">
+                    <div class="dashboard-chart-wrap dashboard-chart-wrap--line">
+                        <canvas data-dashboard-chart="financial" aria-label="Grafico financeiro"></canvas>
+                    </div>
+                    <dl class="dashboard-chart-summary dashboard-chart-summary--three">
                         <?php foreach ($financialSeries as $item): ?>
-                            <div class="dashboard-bar-row">
-                                <span><?= e($item['label']) ?></span>
-                                <div class="dashboard-bar-track"><div style="width: <?= e($barWidth((float) $item['value'], $financialMax)) ?>%;"></div></div>
-                                <strong><?= e($item['display']) ?></strong>
+                            <div>
+                                <dt><?= e($item['label']) ?></dt>
+                                <dd><?= e($item['display']) ?></dd>
                             </div>
                         <?php endforeach; ?>
-                    </div>
+                    </dl>
                 </article>
 
                 <article class="dashboard-panel dashboard-span-6">
@@ -299,12 +306,14 @@ $reportKey = 'executive';
                             <a href="<?= e(app_url('/companies')) ?>">Ver empresas</a>
                         <?php endif; ?>
                     </header>
-                    <div class="dashboard-bars dashboard-bars--compact">
+                    <div class="dashboard-chart-wrap dashboard-chart-wrap--bar">
+                        <canvas data-dashboard-chart="commercial" aria-label="Grafico da base comercial"></canvas>
+                    </div>
+                    <div class="dashboard-number-grid">
                         <?php foreach ($commercialSeries as $item): ?>
-                            <div class="dashboard-bar-row">
-                                <span><?= e($item['label']) ?></span>
-                                <div class="dashboard-bar-track"><div style="width: <?= e($barWidth((float) $item['value'], $commercialMax)) ?>%;"></div></div>
+                            <div>
                                 <strong><?= e($item['display']) ?></strong>
+                                <span><?= e($item['label']) ?></span>
                             </div>
                         <?php endforeach; ?>
                     </div>
@@ -362,15 +371,17 @@ $reportKey = 'executive';
                             <p>Tarefas, leads e fila de captadores</p>
                         </div>
                     </header>
-                    <div class="dashboard-bars dashboard-bars--compact">
+                    <div class="dashboard-chart-wrap dashboard-chart-wrap--radar">
+                        <canvas data-dashboard-chart="operational" aria-label="Grafico operacional"></canvas>
+                    </div>
+                    <dl class="dashboard-compact-list">
                         <?php foreach ($operationalSeries as $item): ?>
-                            <div class="dashboard-bar-row">
-                                <span><?= e($item['label']) ?></span>
-                                <div class="dashboard-bar-track"><div style="width: <?= e($barWidth((float) $item['value'], $operationalMax)) ?>%;"></div></div>
-                                <strong><?= e($item['display']) ?></strong>
+                            <div>
+                                <dt><?= e($item['label']) ?></dt>
+                                <dd><?= e($item['display']) ?></dd>
                             </div>
                         <?php endforeach; ?>
-                    </div>
+                    </dl>
                 </article>
 
                 <article class="dashboard-panel dashboard-span-4">
@@ -406,3 +417,7 @@ $reportKey = 'executive';
         </div>
     </section>
 </div>
+
+<script type="application/json" id="dashboard-chart-data">
+<?= json_encode($chartPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>
+</script>
