@@ -3212,7 +3212,7 @@ tr.task-overdue > td:first-child { box-shadow: inset 3px 0 0 #d34a4a; }
 }
 
 .dashboard-grid--kpis {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .dashboard-grid--two {
@@ -3884,6 +3884,12 @@ tr.task-overdue > td:first-child { box-shadow: inset 3px 0 0 #d34a4a; }
     min-height: 180px;
 }
 
+@media (max-width: 1440px) {
+    .dashboard-grid--kpis {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
 @media (max-width: 1024px) {
     .dashboard-grid--two,
     .dashboard-grid--three {
@@ -3896,6 +3902,10 @@ tr.task-overdue > td:first-child { box-shadow: inset 3px 0 0 #d34a4a; }
 
     .dashboard-command-grid {
         grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+
+    .dashboard-grid--kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .dashboard-span-8,
