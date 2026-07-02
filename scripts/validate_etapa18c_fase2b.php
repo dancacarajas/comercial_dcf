@@ -74,7 +74,7 @@ foreach ($files as $rel) {
 // ----------------------------------------------------------------------
 $routes = (string) file_get_contents($root . '/routes/web.php');
 foreach ([
-    "/portal'", "/portal/prospects/create'", "/portal/prospects'",
+    "/portal'", "/portal/captador'", "/portal/prospects/create'", "/portal/prospects'",
     '/portal/deals/{id}', '/portal/deals/{id}/note', '/portal/companies/{id}/contacts',
     'CollectorPortalController@dashboard', 'CollectorPortalController@prospectStore',
 ] as $needle) {

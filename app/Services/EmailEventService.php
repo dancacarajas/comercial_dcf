@@ -154,6 +154,7 @@ final class EmailEventService
             'city_state' => trim((string) ($application['city_state'] ?? '')),
             'public_url' => $publicUrl,
             'login_url' => $baseUrl . '/login',
+            'portal_url' => $baseUrl . '/portal',
             'documents_list' => (string) ($extra['documents_list'] ?? ''),
             'review_notes' => (string) ($extra['review_notes'] ?? ($application['review_notes'] ?? '')),
             'rejection_reason' => (string) ($extra['rejection_reason'] ?? ($application['rejection_reason'] ?? '')),

@@ -160,7 +160,7 @@ $fallbacks = [
     'collector_contract_signed' => ['Assinatura recebida', 'Assinatura eletrônica', 'Recebemos sua assinatura eletrônica.', '', ''],
     'collector_contract_signed_internal' => ['Captador assinou contrato', 'Equipe interna', 'O captador {{name}} assinou o contrato.<br>Candidatura: {{application_number}}', '', ''],
     'collector_contract_fully_signed' => ['Contrato concluído', 'Assinatura eletrônica', 'Todas as assinaturas foram concluídas.', 'Visualizar documento', '{{signature_url}}'],
-    'collector_access_self_registered' => ['Acesso criado com sucesso', 'Portal do captador', 'Seu acesso foi criado com sucesso. Acesse o sistema com seu e-mail e senha.', 'Acessar sistema', '{{login_url}}'],
+    'collector_access_self_registered' => ['Acesso criado com sucesso', 'Portal do captador', 'Seu acesso foi criado com sucesso. Acesse o portal do captador com seu e-mail e senha.', 'Acessar portal do captador', '{{portal_url}}'],
     'collector_access_self_registered_internal' => ['Captador concluiu acesso', 'Equipe interna', 'O captador {{name}} concluiu o cadastro de acesso.<br>Candidatura: {{application_number}}', '', ''],
 ];
 $templates += $fallbacks;

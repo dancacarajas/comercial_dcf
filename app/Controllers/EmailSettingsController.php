@@ -238,6 +238,7 @@ final class EmailSettingsController extends Controller
             'city_state' => 'Parauapebas/PA',
             'public_url' => $baseUrl . '/captadores/credenciamento/preview-token',
             'login_url' => $baseUrl . '/login',
+            'portal_url' => $baseUrl . '/portal',
             'documents_list' => "- Documento de identificacao\n- Comprovante de endereco\n- Dados bancarios\n- Termo de credenciamento",
             'review_notes' => 'Ajuste o comprovante de endereco e envie novamente pelo link seguro.',
             'rejection_reason' => 'Criterios internos de credenciamento nao atendidos neste momento.',

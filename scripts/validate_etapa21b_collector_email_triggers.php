@@ -215,6 +215,16 @@ foreach (['entity_type', 'idx_email_outbox_event_entity_recipient', 'email_event
     assert21b(str_contains($schema, $needle), "schema.sql cobre {$needle}", "schema.sql nao cobre {$needle}");
 }
 
+$emailService = (string) file_get_contents($root . '/app/Services/EmailEventService.php');
+assert21b(str_contains($emailService, 'portal_url'), 'EmailEventService injeta portal_url', 'EmailEventService sem portal_url');
+
+$premiumMigration = (string) file_get_contents($root . '/scripts/run_migration_etapa21d_premium_email_templates.php');
+assert21b(
+    str_contains($premiumMigration, '{{portal_url}}') && str_contains($premiumMigration, 'Acessar portal do captador'),
+    'Template de acesso criado aponta para portal do captador',
+    'Template de acesso criado ainda aponta para login/sistema generico'
+);
+
 echo "\nResultado: {$passes} PASS, " . count($failures) . " FAIL\n";
 if ($failures !== []) {
     foreach ($failures as $failure) {

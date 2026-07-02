@@ -166,8 +166,8 @@ $templates = [
     'collector_access_self_registered' => [
         'Acesso criado',
         'Seu acesso foi criado com sucesso',
-        "Olá, {{name}}.\n\nSeu acesso foi criado com sucesso. Acesse o sistema em {{login_url}}.",
-        '<p>Olá, {{name}}.</p><p>Seu acesso foi criado com sucesso.</p><p><a href="{{login_url}}">Acessar sistema</a></p>',
+        "Olá, {{name}}.\n\nSeu acesso foi criado com sucesso. Acesse o portal do captador em {{portal_url}}.",
+        '<p>Olá, {{name}}.</p><p>Seu acesso foi criado com sucesso.</p><p><a href="{{portal_url}}">Acessar portal do captador</a></p>',
     ],
     'collector_access_self_registered_internal' => [
         'Captador concluiu acesso',

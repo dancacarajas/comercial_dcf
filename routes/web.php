@@ -443,6 +443,7 @@ return function (Router $router): void {
 
     // Etapa 18C Fase 2B - Portal do Captador (carteira propria do captador externo)
     $router->get('/portal',                          'CollectorPortalController@dashboard',      ['AuthMiddleware']);
+    $router->get('/portal/captador',                 'CollectorPortalController@dashboard',      ['AuthMiddleware']);
     $router->get('/portal/commissions',              'CollectorPortalController@commissions',    ['AuthMiddleware']);
     $router->get('/portal/commissions/{id}',         'CollectorPortalController@commissionShow', ['AuthMiddleware']);
     $router->get('/portal/prospects/create',         'CollectorPortalController@prospectCreate', ['AuthMiddleware']);
