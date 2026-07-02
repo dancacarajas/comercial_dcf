@@ -16,15 +16,18 @@ $err = static fn (string $k): string => isset($errors[$k]) ? '<span class="err">
     <form method="post" action="<?= e(app_url('/portal/prospects')) ?>" novalidate>
         <?= csrf_field() ?>
         <div class="pt-field">
-            <label for="incentive_project_id">Projeto de captação *</label>
-            <select id="incentive_project_id" name="incentive_project_id" required<?= count($projects) === 1 ? ' disabled' : '' ?>>
-                <option value="">— selecione o projeto —</option>
-                <?php foreach ($projects as $p): ?>
-                    <option value="<?= (int) $p['id'] ?>"<?= $selectedProject === (int) $p['id'] ? ' selected' : '' ?>><?= e((string) $p['label']) ?></option>
-                <?php endforeach; ?>
-            </select>
+            <label for="incentive_project_id">Projeto de captacao *</label>
             <?php if (count($projects) === 1): ?>
+                <input type="text" id="incentive_project_id" value="<?= e((string) $projects[0]['label']) ?>" readonly>
                 <input type="hidden" name="incentive_project_id" value="<?= (int) $projects[0]['id'] ?>">
+                <p class="pt-muted" style="margin:.35rem 0 0">Projeto liberado para sua captacao.</p>
+            <?php else: ?>
+                <select id="incentive_project_id" name="incentive_project_id" required>
+                    <option value="">-- selecione o projeto --</option>
+                    <?php foreach ($projects as $p): ?>
+                        <option value="<?= (int) $p['id'] ?>"<?= $selectedProject === (int) $p['id'] ? ' selected' : '' ?>><?= e((string) $p['label']) ?></option>
+                    <?php endforeach; ?>
+                </select>
             <?php endif; ?>
             <?= $err('incentive_project_id') ?>
         </div>
@@ -42,7 +45,7 @@ $err = static fn (string $k): string => isset($errors[$k]) ? '<span class="err">
             <div class="pt-field">
                 <label for="segment">Segmento</label>
                 <select id="segment" name="segment">
-                    <option value="">— selecione —</option>
+                    <option value="">-- selecione --</option>
                     <?php foreach ($segments as $s): ?>
                         <option value="<?= e($s) ?>"<?= (string) ($data['segment'] ?? '') === $s ? ' selected' : '' ?>><?= e(ucfirst($s)) ?></option>
                     <?php endforeach; ?>
@@ -57,7 +60,7 @@ $err = static fn (string $k): string => isset($errors[$k]) ? '<span class="err">
             <div class="pt-field">
                 <label for="state">UF</label>
                 <select id="state" name="state">
-                    <option value="">—</option>
+                    <option value="">--</option>
                     <?php foreach ($states as $code => $label): ?>
                         <?php $code = is_int($code) ? $label : $code; ?>
                         <option value="<?= e((string) $code) ?>"<?= (string) ($data['state'] ?? '') === (string) $code ? ' selected' : '' ?>><?= e((string) $code) ?></option>
@@ -78,11 +81,11 @@ $err = static fn (string $k): string => isset($errors[$k]) ? '<span class="err">
             </div>
         </div>
         <div class="pt-field">
-            <label for="notes">Observações iniciais</label>
+            <label for="notes">Observacoes iniciais</label>
             <textarea id="notes" name="notes" rows="3" maxlength="1000"><?= $val('notes') ?></textarea>
         </div>
         <div class="pt-actions">
-            <button type="submit" class="pt-btn"><i data-lucide="check"></i> Adicionar à minha carteira</button>
+            <button type="submit" class="pt-btn"><i data-lucide="check"></i> Adicionar a minha carteira</button>
             <a class="pt-btn secondary" href="<?= e(app_url('/portal')) ?>">Cancelar</a>
         </div>
     </form>

@@ -111,11 +111,14 @@ is_ok(method_exists(new \App\Models\Collector(), 'findByUserId'),
     'Collector::findByUserId existe', 'Collector::findByUserId ausente');
 $portalController = (string) file_get_contents($root . '/app/Controllers/CollectorPortalController.php');
 $adminLayout = (string) file_get_contents($root . '/app/Views/layouts/admin.php');
+$prospectView = (string) file_get_contents($root . '/app/Views/portal/prospect_form.php');
 is_ok(!str_contains($portalController, 'layouts/portal'),
     'Portal do captador usa layout oficial do sistema', 'Portal do captador ainda usa layout proprio');
 foreach (['collector_portal.view', '/portal/commissions', '/portal/prospects/create'] as $needle) {
     is_ok(str_contains($adminLayout, $needle), "Layout oficial contem acesso do captador: {$needle}", "Layout oficial sem acesso do captador: {$needle}");
 }
+is_ok(str_contains($prospectView, 'readonly') && str_contains($prospectView, 'Projeto liberado para sua captacao'),
+    'Formulario exibe projeto unico do captador como campo visivel', 'Formulario pode esconder projeto unico do captador');
 
 // Permissoes do portal tambem no install_schema.sql (instalacao do zero)
 $schemaSql = (string) file_get_contents($root . '/database/install_schema.sql');
@@ -236,6 +239,9 @@ $tok2 = $csrf($pf['body']);
 is_ok($pf['code'] === 200 && $tok2 !== '', 'Formulário de prospect carrega', 'Formulário de prospect falhou');
 $portalProjectId = (int) $pdo->query("SELECT id FROM incentive_projects WHERE archived_at IS NULL AND project_status IN ('em_captacao','captado_parcial') ORDER BY id LIMIT 1")->fetchColumn();
 is_ok($portalProjectId > 0, 'Projeto de captacao disponivel para o portal', 'Nenhum projeto de captacao disponivel para teste HTTP');
+$portalProjectName = (string) $pdo->query('SELECT project_name FROM incentive_projects WHERE id=' . $portalProjectId)->fetchColumn();
+is_ok($portalProjectName !== '' && str_contains($pf['body'], $portalProjectName),
+    'Formulario HTTP exibe o projeto liberado para captacao', 'Formulario HTTP nao exibe o projeto liberado');
 $store = $http('POST', $BASE . '/portal/prospects', ['_csrf' => $tok2, 'incentive_project_id' => $portalProjectId, 'name' => "$T Portal HTTP Empresa", 'cnpj' => '', 'segment' => 'tecnologia', 'city' => 'Parauapebas', 'state' => 'PA', 'email' => 'c@f2bhttp.example.com', 'phone' => '94999990000', 'notes' => 'via portal'], false);
 is_ok($store['code'] === 302 && str_contains($store['loc'], '/portal/deals/'), 'Cadastro de prospect cria captação', 'Cadastro de prospect falhou: ' . $store['code']);
 $deal = $pdo->query("SELECT id,source,deal_status,company_id FROM collector_deals WHERE collector_id={$capId} ORDER BY id DESC LIMIT 1")->fetch();
