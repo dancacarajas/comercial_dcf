@@ -30,7 +30,7 @@ final class DashboardController extends Controller
 {
     public function index(): void
     {
-        // Etapa 18C Fase 2B: captador externo segue direto ao portal proprio.
+        // Etapa 18C Fase 2B: captador externo segue direto ao mesmo sistema, com permissoes do seu perfil.
         if (!can('dashboard.view') && can('collector_portal.view')) {
             $this->redirect('/portal');
             return;

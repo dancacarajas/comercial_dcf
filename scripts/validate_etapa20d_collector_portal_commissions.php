@@ -35,7 +35,7 @@ echo "== ETAPA 20D - Portal do Captador / Extrato de Comissoes ==\n\n";
 
 $files = [
     'app/Controllers/CollectorPortalController.php',
-    'app/Views/layouts/portal.php',
+    'app/Views/layouts/admin.php',
     'app/Views/portal/dashboard.php',
     'app/Views/portal/commissions.php',
     'app/Views/portal/commission_show.php',
@@ -66,6 +66,7 @@ is_ok(
 );
 
 $controller = (string) file_get_contents($root . '/app/Controllers/CollectorPortalController.php');
+is_ok(!str_contains($controller, 'layouts/portal'), 'Portal usa layout oficial do sistema', 'Portal ainda usa layout proprio');
 foreach ([
     'public function commissions',
     'public function commissionShow',
@@ -87,8 +88,8 @@ foreach ([
     is_ok(!str_contains($controller, $needle), "Portal nao executa acao administrativa: {$needle}", "Portal contem acao administrativa: {$needle}");
 }
 
-$layout = (string) file_get_contents($root . '/app/Views/layouts/portal.php');
-is_ok(str_contains($layout, '/portal/commissions'), 'Menu do portal aponta para Minhas comissoes', 'Menu do portal sem Minhas comissoes');
+$layout = (string) file_get_contents($root . '/app/Views/layouts/admin.php');
+is_ok(str_contains($layout, 'collector_portal.view') && str_contains($layout, '/portal/commissions'), 'Menu oficial aponta para Minhas comissoes', 'Menu oficial sem Minhas comissoes');
 
 $dashboard = (string) file_get_contents($root . '/app/Views/portal/dashboard.php');
 is_ok(str_contains($dashboard, '/portal/commissions'), 'Dashboard do portal tem atalho para extrato', 'Dashboard sem atalho para extrato');

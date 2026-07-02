@@ -87,6 +87,28 @@ $navIsActive = static function (string $base) use ($navPath): bool {
                             <i data-lucide="layout-dashboard" aria-hidden="true"></i>
                             <span>Painel</span>
                         </a>
+                        <?php if (can('collector_portal.view')): ?>
+                            <?php $active = $navPath === '/portal' || $navPath === '/portal/captador' || str_starts_with($navPath, '/portal/deals'); ?>
+                            <a class="dcx-nav-primary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/portal')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="briefcase-business" aria-hidden="true"></i>
+                                <span>Minha carteira</span>
+                            </a>
+                            <?php $active = $navIsActive('/portal/commissions'); ?>
+                            <a class="dcx-nav-primary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                               href="<?= e(app_url('/portal/commissions')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                <i data-lucide="receipt" aria-hidden="true"></i>
+                                <span>Minhas comissoes</span>
+                            </a>
+                            <?php if (can('collector_portal.companies.create')): ?>
+                                <?php $active = $navIsActive('/portal/prospects'); ?>
+                                <a class="dcx-nav-primary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                                   href="<?= e(app_url('/portal/prospects/create')) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                    <i data-lucide="plus-circle" aria-hidden="true"></i>
+                                    <span>Novo prospect</span>
+                                </a>
+                            <?php endif; ?>
+                        <?php endif; ?>
                         <?php if (can('incentive_projects.view')): ?>
                             <?php $active = $navIsActive('/projects'); ?>
                             <a class="dcx-nav-primary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"

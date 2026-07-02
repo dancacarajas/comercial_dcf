@@ -57,7 +57,7 @@ $PWD = 'TesteF2B#2026';
 $files = [
     'app/Services/CollectorProspectIntake.php',
     'app/Controllers/CollectorPortalController.php',
-    'app/Views/layouts/portal.php',
+    'app/Views/layouts/admin.php',
     'app/Views/portal/dashboard.php',
     'app/Views/portal/prospect_form.php',
     'app/Views/portal/deal_show.php',
@@ -109,6 +109,13 @@ is_ok(str_contains((string) file_get_contents($root . '/app/Controllers/Dashboar
     'Dashboard redireciona captador-externo ao portal', 'Redirect do dashboard ausente');
 is_ok(method_exists(new \App\Models\Collector(), 'findByUserId'),
     'Collector::findByUserId existe', 'Collector::findByUserId ausente');
+$portalController = (string) file_get_contents($root . '/app/Controllers/CollectorPortalController.php');
+$adminLayout = (string) file_get_contents($root . '/app/Views/layouts/admin.php');
+is_ok(!str_contains($portalController, 'layouts/portal'),
+    'Portal do captador usa layout oficial do sistema', 'Portal do captador ainda usa layout proprio');
+foreach (['collector_portal.view', '/portal/commissions', '/portal/prospects/create'] as $needle) {
+    is_ok(str_contains($adminLayout, $needle), "Layout oficial contem acesso do captador: {$needle}", "Layout oficial sem acesso do captador: {$needle}");
+}
 
 // Permissoes do portal tambem no install_schema.sql (instalacao do zero)
 $schemaSql = (string) file_get_contents($root . '/database/install_schema.sql');

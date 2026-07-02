@@ -70,7 +70,7 @@ final class CollectorPortalController extends Controller
         $this->view('portal/no_access', [
             'title'   => 'Portal do Captador',
             'message' => $message,
-        ], 'layouts/portal');
+        ], 'layouts/admin');
         exit;
     }
 
@@ -133,7 +133,7 @@ final class CollectorPortalController extends Controller
             'assignTypes'   => $assignmentModel->getTypes(),
             'assignStatuses'=> $assignmentModel->getStatuses(),
             'dealStatuses'  => $dealModel->getStatuses(),
-        ], 'layouts/portal');
+        ], 'layouts/admin');
     }
 
     public function commissions(): void
@@ -161,7 +161,7 @@ final class CollectorPortalController extends Controller
             'page' => $page,
             'pages' => $pages,
             'total' => $total,
-        ], 'layouts/portal');
+        ], 'layouts/admin');
     }
 
     public function commissionShow(array $params): void
@@ -186,7 +186,7 @@ final class CollectorPortalController extends Controller
             'approvalStatuses' => (new CollectorCommission())->getApprovalStatuses(),
             'commissionPaymentStatuses' => (new CollectorCommission())->getPaymentStatuses(),
             'snapshot' => json_decode((string) ($commission['calculation_snapshot_json'] ?? ''), true) ?: [],
-        ], 'layouts/portal');
+        ], 'layouts/admin');
     }
 
     public function prospectCreate(): void
@@ -209,7 +209,7 @@ final class CollectorPortalController extends Controller
             'segments'  => $companyModel->getSegments(),
             'states'    => $companyModel->getStates(),
             'projects'  => $projects,
-        ], 'layouts/portal');
+        ], 'layouts/admin');
     }
 
     public function prospectStore(): void
@@ -261,7 +261,7 @@ final class CollectorPortalController extends Controller
                 'segments'  => $companyModel->getSegments(),
                 'states'    => $companyModel->getStates(),
                 'projects'  => $projects,
-            ], 'layouts/portal');
+            ], 'layouts/admin');
             return;
         }
 
@@ -307,7 +307,7 @@ final class CollectorPortalController extends Controller
             'deal'         => $deal,
             'contacts'     => $contacts,
             'dealStatuses' => $dealModel->getStatuses(),
-        ], 'layouts/portal');
+        ], 'layouts/admin');
     }
 
     public function dealNote(array $params): void

@@ -13,9 +13,9 @@ $total = (int) ($total ?? 0);
 ?>
 <style>
 .pt-commission-metrics{display:grid;grid-template-columns:repeat(4,minmax(130px,1fr));gap:.75rem;margin-bottom:1rem}
-.pt-commission-metric{border:1px solid #e7e8f0;border-radius:.75rem;padding:.8rem;background:#fff}
-.pt-commission-metric span{display:block;color:#6b6f80;font-size:.74rem;text-transform:uppercase;font-weight:800}
-.pt-commission-metric strong{display:block;margin-top:.2rem;font-size:1.05rem;color:#2a1a4a}
+.pt-commission-metric{border:1px solid var(--dcx-line);border-radius:8px;padding:.8rem;background:#fff}
+.pt-commission-metric span{display:block;color:var(--dcx-muted);font-size:.74rem;text-transform:uppercase;font-weight:800}
+.pt-commission-metric strong{display:block;margin-top:.2rem;font-size:1.05rem;color:var(--dcx-black)}
 .pt-commission-filters{display:grid;grid-template-columns:minmax(180px,2fr) minmax(160px,1.4fr) minmax(150px,1fr) minmax(130px,1fr) 120px 120px auto;gap:.55rem;align-items:end}
 .pt-commission-filters .pt-field{margin:0}
 .pt-commission-filters input,.pt-commission-filters select{min-height:36px}
