@@ -36,7 +36,7 @@ $total = (int) ($total ?? 0);
 
         <div class="table-wrap">
             <table>
-                <thead><tr><th>Data</th><th>Evento</th><th>Destinatario</th><th>Assunto</th><th>Status</th><th>Erro</th><th>Ações</th></tr></thead>
+                <thead><tr><th>Data</th><th>Evento</th><th>Destinatario</th><th>Assunto</th><th>Status</th><th>Erro</th></tr></thead>
                 <tbody>
                 <?php foreach ($items as $item): ?>
                     <tr>
@@ -44,21 +44,19 @@ $total = (int) ($total ?? 0);
                         <td><span class="pill"><?= e($item['event_key'] ?? '') ?></span></td>
                         <td><?= e($item['recipient_name'] ?? '') ?><br><small><?= e($item['recipient_email'] ?? '') ?></small></td>
                         <td><?= e($item['subject'] ?? '') ?></td>
-                        <td><?= e($item['status'] ?? '') ?></td>
-                        <td><?= e($item['error_message'] ?? '') ?></td>
                         <td>
+                            <span class="pill"><?= e($item['status'] ?? '') ?></span>
                             <?php if ((can('email_logs.resend') || can('email_settings.test')) && (int) ($item['outbox_id'] ?? 0) > 0): ?>
-                                <form method="post" action="<?= e(app_url('/settings/email/outbox/' . (int) $item['outbox_id'] . '/resend')) ?>" class="inline-form">
+                                <form method="post" action="<?= e(app_url('/settings/email/outbox/' . (int) $item['outbox_id'] . '/resend')) ?>" class="inline-form" style="margin-top:8px;">
                                     <?= csrf_field() ?>
                                     <button type="submit" class="btn btn-xs btn-outline"><i data-lucide="send"></i> Reenviar</button>
                                 </form>
-                            <?php else: ?>
-                                <span class="text-muted">-</span>
                             <?php endif; ?>
                         </td>
+                        <td><?= e($item['error_message'] ?? '') ?></td>
                     </tr>
                 <?php endforeach; ?>
-                <?php if ($items === []): ?><tr><td colspan="7">Nenhum log encontrado.</td></tr><?php endif; ?>
+                <?php if ($items === []): ?><tr><td colspan="6">Nenhum log encontrado.</td></tr><?php endif; ?>
                 </tbody>
             </table>
         </div>
