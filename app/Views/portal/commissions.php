@@ -16,8 +16,8 @@ $total = (int) ($total ?? 0);
         <div class="page-head">
             <div>
                 <span class="kicker kicker-dark">Portal do captador</span>
-                <h1 class="h2-section">Minhas comissoes</h1>
-                <p class="page-sub">Extrato somente leitura das suas comissoes por projeto, financeiro e patrocinador.</p>
+                <h1 class="h2-section">Minhas comissões</h1>
+                <p class="page-sub">Extrato somente leitura das suas comissões por projeto, financeiro e patrocinador.</p>
             </div>
             <a class="btn btn-outline" href="<?= e(app_url('/portal')) ?>">
                 <i data-lucide="arrow-left"></i> Carteira
