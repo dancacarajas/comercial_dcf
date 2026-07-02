@@ -113,6 +113,7 @@ final class EmailEventService
                     AND `entity_id` = :entity_id
                     AND `recipient_type` = :recipient_type
                     AND `recipient_email` = :email
+                    AND `status` IN (\'sent\', \'simulated\')
                   LIMIT 1',
                 [
                     'event_key' => $eventKey,

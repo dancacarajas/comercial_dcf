@@ -102,7 +102,7 @@ foreach ($templates as $eventKey) {
 
 $sources = [
     'app/Controllers/Api/CollectorApplicationApiController.php' => ['collector_application_received', 'collector_application_received_internal', 'EmailEventService'],
-    'app/Controllers/CollectorApplicationController.php' => ['collector_documents_requested', 'collector_application_approved', 'collector_application_rejected', 'collector_access_released', 'collector_application_adjustments_requested'],
+    'app/Controllers/CollectorApplicationController.php' => ['collector_documents_requested', 'collector_application_approved', 'collector_application_rejected', 'collector_access_released', 'collector_application_adjustments_requested', 'sendSignatureStageEmail', 'signature_request_sent'],
     'app/Controllers/CollectorPublicController.php' => ['collector_document_uploaded', 'collector_documents_completed', 'collector_access_self_registered'],
     'app/Controllers/SignatureRequestController.php' => ['signature_request_sent'],
     'app/Controllers/SignaturePublicController.php' => ['collector_contract_signed', 'collector_contract_fully_signed'],

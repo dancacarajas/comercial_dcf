@@ -398,6 +398,7 @@ final class CollectorApplicationController extends Controller
         $updated = (new CollectorApplication())->findById($id) ?? $app;
         if (can('signature_requests.create')) {
             $result = $this->createRequiredCollectorSignatures($id, $updated);
+            $signatureEmail = $this->sendSignatureStageEmail($id, (new CollectorApplication())->findById($id) ?? $updated);
             if ($result['created'] !== []) {
                 flash('success', 'Candidatura aprovada. Documentos de assinatura gerados — JA Produções já assinou automaticamente.');
             } elseif ($result['skipped'] !== []) {
@@ -406,6 +407,7 @@ final class CollectorApplicationController extends Controller
                 flash('success', 'Candidatura aprovada.');
                 flash('warning', 'Nenhum modelo obrigatório configurado para a Etapa 5 dos captadores.');
             }
+            $this->flashSignatureEmailResult($signatureEmail);
         } else {
             flash('success', 'Candidatura aprovada. Gere os documentos de assinatura na seção Contrato e assinatura.');
         }
@@ -457,6 +459,7 @@ final class CollectorApplicationController extends Controller
 
         $updated = (new CollectorApplication())->findById($id) ?? $app;
         $result = $this->createRequiredCollectorSignatures($id, $updated);
+        $signatureEmail = $this->sendSignatureStageEmail($id, (new CollectorApplication())->findById($id) ?? $updated);
         if ($result['created'] === [] && $result['skipped'] === []) {
             flash('warning', 'Nenhum modelo obrigatório configurado para a Etapa 5 dos captadores.');
         } elseif ($result['created'] === []) {
@@ -464,6 +467,7 @@ final class CollectorApplicationController extends Controller
         } else {
             flash('success', 'Documentos de assinatura gerados com assinatura automática da JA Produções.');
         }
+        $this->flashSignatureEmailResult($signatureEmail);
         $this->redirect('/collector-applications/' . $id);
     }
 
@@ -718,6 +722,60 @@ final class CollectorApplicationController extends Controller
         }
 
         return ['created' => $created, 'skipped' => $skipped];
+    }
+
+    /** @return array<string, mixed> */
+    private function sendSignatureStageEmail(int $applicationId, array $application): array
+    {
+        $sigModel = new SignatureRequest();
+        if ($sigModel->activeForCollectorApplicationList($applicationId) === []) {
+            return ['status' => 'skipped', 'message' => 'Nenhum documento de assinatura disponivel para notificar.'];
+        }
+
+        $appModel = new CollectorApplication();
+        $token = trim((string) ($application['public_token'] ?? ''));
+        if ($token === '' || !$appModel->validatePublicToken($application)['valid']) {
+            $token = $appModel->generatePublicToken($applicationId, 30);
+            $application = $appModel->findById($applicationId) ?? array_merge($application, [
+                'public_token' => $token,
+            ]);
+        }
+
+        $publicUrl = app_url('/captadores/credenciamento/' . rawurlencode($token));
+        $result = (new EmailEventService())->sendToCollector('signature_request_sent', $application, [
+            'public_url' => $publicUrl,
+            'signature_url' => $publicUrl,
+        ]);
+
+        (new ActivityLog())->record('signature_request_sent', $_SESSION['user_id'] ?? null, 'collector_application', $applicationId);
+
+        return $result;
+    }
+
+    /** @param array<string, mixed> $result */
+    private function flashSignatureEmailResult(array $result): void
+    {
+        $status = (string) ($result['status'] ?? '');
+        $message = (string) ($result['message'] ?? '');
+
+        if ($status === 'sent') {
+            flash('success', 'E-mail unico de assinatura enviado ao captador com o link da etapa publica.');
+            return;
+        }
+
+        if ($status === 'simulated') {
+            flash('info', 'E-mail unico de assinatura registrado em dry-run; nenhum envio real foi feito.');
+            return;
+        }
+
+        if ($status === 'skipped') {
+            flash('info', 'E-mail unico de assinatura nao enviado: ' . ($message !== '' ? $message : 'evento ja registrado ou envio desativado.'));
+            return;
+        }
+
+        if ($status === 'failed') {
+            flash('error', 'Falha ao enviar e-mail unico de assinatura: ' . ($message !== '' ? $message : 'erro desconhecido.'));
+        }
     }
 
     /** @return array<string, mixed>|null */

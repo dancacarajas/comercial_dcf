@@ -82,17 +82,21 @@ final class SignatureRequestController extends Controller
         (new ActivityLog())->record('signature_request_sent', $_SESSION['user_id'] ?? null, 'signature_request', $id);
         $updated = (new SignatureRequest())->findById($id) ?? $item;
         if ((string) ($updated['source_type'] ?? '') === 'collector_application' && (int) ($updated['source_id'] ?? 0) > 0) {
-            $application = (new CollectorApplication())->findById((int) $updated['source_id']);
-            $captadorLink = '';
-            foreach ((new SignatureRequest())->signersForRequest($id) as $signer) {
-                if ((string) ($signer['signer_role'] ?? '') === 'captador' && !empty($signer['public_token'])) {
-                    $captadorLink = app_url('/assinatura/' . rawurlencode((string) $signer['public_token']));
-                    break;
-                }
-            }
+            $applicationModel = new CollectorApplication();
+            $applicationId = (int) $updated['source_id'];
+            $application = $applicationModel->findById($applicationId);
             if ($application !== null) {
+                $token = trim((string) ($application['public_token'] ?? ''));
+                if ($token === '' || !$applicationModel->validatePublicToken($application)['valid']) {
+                    $token = $applicationModel->generatePublicToken($applicationId, 30);
+                    $application = $applicationModel->findById($applicationId) ?? array_merge($application, [
+                        'public_token' => $token,
+                    ]);
+                }
+                $publicUrl = app_url('/captadores/credenciamento/' . rawurlencode($token));
                 (new EmailEventService())->sendToCollector('signature_request_sent', $application, [
-                    'signature_url' => $captadorLink,
+                    'public_url' => $publicUrl,
+                    'signature_url' => $publicUrl,
                 ]);
             }
         }
