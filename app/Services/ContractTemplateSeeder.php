@@ -6,6 +6,7 @@ namespace App\Services;
 
 use App\Core\Database;
 use App\Data\CaptadorConfidencialidadeTemplate;
+use App\Data\CaptadorCondutaTemplate;
 use App\Data\CaptadorExternoContractTemplate;
 use App\Data\CaptadorLgpdTemplate;
 use PDO;
@@ -181,6 +182,24 @@ final class ContractTemplateSeeder
             'template_type' => CaptadorLgpdTemplate::TEMPLATE_TYPE,
             'content_html' => $html,
             'collector_signature_order' => 30,
+        ]);
+    }
+
+    public static function upsertCaptadorCondutaDefault(?PDO $pdo = null): int
+    {
+        $pdo ??= Database::connection();
+        $html = CaptadorCondutaTemplate::contentHtml();
+        if (trim(strip_tags($html)) === '') {
+            throw new \RuntimeException('Conteudo HTML do codigo de conduta ausente ou invalido.');
+        }
+
+        return self::upsertCollectorSignatureTemplate($pdo, [
+            'template_key' => CaptadorCondutaTemplate::TEMPLATE_KEY,
+            'title' => CaptadorCondutaTemplate::TITLE,
+            'description' => CaptadorCondutaTemplate::DESCRIPTION,
+            'template_type' => CaptadorCondutaTemplate::TEMPLATE_TYPE,
+            'content_html' => $html,
+            'collector_signature_order' => 40,
         ]);
     }
 
