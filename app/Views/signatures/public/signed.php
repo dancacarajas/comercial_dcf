@@ -2,7 +2,9 @@
 $signer = $signer ?? [];
 $documentUrl = $documentUrl ?? '';
 $auditUrl = $auditUrl ?? '';
-$fullySigned = (bool) ($fullySigned ?? false);
+$fullySigned = (bool) ($fullySigned ?? false);
+
+$publicJourneyUrl = (string) ($publicJourneyUrl ?? '');
 ?>
 <section class="section"><div class="container">
 <div class="page-head">
@@ -18,7 +20,21 @@ $fullySigned = (bool) ($fullySigned ?? false);
         ? 'Contrato assinado pelo captador e pela contratante (JA Produções). Documento disponível para visualização.'
         : 'Sua assinatura eletrônica foi registrada. O contrato aguarda a assinatura da contratante (JA Produções Artísticas) pelo administrador do sistema.' ?></span>
 </div>
-<?php if ($fullySigned && $documentUrl): ?>
+<?php if ($publicJourneyUrl !== ''): ?>
+
+<div class="card" style="margin-top:18px;border-top:5px solid #f4c400;">
+
+    <h3 class="h3-card">Continuar assinaturas</h3>
+
+    <p class="page-sub" style="margin-bottom:16px;">Sua assinatura deste documento foi registrada. Volte para sua etapa de credenciamento para assinar os demais documentos pendentes.</p>
+
+    <a href="<?= e($publicJourneyUrl) ?>" class="btn btn-yellow">Voltar para meus documentos</a>
+
+</div>
+
+<?php endif; ?>
+
+<?php if ($fullySigned && $documentUrl): ?>
 <div class="card" style="margin-top:18px;">
     <h3 class="h3-card"><i data-lucide="file-text"></i> Contrato assinado</h3>
     <p class="page-sub" style="margin-bottom:16px;">Visualize o documento no navegador, com layout oficial e assinaturas das duas partes.</p>
@@ -36,4 +52,4 @@ $fullySigned = (bool) ($fullySigned ?? false);
 <p class="text-sm text-muted-dcx" style="margin-top:18px;">A equipe do Dança Carajás dará continuidade ao seu credenciamento.</p>
 <?php endif; ?>
 </div></section>
-
+

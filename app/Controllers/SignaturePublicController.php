@@ -27,11 +27,15 @@ final class SignaturePublicController extends Controller
         $check = $model->validateSignerToken($signer);
         if (!$check['valid']) {
             if ((string) ($signer['status'] ?? '') === 'assinado') {
+                $request = $model->findById((int) ($signer['request_id'] ?? 0));
+                $fullySigned = is_array($request) && (string) ($request['status'] ?? '') === 'assinado';
                 $this->view('signatures/public/signed', [
-                    'title'       => 'Assinatura concluída',
+                    'title'       => $fullySigned ? 'Assinatura concluída' : 'Assinatura registrada',
                     'signer'      => $signer,
-                    'documentUrl' => $this->documentUrl($token),
-                    'auditUrl'    => $this->auditUrl($token),
+                    'fullySigned' => $fullySigned,
+                    'documentUrl' => $fullySigned ? $this->documentUrl($token) : '',
+                    'auditUrl'    => $fullySigned ? $this->auditUrl($token) : '',
+                    'publicJourneyUrl' => $this->publicJourneyUrlForSigner($signer),
                 ], 'layouts/print');
                 return;
             }
@@ -121,13 +125,8 @@ final class SignaturePublicController extends Controller
             }
         }
 
-        $this->view('signatures/public/signed', [
-            'title'         => $fullySigned ? 'Assinatura concluída' : 'Assinatura registrada',
-            'signer'        => $signer,
-            'fullySigned'   => $fullySigned,
-            'documentUrl'   => $fullySigned ? $this->documentUrl($token) : '',
-            'auditUrl'      => $fullySigned ? $this->auditUrl($token) : '',
-        ], 'layouts/print');
+        header('Location: ' . app_url('/assinatura/' . rawurlencode($token)), true, 303);
+        exit;
     }
 
     public function documento(array $params): void
@@ -258,6 +257,37 @@ final class SignaturePublicController extends Controller
     private function auditUrl(string $token): string
     {
         return app_url('/assinatura/' . rawurlencode($token) . '/auditoria');
+    }
+
+    private function publicJourneyUrlForSigner(array $signer): string
+    {
+        $requestId = (int) ($signer['request_id'] ?? 0);
+        if ($requestId <= 0) {
+            return '';
+        }
+
+        $request = (new SignatureRequest())->findById($requestId);
+        if ($request === null || (string) ($request['source_type'] ?? '') !== 'collector_application') {
+            return '';
+        }
+
+        $applicationId = (int) ($request['source_id'] ?? 0);
+        if ($applicationId <= 0) {
+            return '';
+        }
+
+        $appModel = new CollectorApplication();
+        $application = $appModel->findById($applicationId);
+        if ($application === null) {
+            return '';
+        }
+
+        $token = trim((string) ($application['public_token'] ?? ''));
+        if ($token === '' || !$appModel->validatePublicToken($application)['valid']) {
+            $token = $appModel->generatePublicToken($applicationId, 30);
+        }
+
+        return app_url('/captadores/credenciamento/' . rawurlencode($token));
     }
 
     /** @param array<string, mixed> $request */
