@@ -2097,6 +2097,7 @@ DELETE rp FROM `role_permissions` rp
 INNER JOIN `roles` r ON r.`id` = rp.`role_id`
 INNER JOIN `permissions` p ON p.`id` = rp.`permission_id`
 WHERE r.`slug` = 'captador-externo' AND p.`slug` IN (
+    'dashboard.view',
     'companies.view', 'companies.create', 'companies.edit',
     'opportunities.view', 'opportunities.create', 'opportunities.edit',
     'proposals.view', 'sponsors.view', 'contracts.view', 'financials.view',

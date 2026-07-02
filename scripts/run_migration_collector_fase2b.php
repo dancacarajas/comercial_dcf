@@ -52,6 +52,7 @@ foreach ($ids as $pid) {
 }
 
 $forbidden = [
+    'dashboard.view',
     'companies.view',
     'companies.create',
     'companies.edit',
