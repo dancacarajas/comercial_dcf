@@ -167,8 +167,12 @@ final class SignatureRequestController extends Controller
         }
 
         $safeName = preg_replace('/[^a-zA-Z0-9._\-]+/', '_', $file['name']) ?: 'contrato-assinado.pdf';
+        if (!str_ends_with(strtolower($safeName), '.pdf')) {
+            $safeName .= '.pdf';
+        }
         header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="' . $safeName . '"');
+        header('Content-Disposition: attachment; filename="' . $safeName . '"; filename*=UTF-8\'\'' . rawurlencode($safeName));
+        header('X-Content-Type-Options: nosniff');
         header('Content-Length: ' . (string) filesize($file['path']));
         readfile($file['path']);
         exit;

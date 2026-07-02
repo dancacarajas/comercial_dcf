@@ -240,9 +240,13 @@ final class SignaturePublicController extends Controller
             return;
         }
 
-        $safeName = preg_replace('/[^aA-Z0-9._\-]+/', '_', $downloadName) ?: 'contrato-assinado.pdf';
+        $safeName = preg_replace('/[^a-zA-Z0-9._\-]+/', '_', $downloadName) ?: 'contrato-assinado.pdf';
+        if (!str_ends_with(strtolower($safeName), '.pdf')) {
+            $safeName .= '.pdf';
+        }
         header('Content-Type: application/pdf');
-        header('Content-Disposition: ' . ($inline ? 'inline' : 'attachment') . '; filename="' . $safeName . '"');
+        header('Content-Disposition: ' . ($inline ? 'inline' : 'attachment') . '; filename="' . $safeName . '"; filename*=UTF-8\'\'' . rawurlencode($safeName));
+        header('X-Content-Type-Options: nosniff');
         header('Content-Length: ' . (string) filesize($path));
         header('Cache-Control: private, max-age=0, must-revalidate');
         readfile($path);
