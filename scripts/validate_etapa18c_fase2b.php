@@ -94,7 +94,15 @@ $portalPerms = [
     'collector_portal.deals.view',
     'collector_portal.deals.note',
 ];
-foreach ($portalPerms as $slug) {
+$operationalPerms = [
+    'dashboard.view',
+    'incentive_projects.view',
+    'companies.view',
+    'companies.create',
+    'contacts.view',
+    'contacts.create',
+];
+foreach (array_merge($portalPerms, $operationalPerms) as $slug) {
     $cnt = (int) $pdo->query(
         "SELECT COUNT(*) FROM role_permissions rp JOIN permissions p ON p.id=rp.permission_id
           WHERE rp.role_id={$roleId} AND p.slug='" . $slug . "'"
@@ -230,8 +238,8 @@ $csrf = static function (string $h): string { return preg_match('/name="_csrf"\s
 $tok = $csrf($http('GET', $BASE . '/login')['body']);
 $login = $http('POST', $BASE . '/login', ['_csrf' => $tok, 'email' => 'teste18c.f2b.captador@example.com', 'password' => $PWD], false);
 is_ok($login['code'] === 302, 'Login captador redireciona apos autenticar', 'Login captador falhou: ' . $login['code']);
-$dash = $http('GET', $BASE . '/dashboard', null, false);
-is_ok($dash['code'] === 302 && str_contains($dash['loc'], '/portal'), 'Dashboard → redireciona ao portal', 'Dashboard não redirecionou: ' . $dash['code']);
+$dash = $http('GET', $BASE . '/dashboard');
+is_ok($dash['code'] === 200, 'Dashboard operacional do captador abre', 'Dashboard do captador falhou: ' . $dash['code']);
 $portal = $http('GET', $BASE . '/portal');
 is_ok($portal['code'] === 200, 'GET /portal = 200', 'GET /portal = ' . $portal['code']);
 $pf = $http('GET', $BASE . '/portal/prospects/create');
@@ -293,8 +301,14 @@ $portalB = $reqB('GET', $BASE . '/portal');
 is_ok($portalB['code'] === 403 && str_contains($portalB['body'], 'ainda nao esta liberado'), 'Portal bloqueia captador sem credenciamento final', 'Portal nao bloqueou captador sem credenciamento: ' . $portalB['code']);
 @unlink($jarB);
 
-// Escopo: CRM interno proibido
-foreach (['/collectors' => 'Captadores', '/opportunities' => 'Oportunidades', '/users' => 'Usuários', '/companies' => 'Empresas'] as $path => $label) {
+// Escopo operacional permitido: base compartilhada alimentada pelo captador.
+foreach (['/projects' => 'Projetos', '/companies' => 'Empresas', '/companies/create' => 'Nova empresa', '/contacts' => 'Contatos', '/contacts/create' => 'Novo contato'] as $path => $label) {
+    $r = $http('GET', $BASE . $path, null, false);
+    is_ok($r['code'] === 200, "Captador acessa {$label}", "Captador nao acessou {$label}: " . $r['code']);
+}
+
+// Escopo de gestao sensivel segue proibido.
+foreach (['/collectors' => 'Captadores', '/opportunities' => 'Oportunidades', '/users' => 'Usuarios'] as $path => $label) {
     $r = $http('GET', $BASE . $path, null, false);
     is_ok($r['code'] === 403, "Captador sem acesso interno: {$label} (403)", "Captador acessou {$label}: " . $r['code']);
 }

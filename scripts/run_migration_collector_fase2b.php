@@ -51,10 +51,21 @@ foreach ($ids as $pid) {
     $insRP->execute(['r' => $roleId, 'p' => (int) $pid]);
 }
 
-$forbidden = [
+$operationalPerms = [
     'dashboard.view',
+    'incentive_projects.view',
     'companies.view',
     'companies.create',
+    'contacts.view',
+    'contacts.create',
+];
+$operationalList = "'" . implode("','", $operationalPerms) . "'";
+$opIds = $pdo->query("SELECT id FROM permissions WHERE slug IN ({$operationalList})")->fetchAll(PDO::FETCH_COLUMN);
+foreach ($opIds as $pid) {
+    $insRP->execute(['r' => $roleId, 'p' => (int) $pid]);
+}
+
+$forbidden = [
     'companies.edit',
     'opportunities.view',
     'opportunities.create',

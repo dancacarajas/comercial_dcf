@@ -491,8 +491,11 @@ foreach (['producao-coordenacao', 'comunicacao', 'leitura-consulta'] as $role) {
 }
 
 assertTrue(roleHasPermission($pdo, 'captador-externo', 'collector_portal.view'), 'Captador Externo → portal', 'Captador Externo sem portal');
+foreach (['dashboard.view', 'incentive_projects.view', 'companies.view', 'companies.create', 'contacts.view', 'contacts.create'] as $p) {
+    assertTrue(roleHasPermission($pdo, 'captador-externo', $p), "Captador Externo tem {$p}", "Captador Externo sem {$p}");
+}
 $forbiddenForCaptador = [
-    'companies.view', 'opportunities.view', 'proposals.view', 'sponsors.view', 'contracts.view',
+    'companies.edit', 'contacts.edit', 'opportunities.view', 'proposals.view', 'sponsors.view', 'contracts.view',
     'financials.view', 'dossiers.view', 'reports.view', 'users.view', 'permissions.view',
     'collector_applications.view', 'collector_applications.release_access',
 ];

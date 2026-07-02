@@ -2093,12 +2093,18 @@ SELECT r.`id`, p.`id` FROM `roles` r JOIN `permissions` p ON p.`slug` IN (
     'collector_portal.deals.view', 'collector_portal.deals.note'
 ) WHERE r.`slug` = 'captador-externo';
 
+INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
+SELECT r.`id`, p.`id` FROM `roles` r JOIN `permissions` p ON p.`slug` IN (
+    'dashboard.view', 'incentive_projects.view',
+    'companies.view', 'companies.create',
+    'contacts.view', 'contacts.create'
+) WHERE r.`slug` = 'captador-externo';
+
 DELETE rp FROM `role_permissions` rp
 INNER JOIN `roles` r ON r.`id` = rp.`role_id`
 INNER JOIN `permissions` p ON p.`id` = rp.`permission_id`
 WHERE r.`slug` = 'captador-externo' AND p.`slug` IN (
-    'dashboard.view',
-    'companies.view', 'companies.create', 'companies.edit',
+    'companies.edit',
     'opportunities.view', 'opportunities.create', 'opportunities.edit',
     'proposals.view', 'sponsors.view', 'contracts.view', 'financials.view',
     'dossiers.view', 'reports.view', 'users.view', 'permissions.view',
