@@ -47,13 +47,17 @@ foreach (['email_outbox', 'email_logs'] as $table) {
     }
     echo "rastreio garantido em {$table}\n";
 }
-if (!$indexExists('email_outbox', 'uniq_email_outbox_event_entity_recipient')) {
+if ($indexExists('email_outbox', 'uniq_email_outbox_event_entity_recipient')) {
+    $pdo->exec('ALTER TABLE `email_outbox` DROP INDEX `uniq_email_outbox_event_entity_recipient`');
+    echo "indice unico de outbox removido para permitir reenvio manual\n";
+}
+if (!$indexExists('email_outbox', 'idx_email_outbox_event_entity_recipient')) {
     $pdo->exec(
         'ALTER TABLE `email_outbox`
-            ADD UNIQUE KEY `uniq_email_outbox_event_entity_recipient`
+            ADD KEY `idx_email_outbox_event_entity_recipient`
             (`event_key`, `entity_type`, `entity_id`, `recipient_type`, `recipient_email`)'
     );
-    echo "idempotencia garantida em email_outbox\n";
+    echo "indice operacional garantido em email_outbox\n";
 }
 
 $templates = [
@@ -175,6 +179,9 @@ $templates = [
 
 $tpl = new \App\Models\EmailTemplate();
 foreach ($templates as $key => [$name, $subject, $bodyText, $bodyHtml]) {
+    if ($tpl->findByEvent($key) !== null) {
+        continue;
+    }
     $tpl->upsert([
         'event_key' => $key,
         'name' => $name,

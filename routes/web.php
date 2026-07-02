@@ -53,6 +53,7 @@ return function (Router $router): void {
     $router->post('/settings/email/test',     'EmailSettingsController@test',      ['AuthMiddleware']);
     $router->get('/settings/email/templates', 'EmailSettingsController@templates', ['AuthMiddleware']);
     $router->get('/settings/email/logs',      'EmailSettingsController@logs',      ['AuthMiddleware']);
+    $router->post('/settings/email/outbox/{id}/resend', 'EmailSettingsController@resend', ['AuthMiddleware']);
 
     // Projetos Incentivados / PRONACs / Plano de Captação (Etapa 19)
     // Rotas estaticas antes das dinamicas {id}.

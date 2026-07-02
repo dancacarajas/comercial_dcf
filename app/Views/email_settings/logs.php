@@ -36,7 +36,7 @@ $total = (int) ($total ?? 0);
 
         <div class="table-wrap">
             <table>
-                <thead><tr><th>Data</th><th>Evento</th><th>Destinatario</th><th>Assunto</th><th>Status</th><th>Erro</th></tr></thead>
+                <thead><tr><th>Data</th><th>Evento</th><th>Destinatario</th><th>Assunto</th><th>Status</th><th>Erro</th><th>Ações</th></tr></thead>
                 <tbody>
                 <?php foreach ($items as $item): ?>
                     <tr>
@@ -46,9 +46,19 @@ $total = (int) ($total ?? 0);
                         <td><?= e($item['subject'] ?? '') ?></td>
                         <td><?= e($item['status'] ?? '') ?></td>
                         <td><?= e($item['error_message'] ?? '') ?></td>
+                        <td>
+                            <?php if ((can('email_logs.resend') || can('email_settings.test')) && (int) ($item['outbox_id'] ?? 0) > 0): ?>
+                                <form method="post" action="<?= e(app_url('/settings/email/outbox/' . (int) $item['outbox_id'] . '/resend')) ?>" class="inline-form">
+                                    <?= csrf_field() ?>
+                                    <button type="submit" class="btn btn-xs btn-outline"><i data-lucide="send"></i> Reenviar</button>
+                                </form>
+                            <?php else: ?>
+                                <span class="text-muted">-</span>
+                            <?php endif; ?>
+                        </td>
                     </tr>
                 <?php endforeach; ?>
-                <?php if ($items === []): ?><tr><td colspan="6">Nenhum log encontrado.</td></tr><?php endif; ?>
+                <?php if ($items === []): ?><tr><td colspan="7">Nenhum log encontrado.</td></tr><?php endif; ?>
                 </tbody>
             </table>
         </div>

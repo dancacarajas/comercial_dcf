@@ -45,7 +45,9 @@ final class EmailLog extends Model
         $offset = ($page - 1) * $perPage;
 
         return $this->query(
-            'SELECT * FROM `email_logs`' . $where . ' ORDER BY `created_at` DESC, `id` DESC LIMIT ' . $perPage . ' OFFSET ' . $offset,
+            "SELECT `email_logs`.*,
+                    CAST(JSON_UNQUOTE(JSON_EXTRACT(`payload_json`, '$.outbox_id')) AS UNSIGNED) AS `outbox_id`
+               FROM `email_logs`" . $where . ' ORDER BY `created_at` DESC, `id` DESC LIMIT ' . $perPage . ' OFFSET ' . $offset,
             $params
         )->fetchAll();
     }

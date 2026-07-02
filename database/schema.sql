@@ -1763,7 +1763,7 @@ CREATE TABLE IF NOT EXISTS `email_outbox` (
     KEY `idx_email_outbox_entity` (`entity_type`, `entity_id`, `event_key`),
     KEY `idx_email_outbox_status` (`status`),
     KEY `idx_email_outbox_recipient` (`recipient_email`),
-    UNIQUE KEY `uniq_email_outbox_event_entity_recipient` (`event_key`, `entity_type`, `entity_id`, `recipient_type`, `recipient_email`)
+    KEY `idx_email_outbox_event_entity_recipient` (`event_key`, `entity_type`, `entity_id`, `recipient_type`, `recipient_email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `email_logs` (
@@ -1813,7 +1813,8 @@ INSERT INTO `permissions` (`name`, `slug`, `description`) VALUES
     ('E-mail: testar envio', 'email_settings.test', 'Enviar teste controlado de e-mail'),
     ('Templates de e-mail: visualizar', 'email_templates.view', 'Visualizar templates transacionais'),
     ('Templates de e-mail: editar', 'email_templates.edit', 'Editar templates transacionais'),
-    ('Logs de e-mail: visualizar', 'email_logs.view', 'Visualizar logs transacionais de e-mail')
+    ('Logs de e-mail: visualizar', 'email_logs.view', 'Visualizar logs transacionais de e-mail'),
+    ('Logs de e-mail: reenviar', 'email_logs.resend', 'Reenviar e-mails transacionais registrados')
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `description` = VALUES(`description`);
 
 INSERT IGNORE INTO `role_permissions` (`role_id`, `permission_id`)
@@ -1821,6 +1822,6 @@ SELECT r.`id`, p.`id`
   FROM `roles` r
   JOIN `permissions` p ON p.`slug` IN (
        'email_settings.view','email_settings.edit','email_settings.test',
-       'email_templates.view','email_templates.edit','email_logs.view'
+       'email_templates.view','email_templates.edit','email_logs.view','email_logs.resend'
   )
  WHERE r.`slug` = 'administrador-geral';

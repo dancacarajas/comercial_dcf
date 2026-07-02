@@ -67,8 +67,8 @@ foreach (['email_outbox', 'email_logs'] as $table) {
     }
 }
 $idxStmt = $pdo->prepare('SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=:t AND INDEX_NAME=:i');
-$idxStmt->execute(['t' => 'email_outbox', 'i' => 'uniq_email_outbox_event_entity_recipient']);
-assert21b((int) $idxStmt->fetchColumn() > 0, 'Outbox tem chave de idempotencia por evento/entidade/destinatario', 'Outbox sem chave de idempotencia');
+$idxStmt->execute(['t' => 'email_outbox', 'i' => 'idx_email_outbox_event_entity_recipient']);
+assert21b((int) $idxStmt->fetchColumn() > 0, 'Outbox tem indice operacional por evento/entidade/destinatario', 'Outbox sem indice operacional');
 
 $templates = [
     'collector_application_received',
@@ -211,7 +211,7 @@ try {
 }
 
 $schema = (string) file_get_contents($root . '/database/schema.sql');
-foreach (['entity_type', 'uniq_email_outbox_event_entity_recipient', 'email_event_rules'] as $needle) {
+foreach (['entity_type', 'idx_email_outbox_event_entity_recipient', 'email_event_rules'] as $needle) {
     assert21b(str_contains($schema, $needle), "schema.sql cobre {$needle}", "schema.sql nao cobre {$needle}");
 }
 

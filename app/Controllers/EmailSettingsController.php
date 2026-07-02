@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers;
 
 use App\Core\Controller;
+use App\Core\Database;
 use App\Middlewares\AuthMiddleware;
 use App\Models\ActivityLog;
 use App\Models\EmailLog;
@@ -128,6 +129,52 @@ final class EmailSettingsController extends Controller
             'pages' => $pages,
             'total' => $total,
         ]);
+    }
+
+    public function resend(array $params): void
+    {
+        if (!can('email_logs.resend') && !can('email_settings.test')) {
+            http_response_code(403);
+            flash('error', 'Sem permissao para reenviar e-mail.');
+            $this->redirect('/settings/email/logs');
+            return;
+        }
+        csrf_verify();
+
+        $outboxId = (int) ($params['id'] ?? 0);
+        $row = $outboxId > 0 ? Database::run('SELECT * FROM `email_outbox` WHERE `id` = :id LIMIT 1', ['id' => $outboxId])->fetch() : false;
+        if ($row === false) {
+            flash('error', 'Registro de e-mail nao encontrado para reenvio.');
+            $this->redirect('/settings/email/logs');
+            return;
+        }
+
+        $payload = json_decode((string) ($row['payload_json'] ?? '{}'), true);
+        if (!is_array($payload)) {
+            $payload = [];
+        }
+        $payload['resent_from_outbox_id'] = $outboxId;
+        $payload['resent_by'] = $_SESSION['user_id'] ?? null;
+        $payload['resent_at'] = date('Y-m-d H:i:s');
+
+        $result = (new MailerService())->send([
+            'event_key' => (string) ($row['event_key'] ?? 'manual_resend'),
+            'entity_type' => (string) ($row['entity_type'] ?? ''),
+            'entity_id' => (int) ($row['entity_id'] ?? 0),
+            'recipient_type' => (string) ($row['recipient_type'] ?? ''),
+            'to_email' => (string) ($row['recipient_email'] ?? ''),
+            'to_name' => (string) ($row['recipient_name'] ?? ''),
+            'subject' => (string) ($row['subject'] ?? ''),
+            'body_text' => (string) ($row['body_text'] ?? ''),
+            'body_html' => (string) ($row['body_html'] ?? ''),
+            'payload' => $payload,
+        ]);
+
+        (new ActivityLog())->record('email_outbox_resent', $_SESSION['user_id'] ?? null, 'email_outbox', $outboxId);
+
+        $kind = $result['status'] === 'sent' ? 'success' : (in_array($result['status'], ['simulated', 'skipped'], true) ? 'warning' : 'error');
+        flash($kind, 'Reenvio de e-mail: ' . $result['message']);
+        $this->redirect('/settings/email/logs');
     }
 
     /** @return array<string, mixed> */
