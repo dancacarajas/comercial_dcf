@@ -10,6 +10,7 @@ use App\Data\CaptadorCondutaTemplate;
 use App\Data\CaptadorExternoContractTemplate;
 use App\Data\CaptadorLgpdTemplate;
 use App\Data\CaptadorPortalUsoTemplate;
+use App\Data\CaptadorProjetoComissaoTemplate;
 use PDO;
 
 /** Insere ou atualiza modelos de contrato padrão no banco. */
@@ -219,6 +220,24 @@ final class ContractTemplateSeeder
             'template_type' => CaptadorPortalUsoTemplate::TEMPLATE_TYPE,
             'content_html' => $html,
             'collector_signature_order' => 50,
+        ]);
+    }
+
+    public static function upsertCaptadorProjetoComissaoDefault(?PDO $pdo = null): int
+    {
+        $pdo ??= Database::connection();
+        $html = CaptadorProjetoComissaoTemplate::contentHtml();
+        if (trim(strip_tags($html)) === '') {
+            throw new \RuntimeException('Conteudo HTML do termo de projeto/comissao ausente ou invalido.');
+        }
+
+        return self::upsertCollectorSignatureTemplate($pdo, [
+            'template_key' => CaptadorProjetoComissaoTemplate::TEMPLATE_KEY,
+            'title' => CaptadorProjetoComissaoTemplate::TITLE,
+            'description' => CaptadorProjetoComissaoTemplate::DESCRIPTION,
+            'template_type' => CaptadorProjetoComissaoTemplate::TEMPLATE_TYPE,
+            'content_html' => $html,
+            'collector_signature_order' => 60,
         ]);
     }
 
