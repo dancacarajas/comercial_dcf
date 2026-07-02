@@ -3146,6 +3146,12 @@ tr.task-overdue > td:first-child { box-shadow: inset 3px 0 0 #d34a4a; }
     padding-bottom: 40px;
 }
 
+.dashboard-hero > .container,
+.dashboard-body > .container {
+    width: calc(100% - clamp(24px, 2.5vw, 56px));
+    max-width: none;
+}
+
 .dashboard-hero {
     padding: 36px 0 32px;
 }
@@ -3197,13 +3203,7 @@ tr.task-overdue > td:first-child { box-shadow: inset 3px 0 0 #d34a4a; }
 }
 
 .dashboard-grid--kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-@media (min-width: 720px) {
-    .dashboard-grid--kpis {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 }
 
 .dashboard-grid--two {
