@@ -134,6 +134,12 @@ final class EmailEventService
     {
         $config = require dirname(__DIR__, 2) . '/config/app.php';
         $baseUrl = rtrim((string) ($config['url'] ?? ''), '/');
+        if ($baseUrl === '') {
+            $baseUrl = 'https://comercial.dancacarajas.com.br';
+        }
+        $branding = (array) ($config['organization']['branding'] ?? []);
+        $festivalLogo = trim((string) ($branding['festival_logo'] ?? 'assets/img/branding/danca-carajas-logo.png'), '/');
+        $producerLogo = trim((string) ($branding['producer_logo'] ?? 'assets/img/branding/ja-producoes-logo.png'), '/');
         $publicToken = trim((string) ($application['public_token'] ?? ''));
         $publicUrl = (string) ($extra['public_url'] ?? '');
         if ($publicUrl === '' && $publicToken !== '') {
@@ -151,6 +157,9 @@ final class EmailEventService
             'review_notes' => (string) ($extra['review_notes'] ?? ($application['review_notes'] ?? '')),
             'rejection_reason' => (string) ($extra['rejection_reason'] ?? ($application['rejection_reason'] ?? '')),
             'signature_url' => (string) ($extra['signature_url'] ?? ''),
+            'festival_logo_url' => $baseUrl . '/' . $festivalLogo,
+            'producer_logo_url' => $baseUrl . '/' . $producerLogo,
+            'support_email' => trim((string) (($config['organization']['email'] ?? '') ?: 'dancacarajas@gmail.com')),
         ];
     }
 

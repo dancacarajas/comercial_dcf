@@ -167,6 +167,10 @@ $templates += $fallbacks;
 
 $tpl = new \App\Models\EmailTemplate();
 foreach ($templates as $eventKey => [$heading, $kicker, $body, $ctaLabel, $ctaUrl]) {
+    $existing = $tpl->findByEvent($eventKey);
+    if ($existing !== null && str_contains((string) ($existing['body_html'] ?? ''), 'dcx-email-premium')) {
+        continue;
+    }
     $tpl->upsert([
         'event_key' => $eventKey,
         'name' => $heading,
