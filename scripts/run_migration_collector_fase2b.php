@@ -51,6 +51,33 @@ foreach ($ids as $pid) {
     $insRP->execute(['r' => $roleId, 'p' => (int) $pid]);
 }
 
+$forbidden = [
+    'companies.view',
+    'companies.create',
+    'companies.edit',
+    'opportunities.view',
+    'opportunities.create',
+    'opportunities.edit',
+    'proposals.view',
+    'sponsors.view',
+    'contracts.view',
+    'financials.view',
+    'dossiers.view',
+    'reports.view',
+    'users.view',
+    'permissions.view',
+    'collector_applications.view',
+    'collector_applications.release_access',
+];
+$forbiddenList = "'" . implode("','", $forbidden) . "'";
+$removed = $pdo->exec(
+    "DELETE rp FROM role_permissions rp
+      JOIN permissions p ON p.id = rp.permission_id
+     WHERE rp.role_id = {$roleId}
+       AND p.slug IN ({$forbiddenList})"
+);
+echo "\nPermissoes internas removidas de captador-externo: " . (int) $removed . "\n";
+
 $granted = $pdo->query(
     "SELECT p.slug FROM role_permissions rp JOIN permissions p ON p.id = rp.permission_id
       WHERE rp.role_id = {$roleId} AND p.slug LIKE 'collector_portal%' ORDER BY p.slug"

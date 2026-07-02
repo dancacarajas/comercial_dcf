@@ -2093,6 +2093,17 @@ SELECT r.`id`, p.`id` FROM `roles` r JOIN `permissions` p ON p.`slug` IN (
     'collector_portal.deals.view', 'collector_portal.deals.note'
 ) WHERE r.`slug` = 'captador-externo';
 
+DELETE rp FROM `role_permissions` rp
+INNER JOIN `roles` r ON r.`id` = rp.`role_id`
+INNER JOIN `permissions` p ON p.`id` = rp.`permission_id`
+WHERE r.`slug` = 'captador-externo' AND p.`slug` IN (
+    'companies.view', 'companies.create', 'companies.edit',
+    'opportunities.view', 'opportunities.create', 'opportunities.edit',
+    'proposals.view', 'sponsors.view', 'contracts.view', 'financials.view',
+    'dossiers.view', 'reports.view', 'users.view', 'permissions.view',
+    'collector_applications.view', 'collector_applications.release_access'
+);
+
 -- Etapa 18C — Cadastro Mestre de Captadores
 INSERT INTO `permissions` (`name`, `slug`, `description`) VALUES
     ('Ver captadores credenciados', 'collectors.view',     'Visualizar cadastro mestre de captadores'),
