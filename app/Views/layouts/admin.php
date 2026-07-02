@@ -21,6 +21,90 @@ $navIsActive = static function (string $base) use ($navPath): bool {
 
     return $navPath === $base || str_starts_with($navPath, $base . '/');
 };
+
+$navSection = 'dashboard';
+foreach ([
+    'portal' => ['/portal'],
+    'projects' => ['/projects'],
+    'companies' => ['/companies', '/contacts', '/leads'],
+    'opportunities' => ['/opportunities'],
+    'proposals' => ['/proposals'],
+    'financials' => ['/financials'],
+    'commissions' => ['/commissions'],
+    'reports' => ['/reports'],
+    'sponsors' => ['/sponsors', '/counterparts', '/contracts', '/sponsor-dossiers', '/documents'],
+    'quotas' => ['/quotas'],
+    'tasks' => ['/tasks'],
+    'collectors' => ['/collector-applications', '/collectors', '/contract-templates', '/signature-requests'],
+    'settings' => ['/settings/email', '/users', '/roles', '/permissions'],
+] as $section => $bases) {
+    foreach ($bases as $base) {
+        if ($navIsActive($base)) {
+            $navSection = $section;
+            break 2;
+        }
+    }
+}
+
+$secondaryNav = [];
+$addSecondary = static function (string $section, string $permission, string $href, string $icon, string $label) use (&$secondaryNav): void {
+    if (can($permission)) {
+        $secondaryNav[$section][] = ['href' => $href, 'icon' => $icon, 'label' => $label];
+    }
+};
+
+$addSecondary('portal', 'collector_portal.view', '/portal', 'briefcase-business', 'Minha carteira');
+$addSecondary('portal', 'collector_portal.view', '/portal/commissions', 'receipt', 'Minhas comissoes');
+$addSecondary('portal', 'collector_portal.companies.create', '/portal/prospects/create', 'plus-circle', 'Novo prospect');
+
+$addSecondary('projects', 'quotas.view', '/quotas', 'circle-dollar-sign', 'Cotas');
+$addSecondary('projects', 'opportunities.view', '/opportunities', 'target', 'Oportunidades');
+$addSecondary('projects', 'proposals.view', '/proposals', 'file-text', 'Propostas');
+$addSecondary('projects', 'financials.view', '/financials', 'wallet', 'Financeiro');
+$addSecondary('projects', 'commissions.view', '/commissions', 'badge-dollar-sign', 'Comissoes');
+$addSecondary('projects', 'reports.view', '/reports', 'chart-no-axes-combined', 'Relatorios');
+
+$addSecondary('companies', 'contacts.view', '/contacts', 'contact', 'Contatos');
+$addSecondary('companies', 'leads.view', '/leads', 'inbox', 'Leads');
+$addSecondary('companies', 'opportunities.view', '/opportunities', 'target', 'Oportunidades');
+$addSecondary('companies', 'sponsors.view', '/sponsors', 'handshake', 'Patrocinadores');
+
+$addSecondary('opportunities', 'companies.view', '/companies', 'building-2', 'Empresas');
+$addSecondary('opportunities', 'contacts.view', '/contacts', 'contact', 'Contatos');
+$addSecondary('opportunities', 'proposals.view', '/proposals', 'file-text', 'Propostas');
+$addSecondary('opportunities', 'quotas.view', '/quotas', 'circle-dollar-sign', 'Cotas');
+
+$addSecondary('proposals', 'opportunities.view', '/opportunities', 'target', 'Oportunidades');
+$addSecondary('proposals', 'sponsors.view', '/sponsors', 'handshake', 'Patrocinadores');
+$addSecondary('proposals', 'contracts.view', '/contracts', 'file-signature', 'Contratos');
+$addSecondary('proposals', 'documents.view', '/documents', 'folder', 'Documentos');
+
+$addSecondary('financials', 'sponsors.view', '/sponsors', 'handshake', 'Patrocinadores');
+$addSecondary('financials', 'contracts.view', '/contracts', 'file-signature', 'Contratos');
+$addSecondary('financials', 'commissions.view', '/commissions', 'badge-dollar-sign', 'Comissoes');
+$addSecondary('financials', 'reports.view', '/reports', 'chart-no-axes-combined', 'Relatorios');
+
+$addSecondary('commissions', 'financials.view', '/financials', 'wallet', 'Financeiro');
+$addSecondary('commissions', 'collectors.view', '/collectors', 'contact', 'Captadores');
+$addSecondary('commissions', 'reports.view', '/reports', 'chart-no-axes-combined', 'Relatorios');
+
+$addSecondary('sponsors', 'counterparts.view', '/counterparts', 'clipboard-check', 'Contrapartidas');
+$addSecondary('sponsors', 'contracts.view', '/contracts', 'file-signature', 'Contratos');
+$addSecondary('sponsors', 'dossiers.view', '/sponsor-dossiers', 'folder-check', 'Dossies');
+$addSecondary('sponsors', 'documents.view', '/documents', 'folder', 'Documentos');
+$addSecondary('sponsors', 'financials.view', '/financials', 'wallet', 'Financeiro');
+
+$addSecondary('collectors', 'collector_applications.view', '/collector-applications', 'user-check', 'Captadores');
+$addSecondary('collectors', 'collectors.view', '/collectors', 'contact', 'Cadastro mestre');
+$addSecondary('collectors', 'contract_templates.view', '/contract-templates', 'file-signature', 'Modelos');
+$addSecondary('collectors', 'signature_requests.view', '/signature-requests', 'pen-line', 'Assinaturas');
+
+$addSecondary('settings', 'email_settings.view', '/settings/email', 'mail', 'E-mail');
+$addSecondary('settings', 'users.view', '/users', 'users', 'Usuarios');
+$addSecondary('settings', 'roles.view', '/roles', 'shield', 'Perfis');
+$addSecondary('settings', 'permissions.view', '/permissions', 'lock-keyhole', 'Permissoes');
+
+$activeSecondaryNav = $secondaryNav[$navSection] ?? [];
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -175,6 +259,22 @@ $navIsActive = static function (string $base) use ($navPath): bool {
                         <?php endif; ?>
                     </nav>
 
+                    <?php if ($activeSecondaryNav !== []): ?>
+                        <div class="dcx-header-divider" aria-hidden="true"></div>
+
+                        <nav class="dcx-admin-secondary-nav" aria-label="Navegacao secundaria">
+                            <?php foreach ($activeSecondaryNav as $item): ?>
+                                <?php $active = $navIsActive($item['href']); ?>
+                                <a class="dcx-nav-secondary__item dcx-nav-link<?= $active ? ' is-active' : '' ?>"
+                                   href="<?= e(app_url($item['href'])) ?>"<?= $active ? ' aria-current="page"' : '' ?>>
+                                    <i data-lucide="<?= e($item['icon']) ?>" aria-hidden="true"></i>
+                                    <span><?= e($item['label']) ?></span>
+                                </a>
+                            <?php endforeach; ?>
+                        </nav>
+                    <?php endif; ?>
+
+                    <?php if (false): ?>
                     <div class="dcx-header-divider" aria-hidden="true"></div>
 
                     <nav class="dcx-admin-secondary-nav" aria-label="Navegação secundária">
@@ -307,6 +407,7 @@ $navIsActive = static function (string $base) use ($navPath): bool {
                             </a>
                         <?php endif; ?>
                     </nav>
+                    <?php endif; ?>
                 </div>
             <?php elseif (str_starts_with($navPath, '/captadores/credenciamento')): ?>
                 <a class="dcx-admin-brand dcx-brand" href="<?= e(app_url('/')) ?>">

@@ -415,6 +415,10 @@ tr:last-child td {
     gap: 16px;
 }
 
+.dcx-admin-header .container {
+    width: min(1880px, calc(100% - 40px));
+}
+
 .dcx-brand,
 .dcx-admin-brand {
     display: inline-flex;
@@ -492,9 +496,16 @@ tr:last-child td {
 .dcx-admin-primary-nav {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     flex-wrap: nowrap;
-    gap: clamp(18px, 2.4vw, 34px);
+    gap: clamp(10px, 1.35vw, 24px);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+.dcx-admin-primary-nav::-webkit-scrollbar {
+    display: none;
 }
 
 .dcx-nav-primary__item {
@@ -503,8 +514,8 @@ tr:last-child td {
     align-items: center;
     justify-content: center;
     gap: 7px;
-    min-width: 72px;
-    padding: 10px 14px;
+    min-width: 70px;
+    padding: 10px 12px;
     border-radius: 18px;
     border: 1px solid transparent;
     font-size: 13px;
@@ -625,10 +636,10 @@ tr:last-child td {
 @media (min-width: 681px) {
     .dcx-admin-header__grid {
         display: grid;
-        grid-template-columns: minmax(auto, max-content) 1fr minmax(auto, max-content);
+        grid-template-columns: minmax(auto, max-content) minmax(0, 1fr) minmax(auto, max-content);
         grid-template-rows: auto auto auto;
         align-items: center;
-        column-gap: clamp(20px, 2.5vw, 36px);
+        column-gap: clamp(14px, 1.5vw, 28px);
         row-gap: 0;
         padding: 14px 0 10px;
         min-height: 0;
@@ -657,7 +668,7 @@ tr:last-child td {
     .dcx-admin-primary-nav {
         grid-column: 2;
         grid-row: 1;
-        justify-self: center;
+        justify-self: stretch;
         min-height: 88px;
     }
 
