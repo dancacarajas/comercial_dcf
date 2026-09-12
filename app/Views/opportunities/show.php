@@ -68,6 +68,29 @@ $probMap = htmlspecialchars(json_encode($statusProbabilities, JSON_UNESCAPED_UNI
                 </dl>
             </article>
 
+            <?php if (!empty($opportunity['sponsorship_simulation_id'])):
+                $simModel = new \App\Models\SponsorshipSimulation();
+                $simInv = $simModel->investmentDisplayLabel([
+                    'investment_status' => $opportunity['simulation_investment_status'] ?? null,
+                    'investment_min' => $opportunity['simulation_investment_min'] ?? null,
+                    'investment_max' => $opportunity['simulation_investment_max'] ?? null,
+                ]);
+            ?>
+            <article class="card">
+                <h3 class="h3-card"><i data-lucide="compass"></i> Origem da oportunidade</h3>
+                <dl class="meta-list">
+                    <dt>Origem</dt><dd>Simulação de Patrocínio</dd>
+                    <dt>Configuração inicialmente recomendada</dt>
+                    <dd><?= e($simModel->tierLabel($opportunity['simulation_tier_ref'] ?? null)) ?></dd>
+                    <dt>Investimento declarado</dt>
+                    <dd><?= e($simInv) ?></dd>
+                </dl>
+                <?php if (!empty($opportunity['simulation_lead_id'])): ?>
+                    <p class="mb-0"><a href="<?= e(app_url('/leads/' . (int)$opportunity['simulation_lead_id'])) ?>">Ver simulação original</a></p>
+                <?php endif; ?>
+            </article>
+            <?php endif; ?>
+
             <?php
             $quotaId    = (int) ($opportunity['quota_id'] ?? 0);
             $quotaName  = trim((string) ($opportunity['quota_name'] ?? ''));

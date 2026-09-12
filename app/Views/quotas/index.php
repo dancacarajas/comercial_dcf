@@ -121,7 +121,12 @@ $pageUrl = static fn (int $p): string =>
                             $qid        = (int) $q['id'];
                             $isArchived = !empty($q['archived_at']);
                             $st         = (string) ($q['status'] ?? '');
+                            $invMode    = strtoupper((string) ($q['inventory_mode'] ?? ''));
                             $remaining  = $model !== null ? $model->remainingQuantity($q) : 0;
+                            $priceLabel = $model !== null ? $model->formatPriceLabel($q) : (
+                                $q['amount'] !== null ? money_br($q['amount']) : 'flexível'
+                            );
+                            $unspecified = $invMode === 'UNSPECIFIED';
                             ?>
                             <tr<?= $isArchived ? ' class="row-archived"' : '' ?>>
                                 <td>
@@ -130,18 +135,28 @@ $pageUrl = static fn (int $p): string =>
                                 </td>
                                 <td><?= e($q['project_name'] ?? '') ?: '—' ?></td>
                                 <td><?= e($q['commercial_name'] ?? '') ?: '—' ?></td>
-                                <td class="money-value"><?= $q['amount'] !== null ? e(money_br($q['amount'])) : '<span class="quota-flex">flexível</span>' ?></td>
-                                <td><?= (int) ($q['available_quantity'] ?? 0) ?></td>
-                                <td><?= (int) ($q['reserved_quantity'] ?? 0) ?></td>
-                                <td><?= (int) ($q['closed_quantity'] ?? 0) ?></td>
-                                <td><span class="remaining-quantity <?= $remaining < 0 ? 'remaining-negative' : '' ?>"><?= $remaining ?></span></td>
+                                <td class="money-value"><?= e($priceLabel) ?></td>
+                                <?php if ($unspecified && $model !== null): ?>
+                                    <td colspan="4"><span class="quota-flex"><?= e($model->formatInventoryLabel($q)) ?></span></td>
+                                <?php else: ?>
+                                    <td><?= (int) ($q['available_quantity'] ?? 0) ?></td>
+                                    <td><?= (int) ($q['reserved_quantity'] ?? 0) ?></td>
+                                    <td><?= (int) ($q['closed_quantity'] ?? 0) ?></td>
+                                    <td><span class="remaining-quantity <?= $remaining < 0 ? 'remaining-negative' : '' ?>"><?= $remaining ?></span></td>
+                                <?php endif; ?>
                                 <td><span class="badge-quota badge-quota-<?= e($st) ?>"><?= e($statuses[$st] ?? $st) ?></span></td>
                                 <td><?= (int) ($q['display_order'] ?? 0) ?></td>
                                 <td>
-                                    <div class="actions-row" style="justify-content:flex-end;">
+                                    <div class="actions-row" style="justify-content:flex-end;flex-wrap:wrap;gap:6px;">
                                         <a href="<?= e(app_url('/quotas/' . $qid)) ?>" class="btn btn-sm btn-outline"><i data-lucide="eye"></i> Ver</a>
                                         <?php if (can('quotas.edit') && !$isArchived): ?>
                                             <a href="<?= e(app_url('/quotas/' . $qid . '/edit')) ?>" class="btn btn-sm btn-light"><i data-lucide="pencil"></i> Editar</a>
+                                        <?php endif; ?>
+                                        <?php if (can('quotas.edit') && $isArchived): ?>
+                                            <form method="post" action="<?= e(app_url('/quotas/' . $qid . '/restore')) ?>" class="inline-form">
+                                                <?= csrf_field() ?>
+                                                <button type="submit" class="btn btn-sm btn-yellow"><i data-lucide="archive-restore"></i> Restaurar</button>
+                                            </form>
                                         <?php endif; ?>
                                     </div>
                                 </td>

@@ -248,6 +248,7 @@ CREATE TABLE IF NOT EXISTS `opportunities` (
     `title`               VARCHAR(180)    NOT NULL,
     `quota_interest`      VARCHAR(80)     NULL DEFAULT NULL,
     `quota_id`            BIGINT UNSIGNED NULL DEFAULT NULL,
+    `sponsorship_simulation_id` BIGINT UNSIGNED NULL DEFAULT NULL,
     `quota_reserved_until` DATETIME       NULL DEFAULT NULL,
     `estimated_value`     DECIMAL(12,2)   NULL DEFAULT NULL,
     `probability`         TINYINT UNSIGNED NOT NULL DEFAULT 5,
@@ -275,6 +276,7 @@ CREATE TABLE IF NOT EXISTS `opportunities` (
     KEY `idx_opportunities_opened_at`   (`opened_at`),
     KEY `idx_opportunities_archived_at` (`archived_at`),
     KEY `idx_opportunities_quota`       (`quota_id`),
+    KEY `idx_opportunities_sponsorship_simulation` (`sponsorship_simulation_id`),
     KEY `idx_opportunities_quota_reserved_until` (`quota_reserved_until`),
     CONSTRAINT `fk_opportunities_company`
         FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`)
@@ -304,10 +306,16 @@ CREATE TABLE IF NOT EXISTS `quotas` (
     `id`                 BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `name`               VARCHAR(120)    NOT NULL,
     `commercial_name`    VARCHAR(160)    NULL DEFAULT NULL,
-    `amount`             DECIMAL(12,2)   NULL DEFAULT NULL,
-    `available_quantity` INT UNSIGNED    NOT NULL DEFAULT 0,
+    `catalog_ref_id`     VARCHAR(40)     NULL DEFAULT NULL,
+    `catalog_version`    VARCHAR(20)     NULL DEFAULT NULL,
+    `pricing_mode`       VARCHAR(20)     NULL DEFAULT NULL,
+    `amount`             DECIMAL(14,2)   NULL DEFAULT NULL,
+    `min_amount`         DECIMAL(14,2)   NULL DEFAULT NULL,
+    `max_amount`         DECIMAL(14,2)   NULL DEFAULT NULL,
+    `available_quantity` INT UNSIGNED    NULL DEFAULT NULL,
     `reserved_quantity`  INT UNSIGNED    NOT NULL DEFAULT 0,
     `closed_quantity`    INT UNSIGNED    NOT NULL DEFAULT 0,
+    `inventory_mode`     VARCHAR(20)     NULL DEFAULT 'TRACKED',
     `description`        TEXT            NULL DEFAULT NULL,
     `ideal_profile`      TEXT            NULL DEFAULT NULL,
     `status`             VARCHAR(40)     NOT NULL DEFAULT 'disponivel',
@@ -322,6 +330,7 @@ CREATE TABLE IF NOT EXISTS `quotas` (
     KEY `idx_quotas_name`          (`name`),
     KEY `idx_quotas_status`        (`status`),
     KEY `idx_quotas_amount`        (`amount`),
+    KEY `idx_quotas_catalog_ref`   (`catalog_ref_id`),
     KEY `idx_quotas_display_order` (`display_order`),
     KEY `idx_quotas_archived_at`   (`archived_at`),
     CONSTRAINT `fk_quotas_created_by`
@@ -897,6 +906,8 @@ CREATE TABLE IF NOT EXISTS `leads` (
     `utm_content`      VARCHAR(120)    NULL DEFAULT NULL,
     `utm_term`         VARCHAR(120)    NULL DEFAULT NULL,
     `status`           VARCHAR(40)     NOT NULL DEFAULT 'novo',
+    `incentive_project_id` BIGINT UNSIGNED NULL DEFAULT NULL,
+    `submission_type`  VARCHAR(40)     NOT NULL DEFAULT 'GENERIC_LEAD',
     `assigned_user_id` BIGINT UNSIGNED NULL DEFAULT NULL,
     `company_id`       BIGINT UNSIGNED NULL DEFAULT NULL,
     `contact_id`       BIGINT UNSIGNED NULL DEFAULT NULL,
@@ -916,6 +927,8 @@ CREATE TABLE IF NOT EXISTS `leads` (
     KEY `idx_leads_email`         (`email`),
     KEY `idx_leads_whatsapp`      (`whatsapp`),
     KEY `idx_leads_status`        (`status`),
+    KEY `idx_leads_incentive_project` (`incentive_project_id`),
+    KEY `idx_leads_submission_type` (`submission_type`),
     KEY `idx_leads_origin_page`   (`origin_page`),
     KEY `idx_leads_assigned_user` (`assigned_user_id`),
     KEY `idx_leads_company`       (`company_id`),
@@ -1825,3 +1838,49 @@ SELECT r.`id`, p.`id`
        'email_templates.view','email_templates.edit','email_logs.view','email_logs.resend'
   )
  WHERE r.`slug` = 'administrador-geral';
+
+-- ---------------------------------------------------------------------
+-- Etapa 21.1 — sponsorship_simulations (requer incentive_projects no ambiente)
+-- Autoridade de fresh install completo: database/install_schema.sql
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `sponsorship_simulations` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `lead_id` BIGINT UNSIGNED NOT NULL,
+    `incentive_project_id` BIGINT UNSIGNED NOT NULL,
+    `submission_uuid` VARCHAR(64) NOT NULL,
+    `submission_version` VARCHAR(20) NOT NULL,
+    `snapshot_version` VARCHAR(20) NOT NULL,
+    `catalog_version` VARCHAR(20) NOT NULL,
+    `briefing_schema_version` VARCHAR(20) NOT NULL,
+    `policy_version` VARCHAR(20) NOT NULL,
+    `engine_version` VARCHAR(20) NOT NULL,
+    `presenter_version` VARCHAR(20) NULL DEFAULT NULL,
+    `confirmed` TINYINT(1) NOT NULL DEFAULT 1,
+    `confirmed_at` DATETIME NOT NULL,
+    `investment_status` VARCHAR(40) NOT NULL,
+    `investment_min` DECIMAL(14,2) NULL DEFAULT NULL,
+    `investment_max` DECIMAL(14,2) NULL DEFAULT NULL,
+    `currency` CHAR(3) NOT NULL DEFAULT 'BRL',
+    `primary_tier_ref` VARCHAR(40) NOT NULL,
+    `primary_axis_ref` VARCHAR(80) NULL DEFAULT NULL,
+    `primary_activation_ref` VARCHAR(80) NULL DEFAULT NULL,
+    `primary_property_ref` VARCHAR(80) NULL DEFAULT NULL,
+    `fit_level` VARCHAR(40) NOT NULL,
+    `availability_status` VARCHAR(40) NOT NULL,
+    `briefing_snapshot` LONGTEXT NOT NULL,
+    `interests_snapshot` LONGTEXT NOT NULL,
+    `recommendation_snapshot` LONGTEXT NOT NULL,
+    `display_snapshot` LONGTEXT NULL DEFAULT NULL,
+    `snapshot_hash` CHAR(64) NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_sponsorship_sim_uuid` (`submission_uuid`),
+    UNIQUE KEY `uniq_sponsorship_sim_lead` (`lead_id`),
+    KEY `idx_sponsorship_sim_project` (`incentive_project_id`),
+    KEY `idx_sponsorship_sim_tier` (`primary_tier_ref`),
+    KEY `idx_sponsorship_sim_created` (`created_at`),
+    CONSTRAINT `fk_sponsorship_sim_lead`
+        FOREIGN KEY (`lead_id`) REFERENCES `leads` (`id`)
+        ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -24,7 +24,7 @@ final class Opportunity extends Model
     private const FILLABLE = [
         'incentive_project_id',
         'company_id', 'contact_id', 'title', 'quota_interest',
-        'quota_id', 'quota_reserved_until',
+        'quota_id', 'quota_reserved_until', 'sponsorship_simulation_id',
         'estimated_value', 'probability', 'status', 'source',
         'owner_user_id', 'opened_at', 'last_interaction_at', 'next_action_at',
         'urgency_level', 'lost_reason', 'notes',
@@ -112,8 +112,23 @@ final class Opportunity extends Model
         return array_values(array_diff($this->getStatuses(), ['fechado', 'perdido']));
     }
 
-    /** @return array<int, string> */
+    /**
+     * Lista legada de interesses de cota (compatibilidade).
+     * O catálogo real é a tabela `quotas` via `quota_id`.
+     *
+     * @return array<int, string>
+     */
     public function getQuotaInterests(): array
+    {
+        return $this->getLegacyQuotaInterests();
+    }
+
+    /**
+     * Valores históricos de `quota_interest` (pré-catálogo V2.1).
+     *
+     * @return array<int, string>
+     */
+    public function getLegacyQuotaInterests(): array
     {
         return [
             'Cota Apresenta — R$ 200.000,00',
@@ -247,9 +262,11 @@ final class Opportunity extends Model
             $errors['source'] = 'Origem inválida.';
         }
 
+        // quota_interest é legado/auxiliar; o catálogo real é quotas via quota_id.
+        // Aceita qualquer texto histórico ou novo, limitado a 80 caracteres.
         $quota = trim((string) ($data['quota_interest'] ?? ''));
-        if ($quota !== '' && !in_array($quota, $this->getQuotaInterests(), true)) {
-            $errors['quota_interest'] = 'Interesse de cota inválido.';
+        if ($quota !== '' && mb_strlen($quota) > 80) {
+            $errors['quota_interest'] = 'Interesse de cota (legado) deve ter no máximo 80 caracteres.';
         }
 
         $lost = trim((string) ($data['lost_reason'] ?? ''));
@@ -422,11 +439,19 @@ final class Opportunity extends Model
                     o.`urgency_level`, o.`lost_reason`, o.`notes`,
                     o.`created_by`, o.`updated_by`, o.`created_at`, o.`updated_at`, o.`archived_at`,
                     o.`quota_id`, o.`quota_reserved_until`, o.`incentive_project_id`,
+                    o.`sponsorship_simulation_id`,
                     co.`name` AS company_name, co.`archived_at` AS company_archived_at,
                     ct.`name` AS contact_name, ct.`company_id` AS contact_company_id,
                     ow.`name` AS owner_name,
                     q.`name` AS quota_name, q.`commercial_name` AS quota_commercial_name,
                     q.`amount` AS quota_amount, q.`status` AS quota_status, q.`archived_at` AS quota_archived_at,
+                    ss.`primary_tier_ref` AS simulation_tier_ref,
+                    ss.`fit_level` AS simulation_fit_level,
+                    ss.`investment_status` AS simulation_investment_status,
+                    ss.`investment_min` AS simulation_investment_min,
+                    ss.`investment_max` AS simulation_investment_max,
+                    ss.`display_snapshot` AS simulation_display_snapshot,
+                    ss.`lead_id` AS simulation_lead_id,
                     cb.`name` AS created_by_name,
                     ub.`name` AS updated_by_name
                FROM `opportunities` o
@@ -434,6 +459,7 @@ final class Opportunity extends Model
                LEFT JOIN `contacts` ct ON ct.`id` = o.`contact_id`
                LEFT JOIN `users` ow ON ow.`id` = o.`owner_user_id`
                LEFT JOIN `quotas` q ON q.`id` = o.`quota_id`
+               LEFT JOIN `sponsorship_simulations` ss ON ss.`id` = o.`sponsorship_simulation_id`
                LEFT JOIN `users` cb ON cb.`id` = o.`created_by`
                LEFT JOIN `users` ub ON ub.`id` = o.`updated_by`
               WHERE o.`id` = :id

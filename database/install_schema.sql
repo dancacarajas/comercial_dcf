@@ -244,6 +244,7 @@ CREATE TABLE IF NOT EXISTS `opportunities` (
     `title`               VARCHAR(180)    NOT NULL,
     `quota_interest`      VARCHAR(80)     NULL DEFAULT NULL,
     `quota_id`            BIGINT UNSIGNED NULL DEFAULT NULL,
+    `sponsorship_simulation_id` BIGINT UNSIGNED NULL DEFAULT NULL,
     `quota_reserved_until` DATETIME       NULL DEFAULT NULL,
     `estimated_value`     DECIMAL(12,2)   NULL DEFAULT NULL,
     `probability`         TINYINT UNSIGNED NOT NULL DEFAULT 5,
@@ -271,6 +272,7 @@ CREATE TABLE IF NOT EXISTS `opportunities` (
     KEY `idx_opportunities_opened_at`   (`opened_at`),
     KEY `idx_opportunities_archived_at` (`archived_at`),
     KEY `idx_opportunities_quota`       (`quota_id`),
+    KEY `idx_opportunities_sponsorship_simulation` (`sponsorship_simulation_id`),
     KEY `idx_opportunities_quota_reserved_until` (`quota_reserved_until`),
     CONSTRAINT `fk_opportunities_company`
         FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`)
@@ -300,10 +302,16 @@ CREATE TABLE IF NOT EXISTS `quotas` (
     `id`                 BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `name`               VARCHAR(120)    NOT NULL,
     `commercial_name`    VARCHAR(160)    NULL DEFAULT NULL,
-    `amount`             DECIMAL(12,2)   NULL DEFAULT NULL,
-    `available_quantity` INT UNSIGNED    NOT NULL DEFAULT 0,
+    `catalog_ref_id`     VARCHAR(40)     NULL DEFAULT NULL,
+    `catalog_version`    VARCHAR(20)     NULL DEFAULT NULL,
+    `pricing_mode`       VARCHAR(20)     NULL DEFAULT NULL,
+    `amount`             DECIMAL(14,2)   NULL DEFAULT NULL,
+    `min_amount`         DECIMAL(14,2)   NULL DEFAULT NULL,
+    `max_amount`         DECIMAL(14,2)   NULL DEFAULT NULL,
+    `available_quantity` INT UNSIGNED    NULL DEFAULT NULL,
     `reserved_quantity`  INT UNSIGNED    NOT NULL DEFAULT 0,
     `closed_quantity`    INT UNSIGNED    NOT NULL DEFAULT 0,
+    `inventory_mode`     VARCHAR(20)     NULL DEFAULT 'TRACKED',
     `description`        TEXT            NULL DEFAULT NULL,
     `ideal_profile`      TEXT            NULL DEFAULT NULL,
     `status`             VARCHAR(40)     NOT NULL DEFAULT 'disponivel',
@@ -318,6 +326,7 @@ CREATE TABLE IF NOT EXISTS `quotas` (
     KEY `idx_quotas_name`          (`name`),
     KEY `idx_quotas_status`        (`status`),
     KEY `idx_quotas_amount`        (`amount`),
+    KEY `idx_quotas_catalog_ref`   (`catalog_ref_id`),
     KEY `idx_quotas_display_order` (`display_order`),
     KEY `idx_quotas_archived_at`   (`archived_at`),
     CONSTRAINT `fk_quotas_created_by`
@@ -893,6 +902,8 @@ CREATE TABLE IF NOT EXISTS `leads` (
     `utm_content`      VARCHAR(120)    NULL DEFAULT NULL,
     `utm_term`         VARCHAR(120)    NULL DEFAULT NULL,
     `status`           VARCHAR(40)     NOT NULL DEFAULT 'novo',
+    `incentive_project_id` BIGINT UNSIGNED NULL DEFAULT NULL,
+    `submission_type`  VARCHAR(40)     NOT NULL DEFAULT 'GENERIC_LEAD',
     `assigned_user_id` BIGINT UNSIGNED NULL DEFAULT NULL,
     `company_id`       BIGINT UNSIGNED NULL DEFAULT NULL,
     `contact_id`       BIGINT UNSIGNED NULL DEFAULT NULL,
@@ -912,6 +923,8 @@ CREATE TABLE IF NOT EXISTS `leads` (
     KEY `idx_leads_email`         (`email`),
     KEY `idx_leads_whatsapp`      (`whatsapp`),
     KEY `idx_leads_status`        (`status`),
+    KEY `idx_leads_incentive_project` (`incentive_project_id`),
+    KEY `idx_leads_submission_type` (`submission_type`),
     KEY `idx_leads_origin_page`   (`origin_page`),
     KEY `idx_leads_assigned_user` (`assigned_user_id`),
     KEY `idx_leads_company`       (`company_id`),
@@ -1815,29 +1828,8 @@ ON DUPLICATE KEY UPDATE `setting_value` = VALUES(`setting_value`);
 -- O administrador é criado pelo instalador web (InstallerService).
 -- =====================================================================
 
-INSERT INTO `quotas` (`name`, `commercial_name`, `amount`, `available_quantity`, `display_order`, `status`, `ideal_profile`, `created_at`)
-SELECT * FROM (SELECT 'Cota Apresenta' AS n, 'Cota Apresenta' AS cn, 200000.00 AS a, 1 AS q, 1 AS o, 'disponivel' AS s, 'master_apresentacao' AS ip, NOW() AS ca) t
-WHERE NOT EXISTS (SELECT 1 FROM `quotas` WHERE `name` = 'Cota Apresenta');
-
-INSERT INTO `quotas` (`name`, `commercial_name`, `amount`, `available_quantity`, `display_order`, `status`, `ideal_profile`, `created_at`)
-SELECT * FROM (SELECT 'Cota Carajás' AS n, 'Cota Carajás' AS cn, 100000.00 AS a, 1 AS q, 2 AS o, 'disponivel' AS s, 'grande_patrocinador' AS ip, NOW() AS ca) t
-WHERE NOT EXISTS (SELECT 1 FROM `quotas` WHERE `name` = 'Cota Carajás');
-
-INSERT INTO `quotas` (`name`, `commercial_name`, `amount`, `available_quantity`, `display_order`, `status`, `ideal_profile`, `created_at`)
-SELECT * FROM (SELECT 'Cota Movimento' AS n, 'Cota Movimento' AS cn, 50000.00 AS a, 2 AS q, 3 AS o, 'disponivel' AS s, 'patrocinador_medio' AS ip, NOW() AS ca) t
-WHERE NOT EXISTS (SELECT 1 FROM `quotas` WHERE `name` = 'Cota Movimento');
-
-INSERT INTO `quotas` (`name`, `commercial_name`, `amount`, `available_quantity`, `display_order`, `status`, `ideal_profile`, `created_at`)
-SELECT * FROM (SELECT 'Cota Formação' AS n, 'Cota Formação' AS cn, 25000.00 AS a, 2 AS q, 4 AS o, 'disponivel' AS s, 'formacao_educacao' AS ip, NOW() AS ca) t
-WHERE NOT EXISTS (SELECT 1 FROM `quotas` WHERE `name` = 'Cota Formação');
-
-INSERT INTO `quotas` (`name`, `commercial_name`, `amount`, `available_quantity`, `display_order`, `status`, `ideal_profile`, `created_at`)
-SELECT * FROM (SELECT 'Cota Incentivador' AS n, 'Cota Incentivador' AS cn, 10448.00 AS a, 1 AS q, 5 AS o, 'disponivel' AS s, 'incentivador_final' AS ip, NOW() AS ca) t
-WHERE NOT EXISTS (SELECT 1 FROM `quotas` WHERE `name` = 'Cota Incentivador');
-
-INSERT INTO `quotas` (`name`, `commercial_name`, `amount`, `available_quantity`, `display_order`, `status`, `ideal_profile`, `notes`, `created_at`)
-SELECT * FROM (SELECT 'Círculo Dança Carajás' AS n, 'Círculo Dança Carajás' AS cn, NULL AS a, 99 AS q, 6 AS o, 'disponivel' AS s, 'flexivel' AS ip, 'Valores flexíveis até completar a captação.' AS nt, NOW() AS ca) t
-WHERE NOT EXISTS (SELECT 1 FROM `quotas` WHERE `name` = 'Círculo Dança Carajás');
+-- Etapa 21.2: cotas legadas NAO sao seedadas em fresh install.
+-- Catalogo canonico 2026-V2.1 e inserido apos o projeto incentivado.
 
 INSERT INTO `permissions` (`name`, `slug`, `description`) VALUES
     ('Criar cotas',  'quotas.create', 'Criar cotas de patrocínio'),
@@ -2341,6 +2333,60 @@ CREATE TABLE IF NOT EXISTS `incentive_projects` (
     KEY `idx_incentive_projects_archived` (`archived_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ---------------------------------------------------------------------
+-- Tabela: sponsorship_simulations (Etapa 21.1 — snapshot imutável Guide→CRM)
+-- lead_id ON DELETE RESTRICT: lead com simulação não pode ser hard-deleted.
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `sponsorship_simulations` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `lead_id` BIGINT UNSIGNED NOT NULL,
+    `incentive_project_id` BIGINT UNSIGNED NOT NULL,
+    `submission_uuid` VARCHAR(64) NOT NULL,
+    `submission_version` VARCHAR(20) NOT NULL,
+    `snapshot_version` VARCHAR(20) NOT NULL,
+    `catalog_version` VARCHAR(20) NOT NULL,
+    `briefing_schema_version` VARCHAR(20) NOT NULL,
+    `policy_version` VARCHAR(20) NOT NULL,
+    `engine_version` VARCHAR(20) NOT NULL,
+    `presenter_version` VARCHAR(20) NULL DEFAULT NULL,
+    `confirmed` TINYINT(1) NOT NULL DEFAULT 1,
+    `confirmed_at` DATETIME NOT NULL,
+    `investment_status` VARCHAR(40) NOT NULL,
+    `investment_min` DECIMAL(14,2) NULL DEFAULT NULL,
+    `investment_max` DECIMAL(14,2) NULL DEFAULT NULL,
+    `currency` CHAR(3) NOT NULL DEFAULT 'BRL',
+    `primary_tier_ref` VARCHAR(40) NOT NULL,
+    `primary_axis_ref` VARCHAR(80) NULL DEFAULT NULL,
+    `primary_activation_ref` VARCHAR(80) NULL DEFAULT NULL,
+    `primary_property_ref` VARCHAR(80) NULL DEFAULT NULL,
+    `fit_level` VARCHAR(40) NOT NULL,
+    `availability_status` VARCHAR(40) NOT NULL,
+    `briefing_snapshot` LONGTEXT NOT NULL,
+    `interests_snapshot` LONGTEXT NOT NULL,
+    `recommendation_snapshot` LONGTEXT NOT NULL,
+    `display_snapshot` LONGTEXT NULL DEFAULT NULL,
+    `snapshot_hash` CHAR(64) NOT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NULL DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uniq_sponsorship_sim_uuid` (`submission_uuid`),
+    UNIQUE KEY `uniq_sponsorship_sim_lead` (`lead_id`),
+    KEY `idx_sponsorship_sim_project` (`incentive_project_id`),
+    KEY `idx_sponsorship_sim_tier` (`primary_tier_ref`),
+    KEY `idx_sponsorship_sim_created` (`created_at`),
+    CONSTRAINT `fk_sponsorship_sim_lead`
+        FOREIGN KEY (`lead_id`) REFERENCES `leads` (`id`)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT `fk_sponsorship_sim_project`
+        FOREIGN KEY (`incentive_project_id`) REFERENCES `incentive_projects` (`id`)
+        ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `opportunities`
+    ADD CONSTRAINT `fk_opportunities_sponsorship_simulation`
+        FOREIGN KEY (`sponsorship_simulation_id`) REFERENCES `sponsorship_simulations` (`id`)
+        ON DELETE SET NULL ON UPDATE CASCADE;
+
 CREATE TABLE IF NOT EXISTS `incentive_project_budget_items` (
     `id`                          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     `incentive_project_id`        BIGINT UNSIGNED NOT NULL,
@@ -2369,6 +2415,7 @@ CREATE TABLE IF NOT EXISTS `incentive_project_budget_items` (
 
 -- Vínculo das tabelas operacionais ao projeto incentivado (FK lógica, NULL)
 ALTER TABLE `quotas`                ADD COLUMN `incentive_project_id` BIGINT UNSIGNED NULL DEFAULT NULL, ADD KEY `idx_quotas_incentive_project` (`incentive_project_id`);
+ALTER TABLE `quotas`                ADD UNIQUE KEY `uniq_quotas_project_catalog_ref` (`incentive_project_id`, `catalog_ref_id`);
 ALTER TABLE `opportunities`         ADD COLUMN `incentive_project_id` BIGINT UNSIGNED NULL DEFAULT NULL, ADD KEY `idx_opportunities_incentive_project` (`incentive_project_id`);
 ALTER TABLE `proposals`             ADD COLUMN `incentive_project_id` BIGINT UNSIGNED NULL DEFAULT NULL, ADD KEY `idx_proposals_incentive_project` (`incentive_project_id`);
 ALTER TABLE `sponsors`              ADD COLUMN `incentive_project_id` BIGINT UNSIGNED NULL DEFAULT NULL, ADD KEY `idx_sponsors_incentive_project` (`incentive_project_id`);
@@ -2381,26 +2428,88 @@ ALTER TABLE `collector_assignments` ADD COLUMN `incentive_project_id` BIGINT UNS
 ALTER TABLE `collector_deals`       ADD COLUMN `incentive_project_id` BIGINT UNSIGNED NULL DEFAULT NULL, ADD KEY `idx_collector_deals_incentive_project` (`incentive_project_id`);
 
 INSERT INTO `incentive_projects`
-    (`project_name`, `edition_year`, `law_framework`, `proponent_name`, `project_status`,
+    (`project_name`, `edition_year`, `pronac_number`, `law_framework`, `proponent_name`, `project_status`,
      `approved_total_amount`, `authorized_capture_amount`, `capture_commission_budget`,
      `commission_factor`, `notes`, `created_at`)
-SELECT 'Dança Carajás Festival 2026', 2026, 'Lei Rouanet / Incentivo Fiscal Federal', 'Dança Carajás',
-       'em_captacao', 470448.00, 470448.00, 42768.00, 0.0909090909,
-       'Projeto criado automaticamente na instalação inicial.', NOW()
+SELECT 'Dança Carajás Festival 2026', 2026, '265397', 'Lei Rouanet · Art. 18', 'JA Produções Artísticas Ltda',
+       'em_captacao', NULL, 515592.48, NULL, NULL,
+       'Projeto canônico 2026-V2.1 (fresh install Etapa 21.2).', NOW()
 WHERE NOT EXISTS (
     SELECT 1 FROM `incentive_projects`
-     WHERE `project_name` = 'Dança Carajás Festival 2026' AND `edition_year` = 2026
+     WHERE `pronac_number` = '265397'
+        OR (`project_name` = 'Dança Carajás Festival 2026' AND `edition_year` = 2026)
 );
 
-UPDATE `quotas`
-   SET `incentive_project_id` = (
-       SELECT `id` FROM `incentive_projects`
-        WHERE `project_name` = 'Dança Carajás Festival 2026' AND `edition_year` = 2026
-        ORDER BY `id` ASC LIMIT 1
+-- Catálogo comercial canônico 2026-V2.1 (sem cotas legadas)
+INSERT INTO `quotas` (`name`, `commercial_name`, `catalog_ref_id`, `catalog_version`, `pricing_mode`,
+    `amount`, `min_amount`, `max_amount`, `available_quantity`, `reserved_quantity`, `closed_quantity`,
+    `inventory_mode`, `display_order`, `status`, `notes`, `incentive_project_id`, `created_at`)
+SELECT 'Incentiva', 'Incentiva', 'INCENTIVA', '2026-V2.1', 'RANGE',
+       NULL, 10000.00, 24999.99, NULL, 0, 0, 'UNSPECIFIED', 1, 'disponivel',
+       'Catálogo comercial canônico 2026-V2.1', p.id, NOW()
+  FROM `incentive_projects` p
+ WHERE p.`pronac_number` = '265397' AND p.`archived_at` IS NULL
+   AND NOT EXISTS (
+       SELECT 1 FROM `quotas` q
+        WHERE q.`catalog_ref_id` = 'INCENTIVA' AND q.`catalog_version` = '2026-V2.1' AND q.`incentive_project_id` = p.`id`
    )
- WHERE `incentive_project_id` IS NULL
-   AND `name` IN ('Cota Apresenta', 'Cota Carajás', 'Cota Movimento', 'Cota Formação', 'Cota Incentivador', 'Círculo Dança Carajás');
+ LIMIT 1;
 
+INSERT INTO `quotas` (`name`, `commercial_name`, `catalog_ref_id`, `catalog_version`, `pricing_mode`,
+    `amount`, `min_amount`, `max_amount`, `available_quantity`, `reserved_quantity`, `closed_quantity`,
+    `inventory_mode`, `display_order`, `status`, `notes`, `incentive_project_id`, `created_at`)
+SELECT 'Movimento', 'Movimento', 'MOVIMENTO', '2026-V2.1', 'FIXED',
+       25000.00, 25000.00, 25000.00, NULL, 0, 0, 'UNSPECIFIED', 2, 'disponivel',
+       'Catálogo comercial canônico 2026-V2.1', p.id, NOW()
+  FROM `incentive_projects` p
+ WHERE p.`pronac_number` = '265397' AND p.`archived_at` IS NULL
+   AND NOT EXISTS (
+       SELECT 1 FROM `quotas` q
+        WHERE q.`catalog_ref_id` = 'MOVIMENTO' AND q.`catalog_version` = '2026-V2.1' AND q.`incentive_project_id` = p.`id`
+   )
+ LIMIT 1;
+
+INSERT INTO `quotas` (`name`, `commercial_name`, `catalog_ref_id`, `catalog_version`, `pricing_mode`,
+    `amount`, `min_amount`, `max_amount`, `available_quantity`, `reserved_quantity`, `closed_quantity`,
+    `inventory_mode`, `display_order`, `status`, `notes`, `incentive_project_id`, `created_at`)
+SELECT 'Experience', 'Experience', 'EXPERIENCE', '2026-V2.1', 'FIXED',
+       50000.00, 50000.00, 50000.00, NULL, 0, 0, 'UNSPECIFIED', 3, 'disponivel',
+       'Catálogo comercial canônico 2026-V2.1', p.id, NOW()
+  FROM `incentive_projects` p
+ WHERE p.`pronac_number` = '265397' AND p.`archived_at` IS NULL
+   AND NOT EXISTS (
+       SELECT 1 FROM `quotas` q
+        WHERE q.`catalog_ref_id` = 'EXPERIENCE' AND q.`catalog_version` = '2026-V2.1' AND q.`incentive_project_id` = p.`id`
+   )
+ LIMIT 1;
+
+INSERT INTO `quotas` (`name`, `commercial_name`, `catalog_ref_id`, `catalog_version`, `pricing_mode`,
+    `amount`, `min_amount`, `max_amount`, `available_quantity`, `reserved_quantity`, `closed_quantity`,
+    `inventory_mode`, `display_order`, `status`, `notes`, `incentive_project_id`, `created_at`)
+SELECT 'Carajás', 'Carajás', 'CARAJAS', '2026-V2.1', 'FIXED',
+       100000.00, 100000.00, 100000.00, NULL, 0, 0, 'UNSPECIFIED', 4, 'disponivel',
+       'Catálogo comercial canônico 2026-V2.1', p.id, NOW()
+  FROM `incentive_projects` p
+ WHERE p.`pronac_number` = '265397' AND p.`archived_at` IS NULL
+   AND NOT EXISTS (
+       SELECT 1 FROM `quotas` q
+        WHERE q.`catalog_ref_id` = 'CARAJAS' AND q.`catalog_version` = '2026-V2.1' AND q.`incentive_project_id` = p.`id`
+   )
+ LIMIT 1;
+
+INSERT INTO `quotas` (`name`, `commercial_name`, `catalog_ref_id`, `catalog_version`, `pricing_mode`,
+    `amount`, `min_amount`, `max_amount`, `available_quantity`, `reserved_quantity`, `closed_quantity`,
+    `inventory_mode`, `display_order`, `status`, `notes`, `incentive_project_id`, `created_at`)
+SELECT 'Apresenta', 'Apresenta', 'APRESENTA', '2026-V2.1', 'FULL_PROJECT',
+       515592.48, 515592.48, 515592.48, NULL, 0, 0, 'UNSPECIFIED', 5, 'disponivel',
+       'Catálogo comercial canônico 2026-V2.1', p.id, NOW()
+  FROM `incentive_projects` p
+ WHERE p.`pronac_number` = '265397' AND p.`archived_at` IS NULL
+   AND NOT EXISTS (
+       SELECT 1 FROM `quotas` q
+        WHERE q.`catalog_ref_id` = 'APRESENTA' AND q.`catalog_version` = '2026-V2.1' AND q.`incentive_project_id` = p.`id`
+   )
+ LIMIT 1;
 INSERT INTO `permissions` (`name`, `slug`, `description`) VALUES
     ('Projetos incentivados: visualizar',         'incentive_projects.view',             'Visualizar projetos incentivados / PRONACs'),
     ('Projetos incentivados: criar',              'incentive_projects.create',           'Criar projetos incentivados'),

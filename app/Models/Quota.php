@@ -7,29 +7,39 @@ namespace App\Models;
 use App\Core\Model;
 
 /**
- * Model de Cotas de Patrocínio (Etapa 7).
+ * Model de Cotas de Patrocínio (Etapa 7 / Catálogo V2.1).
  *
  * Quantidades manuais (available/reserved/closed) + resumo calculado a partir
  * das oportunidades vinculadas (apoio, não sobrescreve os campos manuais).
  * Sem exclusão física (archived_at). Prepared statements, sem SELECT *.
+ *
+ * V2.1: catalog_ref_id, pricing_mode (RANGE/FIXED/FULL_PROJECT), faixa min/max
+ * e inventory_mode (UNSPECIFIED/LIMITED/FLEXIBLE/TRACKED).
  */
 final class Quota extends Model
 {
     protected string $table = 'quotas';
 
-    /** Nome da cota com quantidade flexível (não trava reservada+fechada). */
+    /**
+     * @deprecated Catálogo V2.1 usa inventory_mode FLEXIBLE/UNSPECIFIED.
+     * Mantido para compatibilidade com cotas legadas pelo nome.
+     */
     public const FLEXIBLE_NAME = 'Círculo Dança Carajás';
 
     private const FILLABLE = [
         'incentive_project_id',
-        'name', 'commercial_name', 'amount',
-        'available_quantity', 'reserved_quantity', 'closed_quantity',
+        'name', 'commercial_name',
+        'catalog_ref_id', 'catalog_version', 'pricing_mode',
+        'amount', 'min_amount', 'max_amount',
+        'available_quantity', 'reserved_quantity', 'closed_quantity', 'inventory_mode',
         'description', 'ideal_profile', 'status', 'display_order', 'notes',
     ];
 
     private const LIST_COLUMNS =
-        'q.`id`, q.`incentive_project_id`, q.`name`, q.`commercial_name`, q.`amount`,
-         q.`available_quantity`, q.`reserved_quantity`, q.`closed_quantity`,
+        'q.`id`, q.`incentive_project_id`, q.`name`, q.`commercial_name`,
+         q.`catalog_ref_id`, q.`catalog_version`, q.`pricing_mode`,
+         q.`amount`, q.`min_amount`, q.`max_amount`,
+         q.`available_quantity`, q.`reserved_quantity`, q.`closed_quantity`, q.`inventory_mode`,
          q.`status`, q.`display_order`, q.`archived_at`,
          ip.`project_name` AS project_name, ip.`edition_year` AS project_edition_year';
 
@@ -66,6 +76,27 @@ final class Quota extends Model
         ];
     }
 
+    /** @return array<string, string> */
+    public function getPricingModes(): array
+    {
+        return [
+            'RANGE'        => 'Faixa (RANGE)',
+            'FIXED'        => 'Valor fixo (FIXED)',
+            'FULL_PROJECT' => 'Projeto integral (FULL_PROJECT)',
+        ];
+    }
+
+    /** @return array<string, string> */
+    public function getInventoryModes(): array
+    {
+        return [
+            'UNSPECIFIED' => 'Não definida (UNSPECIFIED)',
+            'LIMITED'     => 'Limitada (LIMITED)',
+            'FLEXIBLE'    => 'Flexível (FLEXIBLE)',
+            'TRACKED'     => 'Controlada / legado (TRACKED)',
+        ];
+    }
+
     // -----------------------------------------------------------------
     // Normalização / validação
     // -----------------------------------------------------------------
@@ -93,17 +124,107 @@ final class Quota extends Model
     }
 
     /**
+     * Indica se a cota tem estoque numérico definido (não UNSPECIFIED/FLEXIBLE/null).
+     *
+     * @param array<string, mixed> $quota
+     */
+    public function hasDefinedInventory(array $quota): bool
+    {
+        $mode = strtoupper(trim((string) ($quota['inventory_mode'] ?? '')));
+        if ($mode === 'UNSPECIFIED' || $mode === 'FLEXIBLE') {
+            return false;
+        }
+
+        if (!array_key_exists('available_quantity', $quota)
+            || $quota['available_quantity'] === null
+            || $quota['available_quantity'] === '') {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Saldo de quantidade = disponível - (reservada + fechada).
+     * Sem inventário definido (UNSPECIFIED/FLEXIBLE/null) retorna 0;
+     * a UI deve usar formatInventoryLabel() / hasDefinedInventory().
      *
      * @param array<string, mixed> $quota
      */
     public function remainingQuantity(array $quota): int
     {
+        if (!$this->hasDefinedInventory($quota)) {
+            return 0;
+        }
+
         $available = (int) ($quota['available_quantity'] ?? 0);
         $reserved  = (int) ($quota['reserved_quantity'] ?? 0);
         $closed    = (int) ($quota['closed_quantity'] ?? 0);
 
         return $available - ($reserved + $closed);
+    }
+
+    /**
+     * Rótulo de preço para listagens e detalhe.
+     *
+     * @param array<string, mixed> $quota
+     */
+    public function formatPriceLabel(array $quota): string
+    {
+        $mode = strtoupper(trim((string) ($quota['pricing_mode'] ?? '')));
+
+        if ($mode === 'RANGE') {
+            $min = $quota['min_amount'] ?? null;
+            $max = $quota['max_amount'] ?? null;
+            if ($min !== null && $min !== '' && $max !== null && $max !== '') {
+                return money_br($min) . ' a ' . money_br($max);
+            }
+        }
+
+        if ($mode === 'FIXED' || $mode === 'FULL_PROJECT') {
+            $amount = $quota['amount'] ?? null;
+            if ($amount !== null && $amount !== '') {
+                return money_br($amount);
+            }
+        }
+
+        $amount = $quota['amount'] ?? null;
+        if ($amount !== null && $amount !== '') {
+            return money_br($amount);
+        }
+
+        return 'flexível';
+    }
+
+    /**
+     * Rótulo de inventário: UNSPECIFIED => texto; demais => números.
+     *
+     * @param array<string, mixed> $quota
+     */
+    public function formatInventoryLabel(array $quota): string
+    {
+        $mode = strtoupper(trim((string) ($quota['inventory_mode'] ?? '')));
+        if ($mode === 'UNSPECIFIED') {
+            return 'Quantidade não definida';
+        }
+
+        $available = $quota['available_quantity'] ?? null;
+        $reserved  = (int) ($quota['reserved_quantity'] ?? 0);
+        $closed    = (int) ($quota['closed_quantity'] ?? 0);
+
+        if ($available === null || $available === '') {
+            return 'Quantidade não definida';
+        }
+
+        $remaining = $this->remainingQuantity($quota);
+
+        return sprintf(
+            'Disp. %d · Reserv. %d · Fech. %d · Saldo %d',
+            (int) $available,
+            $reserved,
+            $closed,
+            $remaining
+        );
     }
 
     /**
@@ -125,23 +246,128 @@ final class Quota extends Model
             $errors['name'] = 'O nome deve ter no mínimo 2 caracteres.';
         }
 
-        $amount = $data['amount'] ?? null;
-        if (is_string($amount)) {
-            $errors['amount'] = 'Valor inválido.';
-        } elseif ($amount !== null && (float) $amount < 0) {
-            $errors['amount'] = 'O valor deve ser positivo ou zero.';
+        $catalogRef = trim((string) ($data['catalog_ref_id'] ?? ''));
+        $catalogVersion = trim((string) ($data['catalog_version'] ?? ''));
+        $pricingMode = strtoupper(trim((string) ($data['pricing_mode'] ?? '')));
+        $inventoryMode = strtoupper(trim((string) ($data['inventory_mode'] ?? '')));
+
+        // Cotas V2.1 (com catalog_ref_id) exigem versão e modo de preço.
+        if ($catalogRef !== '') {
+            if ($catalogVersion === '') {
+                $errors['catalog_version'] = 'Informe a versão do catálogo.';
+            }
+            if ($pricingMode === '' || !array_key_exists($pricingMode, $this->getPricingModes())) {
+                $errors['pricing_mode'] = 'Informe o modo de preço do catálogo.';
+            }
+        } elseif ($pricingMode !== '' && !array_key_exists($pricingMode, $this->getPricingModes())) {
+            $errors['pricing_mode'] = 'Modo de preço inválido.';
         }
 
+        if ($inventoryMode !== '' && !array_key_exists($inventoryMode, $this->getInventoryModes())) {
+            $errors['inventory_mode'] = 'Modo de inventário inválido.';
+        }
+
+        $amount = $data['amount'] ?? null;
+        $minAmount = $data['min_amount'] ?? null;
+        $maxAmount = $data['max_amount'] ?? null;
+
+        $moneyInvalid = static function (mixed $v): bool {
+            return is_string($v);
+        };
+        $moneyNegative = static function (mixed $v): bool {
+            return $v !== null && !is_string($v) && (float) $v < 0;
+        };
+
+        if ($pricingMode === 'RANGE') {
+            if ($minAmount === null || $minAmount === '') {
+                $errors['min_amount'] = 'Informe o valor mínimo da faixa.';
+            } elseif ($moneyInvalid($minAmount)) {
+                $errors['min_amount'] = 'Valor mínimo inválido.';
+            } elseif ($moneyNegative($minAmount)) {
+                $errors['min_amount'] = 'O valor mínimo não pode ser negativo.';
+            }
+
+            if ($maxAmount === null || $maxAmount === '') {
+                $errors['max_amount'] = 'Informe o valor máximo da faixa.';
+            } elseif ($moneyInvalid($maxAmount)) {
+                $errors['max_amount'] = 'Valor máximo inválido.';
+            } elseif ($moneyNegative($maxAmount)) {
+                $errors['max_amount'] = 'O valor máximo não pode ser negativo.';
+            }
+
+            if (!isset($errors['min_amount'], $errors['max_amount'])
+                && $minAmount !== null && $maxAmount !== null
+                && !$moneyInvalid($minAmount) && !$moneyInvalid($maxAmount)
+                && (float) $minAmount > (float) $maxAmount) {
+                $errors['min_amount'] = 'O valor mínimo não pode ser maior que o máximo.';
+            }
+
+            // amount pode ser null em RANGE; se informado, não pode ser negativo/inválido.
+            if ($moneyInvalid($amount)) {
+                $errors['amount'] = 'Valor inválido.';
+            } elseif ($moneyNegative($amount)) {
+                $errors['amount'] = 'O valor deve ser positivo ou zero.';
+            }
+        } elseif ($pricingMode === 'FIXED' || $pricingMode === 'FULL_PROJECT') {
+            if ($amount === null || $amount === '') {
+                $errors['amount'] = 'Informe o valor da cota.';
+            } elseif ($moneyInvalid($amount)) {
+                $errors['amount'] = 'Valor inválido.';
+            } elseif ($moneyNegative($amount)) {
+                $errors['amount'] = 'O valor deve ser positivo ou zero.';
+            } else {
+                $amt = round((float) $amount, 2);
+                $minOk = $minAmount !== null && $minAmount !== '' && !$moneyInvalid($minAmount)
+                    && round((float) $minAmount, 2) === $amt;
+                $maxOk = $maxAmount !== null && $maxAmount !== '' && !$moneyInvalid($maxAmount)
+                    && round((float) $maxAmount, 2) === $amt;
+                if (!$minOk) {
+                    $errors['min_amount'] = 'Em FIXED/FULL_PROJECT, o mínimo deve ser igual ao valor.';
+                }
+                if (!$maxOk) {
+                    $errors['max_amount'] = 'Em FIXED/FULL_PROJECT, o máximo deve ser igual ao valor.';
+                }
+            }
+        } else {
+            // Legado sem pricing_mode: amount opcional, sem negativos.
+            if ($moneyInvalid($amount)) {
+                $errors['amount'] = 'Valor inválido.';
+            } elseif ($moneyNegative($amount)) {
+                $errors['amount'] = 'O valor deve ser positivo ou zero.';
+            }
+            if ($minAmount !== null && $minAmount !== '') {
+                if ($moneyInvalid($minAmount)) {
+                    $errors['min_amount'] = 'Valor mínimo inválido.';
+                } elseif ($moneyNegative($minAmount)) {
+                    $errors['min_amount'] = 'O valor mínimo não pode ser negativo.';
+                }
+            }
+            if ($maxAmount !== null && $maxAmount !== '') {
+                if ($moneyInvalid($maxAmount)) {
+                    $errors['max_amount'] = 'Valor máximo inválido.';
+                } elseif ($moneyNegative($maxAmount)) {
+                    $errors['max_amount'] = 'O valor máximo não pode ser negativo.';
+                }
+            }
+        }
+
+        $isUnspecified = $inventoryMode === 'UNSPECIFIED';
+        $isFlexibleInv = $inventoryMode === 'FLEXIBLE' || $name === self::FLEXIBLE_NAME;
+
         foreach (['available_quantity' => 'Quantidade disponível', 'reserved_quantity' => 'Quantidade reservada', 'closed_quantity' => 'Quantidade fechada'] as $field => $label) {
-            $v = $data[$field] ?? 0;
+            $v = $data[$field] ?? ($field === 'available_quantity' && $isUnspecified ? null : 0);
+            if ($field === 'available_quantity' && $isUnspecified && ($v === null || $v === '')) {
+                continue;
+            }
             if (!is_numeric($v) || (int) $v < 0) {
                 $errors[$field] = $label . ' deve ser um inteiro maior ou igual a zero.';
             }
         }
 
-        // Reservada + fechada não pode ultrapassar disponível (exceto cota flexível).
-        if (!isset($errors['available_quantity'], $errors['reserved_quantity'], $errors['closed_quantity'])
-            && $name !== self::FLEXIBLE_NAME) {
+        // Reservada + fechada não pode ultrapassar disponível
+        // (exceto inventário UNSPECIFIED/FLEXIBLE ou cota legada pelo nome).
+        if (!$isUnspecified && !$isFlexibleInv
+            && !isset($errors['available_quantity'], $errors['reserved_quantity'], $errors['closed_quantity'])) {
             $available = (int) ($data['available_quantity'] ?? 0);
             $reserved  = (int) ($data['reserved_quantity'] ?? 0);
             $closed    = (int) ($data['closed_quantity'] ?? 0);
@@ -211,8 +437,10 @@ final class Quota extends Model
     public function findById(int|string $id): ?array
     {
         $row = $this->query(
-            'SELECT q.`id`, q.`incentive_project_id`, q.`name`, q.`commercial_name`, q.`amount`,
-                    q.`available_quantity`, q.`reserved_quantity`, q.`closed_quantity`,
+            'SELECT q.`id`, q.`incentive_project_id`, q.`name`, q.`commercial_name`,
+                    q.`catalog_ref_id`, q.`catalog_version`, q.`pricing_mode`,
+                    q.`amount`, q.`min_amount`, q.`max_amount`,
+                    q.`available_quantity`, q.`reserved_quantity`, q.`closed_quantity`, q.`inventory_mode`,
                     q.`description`, q.`ideal_profile`, q.`status`, q.`display_order`, q.`notes`,
                     q.`created_by`, q.`updated_by`, q.`created_at`, q.`updated_at`, q.`archived_at`,
                     ip.`project_name` AS project_name, ip.`edition_year` AS project_edition_year,
@@ -236,7 +464,8 @@ final class Quota extends Model
      */
     public function activeOptions(int|string|null $projectId = null): array
     {
-        $sql = "SELECT `id`, `incentive_project_id`, `name`, `commercial_name`, `amount`, `status`
+        $sql = "SELECT `id`, `incentive_project_id`, `name`, `commercial_name`, `amount`, `status`,
+                       `catalog_ref_id`, `pricing_mode`, `min_amount`, `max_amount`, `inventory_mode`
                FROM `quotas`
               WHERE `archived_at` IS NULL";
         $params = [];
@@ -401,10 +630,11 @@ final class Quota extends Model
 
         $search = trim((string) ($filters['q'] ?? ''));
         if ($search !== '') {
-            $conditions[]  = '(q.`name` LIKE :qn OR q.`commercial_name` LIKE :qc OR q.`description` LIKE :qd)';
+            $conditions[]  = '(q.`name` LIKE :qn OR q.`commercial_name` LIKE :qc OR q.`description` LIKE :qd OR q.`catalog_ref_id` LIKE :qref)';
             $params['qn']  = '%' . $search . '%';
             $params['qc']  = '%' . $search . '%';
             $params['qd']  = '%' . $search . '%';
+            $params['qref'] = '%' . $search . '%';
         }
 
         $status = trim((string) ($filters['status'] ?? ''));
@@ -419,12 +649,25 @@ final class Quota extends Model
         }
 
         if (isset($filters['amount_min']) && $filters['amount_min'] !== '') {
-            $conditions[]         = 'q.`amount` >= :amount_min';
-            $params['amount_min'] = (float) $filters['amount_min'];
+            // Range-overlap: cotas FIXED usam amount; RANGE usa min/max (amount pode ser NULL).
+            $conditions[] = '(
+                (q.`amount` IS NOT NULL AND q.`amount` >= :amount_min_fixed)
+                OR (q.`amount` IS NULL AND q.`max_amount` IS NOT NULL AND q.`max_amount` >= :amount_min_maxbound)
+                OR (q.`amount` IS NULL AND q.`min_amount` IS NOT NULL AND q.`min_amount` >= :amount_min_minbound)
+            )';
+            $min = (float) $filters['amount_min'];
+            $params['amount_min_fixed'] = $min;
+            $params['amount_min_maxbound'] = $min;
+            $params['amount_min_minbound'] = $min;
         }
         if (isset($filters['amount_max']) && $filters['amount_max'] !== '') {
-            $conditions[]         = 'q.`amount` <= :amount_max';
-            $params['amount_max'] = (float) $filters['amount_max'];
+            $conditions[] = '(
+                (q.`amount` IS NOT NULL AND q.`amount` <= :amount_max_fixed)
+                OR (q.`amount` IS NULL AND q.`min_amount` IS NOT NULL AND q.`min_amount` <= :amount_max_minbound)
+            )';
+            $max = (float) $filters['amount_max'];
+            $params['amount_max_fixed'] = $max;
+            $params['amount_max_minbound'] = $max;
         }
 
         $where = $conditions === [] ? '' : ' WHERE ' . implode(' AND ', $conditions);

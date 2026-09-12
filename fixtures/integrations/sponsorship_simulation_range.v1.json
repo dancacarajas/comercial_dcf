@@ -1,0 +1,63 @@
+{
+  "submission_type": "SPONSORSHIP_SIMULATION",
+  "submission_version": "1.0.0",
+  "submission_uuid": "33333333-3333-4333-8333-333333333333",
+  "name": "Range Investor",
+  "company_name": "Range SA",
+  "email": "range@example.com",
+  "whatsapp": "5591988880002",
+  "contact_consent": true,
+  "origin_page": "patrocinio/seja-patrocinador",
+  "form_id": "dcx-sponsorship-simulation-v1",
+  "form_name": "Simular Patrocinio",
+  "project": {
+    "pronac_number": "265397",
+    "edition_year": 2026
+  },
+  "sponsorship_simulation": {
+    "snapshot_version": "1.0.0",
+    "engine_version": "1.0.0",
+    "policy_version": "1.0.0",
+    "catalog_version": "2026-V2.1",
+    "briefing_schema_version": "1.0.0",
+    "confirmed": true,
+    "confirmed_at": "2026-09-11T18:00:00-03:00",
+    "briefing": {
+      "area_decision": "ESG_IMPACT",
+      "objectives": ["ESG_CULTURAL_IMPACT", "LEGACY"],
+      "depth_intent": "OWN_AXIS",
+      "investment": {
+        "status": "DEFINED_RANGE",
+        "min": 80000,
+        "max": 120000,
+        "currency": "BRL"
+      },
+      "proof_needs": ["PORTAL", "AXIS_REPORT"]
+    },
+    "interests": {
+      "tier_interest": ["CARAJAS", "EXPERIENCE"],
+      "axis_interest": ["FORMACAO"],
+      "activation_interest": [],
+      "property_interest": [],
+      "asset_interest": []
+    },
+    "recommendation": {
+      "state": "READY",
+      "primary": {
+        "tier_id": "CARAJAS",
+        "axis_id": "FORMACAO",
+        "activation_id": null,
+        "property_id": null,
+        "fit_level": "HIGH",
+        "availability": "NOT_CHECKED"
+      },
+      "alternatives": []
+    },
+    "display_snapshot": {
+      "objective_labels": ["Impacto cultural ESG"],
+      "depth_label": "Assumir um eixo proprio",
+      "experience_labels": ["Formacao"],
+      "proof_labels": ["Portal", "Relatorio de eixo"]
+    }
+  }
+}

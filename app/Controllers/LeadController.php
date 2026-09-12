@@ -13,6 +13,7 @@ use App\Models\Document;
 use App\Models\IncentiveProject;
 use App\Models\Lead;
 use App\Models\Opportunity;
+use App\Models\SponsorshipSimulation;
 use App\Models\Task;
 use App\Models\User;
 
@@ -91,9 +92,16 @@ final class LeadController extends Controller
             $documentSummary = $documentModel->summaryByLead($id);
         }
 
+        $simulation = null;
+        if (($lead['submission_type'] ?? '') === Lead::SUBMISSION_SIMULATION
+            || !empty($lead['incentive_project_id'])) {
+            $simulation = (new SponsorshipSimulation())->findByLead($id);
+        }
+
         $this->view('leads/show', [
             'title'    => $lead['name'] ?? 'Lead',
             'lead'     => $lead,
+            'simulation' => $simulation,
             'statuses' => (new Lead())->getStatuses(),
             'documents'       => $documents,
             'documentSummary' => $documentSummary,
@@ -148,10 +156,24 @@ final class LeadController extends Controller
     {
         AuthMiddleware::requirePermission('leads.convert');
         $lead = $this->findOr404($params['id'] ?? null);
+        $simulation = (new SponsorshipSimulation())->findByLead((int) $lead['id']);
+
+        $suggestedValue = null;
+        $investmentLabel = null;
+        if ($simulation !== null) {
+            $status = strtoupper((string) ($simulation['investment_status'] ?? ''));
+            if ($status === 'DEFINED_AMOUNT' && $simulation['investment_min'] !== null) {
+                $suggestedValue = (float) $simulation['investment_min'];
+            }
+            $investmentLabel = (new SponsorshipSimulation())->investmentDisplayLabel($simulation);
+        }
 
         $this->view('leads/convert', [
             'title'         => 'Converter lead',
             'lead'          => $lead,
+            'simulation'    => $simulation,
+            'suggestedValue' => $suggestedValue,
+            'investmentLabel' => $investmentLabel,
             'companies'     => (new Company())->options(),
             'projects'      => (new IncentiveProject())->options(true),
             'companyContacts' => !empty($lead['company_id'])
@@ -168,6 +190,7 @@ final class LeadController extends Controller
         $lead = $this->findOr404($params['id'] ?? null);
         $id   = (int) $lead['id'];
         $uid  = (int) ($_SESSION['user_id'] ?? 0);
+        $simulation = (new SponsorshipSimulation())->findByLead($id);
 
         $updates = ['updated_by' => $uid];
         $logs    = [];
@@ -176,6 +199,13 @@ final class LeadController extends Controller
         $didOpp     = false;
         $didTask    = false;
         $projectId  = (int) input('incentive_project_id', 0);
+        if ($projectId <= 0 && !empty($lead['incentive_project_id'])) {
+            $projectId = (int) $lead['incentive_project_id'];
+        }
+        // Simulação: projeto estrutural é fonte de verdade (ignora POST divergente).
+        if ($simulation !== null && !empty($simulation['incentive_project_id'])) {
+            $projectId = (int) $simulation['incentive_project_id'];
+        }
 
         // Empresa
         if (input('do_company') !== null) {
@@ -204,7 +234,7 @@ final class LeadController extends Controller
                 $updates['contact_id'] = $existingCt;
             } elseif (input('create_contact') !== null) {
                 $ctId = (new Contact())->create([
-                    'incentive_project_id' => $projectId,
+                    'incentive_project_id' => $projectId > 0 ? $projectId : null,
                     'company_id'      => $companyId,
                     'name'            => clean((string) input('contact_name', $lead['name'] ?? '')),
                     'email'           => $lead['email'] ?? null,
@@ -232,16 +262,31 @@ final class LeadController extends Controller
                 $updates['opportunity_id'] = $existingOp;
             } elseif (input('create_opportunity') !== null) {
                 $title = clean((string) input('opportunity_title', 'Oportunidade — ' . ($lead['company_name'] ?? $lead['name'] ?? 'Lead')));
-                $opId = (new Opportunity())->create([
+                $estimatedRaw = trim((string) input('estimated_value', ''));
+                $estimatedValue = null;
+                // Aceita apenas número puro; range/texto deixam o valor vazio.
+                if ($estimatedRaw !== '' && is_numeric($estimatedRaw)) {
+                    $estimatedValue = (float) $estimatedRaw;
+                }
+
+                $opPayload = [
+                    'incentive_project_id' => $projectId,
                     'company_id'      => $companyId,
                     'contact_id'      => $contactId > 0 ? $contactId : null,
                     'title'           => $title,
                     'status'          => 'prospect_identificado',
                     'source'          => 'site',
-                    'estimated_value' => null,
+                    'estimated_value' => $estimatedValue,
                     'opened_at'       => date('Y-m-d'),
                     'created_by'      => $uid,
-                ]);
+                    // quota_id NUNCA pré-vinculado pela simulação
+                    'quota_id'        => null,
+                ];
+                if ($simulation !== null) {
+                    $opPayload['sponsorship_simulation_id'] = (int) $simulation['id'];
+                }
+
+                $opId = (new Opportunity())->create($opPayload);
                 $updates['opportunity_id'] = (int) $opId;
                 $logs[] = 'lead_converted_opportunity';
             }
@@ -311,7 +356,7 @@ final class LeadController extends Controller
             (new ActivityLog())->record('lead_archived', $_SESSION['user_id'] ?? null, 'lead', $id);
         }
         flash('success', 'Lead arquivado.');
-        $this->redirect('/leads/' . $id);
+        $this->redirect('/leads');
     }
 
     public function restore(array $params): void
@@ -360,6 +405,8 @@ final class LeadController extends Controller
             'status'           => (string) input('status', ''),
             'origin_page'      => (string) input('origin_page', ''),
             'interest'         => (string) input('interest', ''),
+            'submission_type'  => (string) input('submission_type', ''),
+            'incentive_project_id' => (int) input('incentive_project_id', 0),
             'assigned_user_id' => (int) input('assigned_user_id', 0),
             'contact_consent'  => input('contact_consent') !== null && input('contact_consent') !== ''
                 ? (int) input('contact_consent') : '',

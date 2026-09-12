@@ -1,0 +1,61 @@
+{
+  "submission_type": "SPONSORSHIP_SIMULATION",
+  "submission_version": "1.0.0",
+  "submission_uuid": "22222222-2222-4222-8222-222222222222",
+  "name": "Leak Test",
+  "company_name": "Leak Co",
+  "email": "leak@example.com",
+  "contact_consent": true,
+  "project": {
+    "pronac_number": "265397",
+    "edition_year": 2026
+  },
+  "sponsorship_simulation": {
+    "snapshot_version": "1.0.0",
+    "engine_version": "1.0.0",
+    "policy_version": "1.0.0",
+    "catalog_version": "2026-V2.1",
+    "briefing_schema_version": "1.0.0",
+    "confirmed": true,
+    "confirmed_at": "2026-09-11T18:00:00-03:00",
+    "briefing": {
+      "area_decision": "INSTITUTIONAL",
+      "objectives": [],
+      "audiences": [],
+      "depth_intent": "TERRITORY",
+      "investment": {
+        "status": "OPEN",
+        "min": null,
+        "max": null,
+        "currency": "BRL"
+      },
+      "proof_needs": []
+    },
+    "interests": {
+      "tier_interest": [],
+      "axis_interest": [],
+      "activation_interest": [],
+      "property_interest": [],
+      "asset_interest": []
+    },
+    "recommendation": {
+      "state": "READY",
+      "primary": {
+        "tier_id": "MOVIMENTO",
+        "axis_id": null,
+        "activation_id": null,
+        "property_id": null,
+        "fit_level": "MODERATE",
+        "availability": "NOT_CHECKED",
+        "internal_score": 0.87,
+        "reason_codes": ["BUDGET_FIT"]
+      },
+      "alternatives": [],
+      "diagnostics": {"debug": true}
+    },
+    "display_snapshot": {
+      "primary_tier_label": "Movimento",
+      "fit_label": "Moderada"
+    }
+  }
+}

@@ -13,6 +13,9 @@ final class Lead extends Model
 {
     protected string $table = 'leads';
 
+    public const SUBMISSION_GENERIC = 'GENERIC_LEAD';
+    public const SUBMISSION_SIMULATION = 'SPONSORSHIP_SIMULATION';
+
     private const FILLABLE = [
         'name', 'company_name', 'role_title', 'email', 'whatsapp',
         'city', 'state', 'segment', 'origin_page', 'source_url',
@@ -20,6 +23,7 @@ final class Lead extends Model
         'ip_address', 'user_agent', 'referrer',
         'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term',
         'status', 'assigned_user_id',
+        'incentive_project_id', 'submission_type',
         'company_id', 'contact_id', 'opportunity_id', 'task_id',
         'integration_payload',
     ];
@@ -27,6 +31,7 @@ final class Lead extends Model
     private const LIST_COLUMNS =
         'l.`id`, l.`name`, l.`company_name`, l.`email`, l.`whatsapp`, l.`interest`,
          l.`origin_page`, l.`status`, l.`contact_consent`, l.`created_at`, l.`archived_at`,
+         l.`incentive_project_id`, l.`submission_type`,
          l.`company_id`, l.`contact_id`, l.`opportunity_id`, l.`task_id`,
          au.`name` AS assigned_name';
 
@@ -237,7 +242,8 @@ final class Lead extends Model
                     l.`form_id`, l.`form_name`, l.`interest`, l.`message`, l.`contact_consent`,
                     l.`ip_address`, l.`user_agent`, l.`referrer`,
                     l.`utm_source`, l.`utm_medium`, l.`utm_campaign`, l.`utm_content`, l.`utm_term`,
-                    l.`status`, l.`assigned_user_id`, l.`company_id`, l.`contact_id`,
+                    l.`status`, l.`incentive_project_id`, l.`submission_type`,
+                    l.`assigned_user_id`, l.`company_id`, l.`contact_id`,
                     l.`opportunity_id`, l.`task_id`, l.`integration_payload`,
                     l.`converted_at`, l.`converted_by`, l.`created_by`, l.`updated_by`,
                     l.`created_at`, l.`updated_at`, l.`archived_at`,
@@ -245,7 +251,8 @@ final class Lead extends Model
                     cb.`name` AS created_by_name, ub.`name` AS updated_by_name,
                     cv.`name` AS converted_by_name,
                     co.`name` AS linked_company_name, ct.`name` AS linked_contact_name,
-                    op.`title` AS linked_opportunity_title, tk.`title` AS linked_task_title
+                    op.`title` AS linked_opportunity_title, tk.`title` AS linked_task_title,
+                    ip.`project_name` AS project_name, ip.`pronac_number` AS project_pronac
                FROM `leads` l
                LEFT JOIN `users` au ON au.`id` = l.`assigned_user_id`
                LEFT JOIN `users` cb ON cb.`id` = l.`created_by`
@@ -255,6 +262,7 @@ final class Lead extends Model
                LEFT JOIN `contacts` ct ON ct.`id` = l.`contact_id`
                LEFT JOIN `opportunities` op ON op.`id` = l.`opportunity_id`
                LEFT JOIN `tasks` tk ON tk.`id` = l.`task_id`
+               LEFT JOIN `incentive_projects` ip ON ip.`id` = l.`incentive_project_id`
               WHERE l.`id` = :id LIMIT 1',
             ['id' => $id]
         )->fetch();
@@ -282,6 +290,10 @@ final class Lead extends Model
             if (array_key_exists($extra, $data)) {
                 $payload[$extra] = $data[$extra];
             }
+        }
+
+        if (empty($payload['submission_type'])) {
+            $payload['submission_type'] = self::SUBMISSION_GENERIC;
         }
 
         if (isset($payload['integration_payload']) && is_array($payload['integration_payload'])) {
@@ -405,12 +417,18 @@ final class Lead extends Model
             $params['q'] = '%' . $q . '%';
         }
 
-        foreach (['status', 'origin_page', 'interest'] as $f) {
+        foreach (['status', 'origin_page', 'interest', 'submission_type'] as $f) {
             $v = trim((string) ($filters[$f] ?? ''));
             if ($v !== '') {
                 $conditions[] = 'l.`' . $f . '` = :' . $f;
                 $params[$f] = $v;
             }
+        }
+
+        $projectId = (int) ($filters['incentive_project_id'] ?? 0);
+        if ($projectId > 0) {
+            $conditions[] = 'l.`incentive_project_id` = :incentive_project_id';
+            $params['incentive_project_id'] = $projectId;
         }
 
         $owner = (int) ($filters['assigned_user_id'] ?? 0);

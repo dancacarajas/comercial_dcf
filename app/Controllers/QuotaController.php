@@ -175,6 +175,8 @@ final class QuotaController extends Controller
             'model'         => $model,
             'statuses'      => $model->getStatuses(),
             'idealProfiles' => $model->getIdealProfiles(),
+            'pricingModes'  => $model->getPricingModes(),
+            'inventoryModes'=> $model->getInventoryModes(),
             'remaining'     => $model->remainingQuantity($quota),
             'linkedSummary' => $linkedSummary,
             'linked'        => $linked,
@@ -267,7 +269,7 @@ final class QuotaController extends Controller
             flash('success', 'Cota arquivada.');
         }
 
-        $this->redirect('/quotas/' . $id);
+        $this->redirect('/quotas');
     }
 
     public function restore(array $params): void
@@ -311,14 +313,41 @@ final class QuotaController extends Controller
      */
     private function collectInput(Quota $model): array
     {
+        $inventoryMode = strtoupper(clean((string) input('inventory_mode', ''))) ?: null;
+        $pricingMode   = strtoupper(clean((string) input('pricing_mode', ''))) ?: null;
+        $amount        = $model->normalizeMoney((string) input('amount', ''));
+        $minAmount     = $model->normalizeMoney((string) input('min_amount', ''));
+        $maxAmount     = $model->normalizeMoney((string) input('max_amount', ''));
+
+        // Invariante FIXED/FULL_PROJECT: min == max == amount.
+        if (($pricingMode === 'FIXED' || $pricingMode === 'FULL_PROJECT')
+            && is_float($amount)) {
+            $minAmount = $amount;
+            $maxAmount = $amount;
+        }
+
+        $availableRaw = input('available_quantity');
+        if ($inventoryMode === 'UNSPECIFIED'
+            && ($availableRaw === null || trim((string) $availableRaw) === '')) {
+            $availableQuantity = null;
+        } else {
+            $availableQuantity = (int) ($availableRaw ?? 0);
+        }
+
         return [
             'incentive_project_id' => ($projectId = (int) input('incentive_project_id', 0)) > 0 ? $projectId : null,
             'name'               => clean((string) input('name', '')),
             'commercial_name'    => clean((string) input('commercial_name', '')) ?: null,
-            'amount'             => $model->normalizeMoney((string) input('amount', '')),
-            'available_quantity' => (int) input('available_quantity', 0),
+            'catalog_ref_id'     => clean((string) input('catalog_ref_id', '')) ?: null,
+            'catalog_version'    => clean((string) input('catalog_version', '')) ?: null,
+            'pricing_mode'       => $pricingMode,
+            'amount'             => $amount,
+            'min_amount'         => $minAmount,
+            'max_amount'         => $maxAmount,
+            'available_quantity' => $availableQuantity,
             'reserved_quantity'  => (int) input('reserved_quantity', 0),
             'closed_quantity'    => (int) input('closed_quantity', 0),
+            'inventory_mode'     => $inventoryMode,
             'description'        => trim((string) input('description', '')) ?: null,
             'ideal_profile'      => clean((string) input('ideal_profile', '')) ?: null,
             'status'             => clean((string) input('status', 'disponivel')),
@@ -337,13 +366,15 @@ final class QuotaController extends Controller
         $model = new Quota();
 
         $this->view($view, [
-            'title'         => $title,
-            'old'           => $old,
-            'errors'        => $errors,
-            'quota'         => $quota,
-            'statuses'      => $model->getStatuses(),
-            'idealProfiles' => $model->getIdealProfiles(),
-            'projects'      => (new IncentiveProject())->options(true),
+            'title'          => $title,
+            'old'            => $old,
+            'errors'         => $errors,
+            'quota'          => $quota,
+            'statuses'       => $model->getStatuses(),
+            'idealProfiles'  => $model->getIdealProfiles(),
+            'pricingModes'   => $model->getPricingModes(),
+            'inventoryModes' => $model->getInventoryModes(),
+            'projects'       => (new IncentiveProject())->options(true),
         ]);
     }
 

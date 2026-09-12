@@ -6,8 +6,11 @@
  * $linkedSummary, $linked, $canSeeOpps, $oppStatusLabels
  */
 $quota           = $quota ?? [];
+$model           = $model ?? null;
 $statuses        = $statuses ?? [];
 $idealProfiles   = $idealProfiles ?? [];
+$pricingModes    = $pricingModes ?? [];
+$inventoryModes  = $inventoryModes ?? [];
 $remaining       = (int) ($remaining ?? 0);
 $linkedSummary   = $linkedSummary ?? [];
 $linked          = $linked ?? [];
@@ -18,6 +21,12 @@ $qid        = (int) ($quota['id'] ?? 0);
 $isArchived = !empty($quota['archived_at']);
 $st         = (string) ($quota['status'] ?? '');
 $profile    = (string) ($quota['ideal_profile'] ?? '');
+$pricingMode = strtoupper((string) ($quota['pricing_mode'] ?? ''));
+$invMode     = strtoupper((string) ($quota['inventory_mode'] ?? ''));
+$hasInventory = $model !== null ? $model->hasDefinedInventory($quota) : true;
+$priceLabel   = $model !== null ? $model->formatPriceLabel($quota) : (
+    ($quota['amount'] ?? null) !== null ? money_br($quota['amount']) : 'Valor flexível'
+);
 
 $dash = static fn ($v): string => ($v === null || $v === '') ? '—' : (string) $v;
 
@@ -37,7 +46,7 @@ $oProbClass = static function (int $p): string {
                 <h1 class="h2-section"><?= e($quota['name'] ?? '') ?></h1>
                 <p class="page-sub">
                     <span class="badge-quota badge-quota-<?= e($st) ?>"><?= e($statuses[$st] ?? $st) ?></span>
-                    <span class="money-value"><?= $quota['amount'] !== null ? e(money_br($quota['amount'])) : 'Valor flexível' ?></span>
+                    <span class="money-value"><?= e($priceLabel) ?></span>
                     <?php if ($isArchived): ?>
                         <span class="badge-status badge-status-arquivado">Arquivada em <?= e($quota['archived_at']) ?></span>
                     <?php endif; ?>
@@ -61,7 +70,12 @@ $oProbClass = static function (int $p): string {
                             <?= e($dash(null)) ?>
                         <?php endif; ?>
                     </dd>
-                    <dt>Valor</dt><dd class="money-value"><?= $quota['amount'] !== null ? e(money_br($quota['amount'])) : 'Flexível' ?></dd>
+                    <dt>Ref. catálogo</dt><dd><?= e($dash($quota['catalog_ref_id'] ?? '')) ?></dd>
+                    <dt>Versão catálogo</dt><dd><?= e($dash($quota['catalog_version'] ?? '')) ?></dd>
+                    <dt>Modo de preço</dt><dd><?= e($pricingModes[$pricingMode] ?? ($pricingMode !== '' ? $pricingMode : '—')) ?></dd>
+                    <dt>Valor</dt><dd class="money-value"><?= e($priceLabel) ?></dd>
+                    <dt>Mínimo</dt><dd class="money-value"><?= ($quota['min_amount'] ?? null) !== null ? e(money_br($quota['min_amount'])) : '—' ?></dd>
+                    <dt>Máximo</dt><dd class="money-value"><?= ($quota['max_amount'] ?? null) !== null ? e(money_br($quota['max_amount'])) : '—' ?></dd>
                     <dt>Status</dt><dd><span class="badge-quota badge-quota-<?= e($st) ?>"><?= e($statuses[$st] ?? $st) ?></span></dd>
                     <dt>Perfil indicado</dt><dd><?= e($idealProfiles[$profile] ?? ($profile !== '' ? $profile : '—')) ?></dd>
                     <dt>Ordem de exibição</dt><dd><?= (int) ($quota['display_order'] ?? 0) ?></dd>
@@ -70,12 +84,20 @@ $oProbClass = static function (int $p): string {
 
             <article class="card quota-card">
                 <h3 class="h3-card"><i data-lucide="boxes"></i> Quantidades (manuais)</h3>
+                <dl class="meta-list" style="margin-bottom:12px;">
+                    <dt>Modo de inventário</dt>
+                    <dd><?= e($inventoryModes[$invMode] ?? ($invMode !== '' ? $invMode : '—')) ?></dd>
+                </dl>
+                <?php if (!$hasInventory): ?>
+                    <p class="quota-flex"><?= e($model !== null ? $model->formatInventoryLabel($quota) : 'Quantidade não definida') ?></p>
+                <?php else: ?>
                 <div class="quota-stock">
                     <div class="quota-stock-item"><span class="quota-stock-num"><?= (int) ($quota['available_quantity'] ?? 0) ?></span><span class="quota-stock-label">Disponível</span></div>
                     <div class="quota-stock-item"><span class="quota-stock-num"><?= (int) ($quota['reserved_quantity'] ?? 0) ?></span><span class="quota-stock-label">Reservada</span></div>
                     <div class="quota-stock-item"><span class="quota-stock-num"><?= (int) ($quota['closed_quantity'] ?? 0) ?></span><span class="quota-stock-label">Fechada</span></div>
                     <div class="quota-stock-item"><span class="remaining-quantity <?= $remaining < 0 ? 'remaining-negative' : '' ?>"><?= $remaining ?></span><span class="quota-stock-label">Saldo</span></div>
                 </div>
+                <?php endif; ?>
                 <small class="field-hint">Campos manuais editados pelo administrador. O resumo calculado abaixo é apenas apoio.</small>
             </article>
         </div>
@@ -234,12 +256,12 @@ $oProbClass = static function (int $p): string {
             </dl>
         </article>
 
-        <div class="actions-row" style="margin-top:22px;">
+        <div class="actions-row" style="margin-top:22px;flex-wrap:wrap;gap:10px;">
             <?php if (can('quotas.edit') && !$isArchived): ?>
                 <a href="<?= e(app_url('/quotas/' . $qid . '/edit')) ?>" class="btn btn-light"><i data-lucide="pencil"></i> Editar</a>
-                <form method="post" action="<?= e(app_url('/quotas/' . $qid . '/archive')) ?>" class="inline-form">
+                <form method="post" action="<?= e(app_url('/quotas/' . $qid . '/archive')) ?>" class="inline-form" onsubmit="return confirm('Arquivar esta cota? Ela sairá da listagem padrão.');">
                     <?= csrf_field() ?>
-                    <button type="submit" class="btn btn-danger" data-confirm="Arquivar esta cota? Ela sairá da listagem padrão."><i data-lucide="archive"></i> Arquivar</button>
+                    <button type="submit" class="btn btn-outline"><i data-lucide="archive"></i> Arquivar</button>
                 </form>
             <?php endif; ?>
 

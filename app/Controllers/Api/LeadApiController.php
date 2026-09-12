@@ -7,6 +7,7 @@ namespace App\Controllers\Api;
 use App\Core\Controller;
 use App\Models\ActivityLog;
 use App\Models\Lead;
+use App\Services\SponsorshipLeadIntake;
 use Throwable;
 
 /**
@@ -51,10 +52,52 @@ final class LeadApiController extends Controller
         }
 
         $ip = $this->clientIp();
-        if ($this->isRateLimited($ip, $config)) {
+        $submissionType = strtoupper(trim((string) ($raw['submission_type'] ?? Lead::SUBMISSION_GENERIC)));
+
+        // Decisão 21.1: replay idempotente de SPONSORSHIP_SIMULATION já persistido
+        // NÃO é bloqueado pelo rate limit (não cria Lead novo; preserva semântica 201/409).
+        // Novas submissões e GENERIC_LEAD continuam sujeitos ao rate limit anti-spam.
+        $isKnownSimulationReplay = false;
+        if ($submissionType === SponsorshipLeadIntake::SUBMISSION_TYPE) {
+            $uuid = strtolower(trim((string) ($raw['submission_uuid'] ?? '')));
+            // Só bypass com UUID canônico — evita lookup no banco com lixo arbitrário.
+            if ($uuid !== ''
+                && (bool) preg_match(
+                    '/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i',
+                    $uuid
+                )
+                && (new \App\Models\SponsorshipSimulation())->findBySubmissionUuid($uuid) !== null
+            ) {
+                $isKnownSimulationReplay = true;
+            }
+        }
+
+        if (!$isKnownSimulationReplay && $this->isRateLimited($ip, $config)) {
             $this->apiReject('Muitas tentativas. Tente novamente mais tarde.', 429);
         }
 
+        if ($submissionType === '' || $submissionType === Lead::SUBMISSION_GENERIC) {
+            $this->handleGenericLead($raw, $ip);
+            return;
+        }
+
+        if ($submissionType === SponsorshipLeadIntake::SUBMISSION_TYPE) {
+            $this->handleSponsorshipSimulation($raw, $ip);
+            return;
+        }
+
+        $this->json([
+            'success' => false,
+            'message' => 'submission_type não suportado.',
+            'errors' => ['submission_type' => 'Use GENERIC_LEAD ou SPONSORSHIP_SIMULATION.'],
+        ], 422);
+    }
+
+    /**
+     * @param array<string, mixed> $raw
+     */
+    private function handleGenericLead(array $raw, string $ip): void
+    {
         $model  = new Lead();
         $mapped = $model->mapIncoming($raw);
 
@@ -72,6 +115,7 @@ final class LeadApiController extends Controller
         }
 
         $mapped['status'] = 'novo';
+        $mapped['submission_type'] = Lead::SUBMISSION_GENERIC;
         $mapped['ip_address'] = $ip;
         $mapped['user_agent'] = substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255);
         $mapped['referrer'] = substr((string) ($_SERVER['HTTP_REFERER'] ?? ''), 0, 255);
@@ -96,6 +140,40 @@ final class LeadApiController extends Controller
             error_log('[LEAD API] ' . $e->getMessage());
             $this->apiReject('Erro ao registrar lead.', 500);
         }
+    }
+
+    /**
+     * @param array<string, mixed> $raw
+     */
+    private function handleSponsorshipSimulation(array $raw, string $ip): void
+    {
+        $result = (new SponsorshipLeadIntake())->intake(
+            $raw,
+            $ip,
+            (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''),
+            (string) ($_SERVER['HTTP_REFERER'] ?? '')
+        );
+
+        if (!$result['ok']) {
+            $payload = [
+                'success' => false,
+                'message' => $result['message'],
+            ];
+            if (!empty($result['errors'])) {
+                $payload['errors'] = $result['errors'];
+            }
+            $this->json($payload, (int) $result['http']);
+            return;
+        }
+
+        $this->registerRateAttempt($ip, !empty($result['idempotent']));
+        $this->json([
+            'success' => true,
+            'message' => $result['message'],
+            'lead_id' => (int) $result['lead_id'],
+            'simulation_id' => (int) ($result['simulation_id'] ?? 0),
+            'idempotent' => !empty($result['idempotent']),
+        ], (int) $result['http']);
     }
 
     /**
@@ -162,8 +240,12 @@ final class LeadApiController extends Controller
         return count($recent) >= $max;
     }
 
-    private function registerRateAttempt(string $ip): void
+    private function registerRateAttempt(string $ip, bool $skip = false): void
     {
+        if ($skip) {
+            // Replay idempotente: nao consome cota do rate limit.
+            return;
+        }
         $dir = dirname(__DIR__, 3) . '/storage/ratelimit';
         if (!is_dir($dir)) {
             @mkdir($dir, 0755, true);

@@ -1,0 +1,62 @@
+{
+  "submission_type": "SPONSORSHIP_SIMULATION",
+  "submission_version": "1.0.0",
+  "submission_uuid": "44444444-4444-4444-8444-444444444444",
+  "name": "Open Budget",
+  "company_name": "Open Co",
+  "email": "open@example.com",
+  "contact_consent": true,
+  "origin_page": "patrocinio/seja-patrocinador",
+  "form_id": "dcx-sponsorship-simulation-v1",
+  "form_name": "Simular Patrocinio",
+  "project": {
+    "pronac_number": "265397",
+    "edition_year": 2026
+  },
+  "sponsorship_simulation": {
+    "snapshot_version": "1.0.0",
+    "engine_version": "1.0.0",
+    "policy_version": "1.0.0",
+    "catalog_version": "2026-V2.1",
+    "briefing_schema_version": "1.0.0",
+    "confirmed": true,
+    "confirmed_at": "2026-09-11T18:00:00-03:00",
+    "briefing": {
+      "area_decision": "MARKETING_COMMUNICATION",
+      "objectives": ["BRAND_PRESENCE"],
+      "depth_intent": "OWN_ACTION",
+      "investment": {
+        "status": "OPEN",
+        "min": null,
+        "max": null,
+        "currency": "BRL"
+      },
+      "proof_needs": ["CONTENT_CASE"]
+    },
+    "interests": {
+      "tier_interest": ["EXPERIENCE"],
+      "axis_interest": [],
+      "activation_interest": [],
+      "property_interest": [],
+      "asset_interest": []
+    },
+    "recommendation": {
+      "state": "READY",
+      "primary": {
+        "tier_id": "EXPERIENCE",
+        "axis_id": null,
+        "activation_id": null,
+        "property_id": null,
+        "fit_level": "MODERATE",
+        "availability": "NOT_CHECKED"
+      },
+      "alternatives": []
+    },
+    "display_snapshot": {
+      "objective_labels": ["Presenca de marca"],
+      "depth_label": "Acao propria",
+      "experience_labels": [],
+      "proof_labels": ["Case de conteudo"]
+    }
+  }
+}
