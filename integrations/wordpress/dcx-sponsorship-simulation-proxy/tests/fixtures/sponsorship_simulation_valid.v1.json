@@ -1,0 +1,83 @@
+{
+  "submission_type": "SPONSORSHIP_SIMULATION",
+  "submission_version": "1.0.0",
+  "submission_uuid": "11111111-1111-4111-8111-111111111111",
+  "name": "Maria Silva",
+  "company_name": "Empresa Exemplo Ltda",
+  "role_title": "Diretora de Marketing",
+  "email": "maria.exemplo@example.com",
+  "whatsapp": "5591999990001",
+  "city": "Belem",
+  "state": "PA",
+  "segment": "Mineracao",
+  "contact_consent": true,
+  "origin_page": "patrocinio/seja-patrocinador",
+  "source_url": "https://dancacarajas.com.br/patrocinio/seja-patrocinador/",
+  "form_id": "dcx-sponsorship-simulation-v1",
+  "form_name": "Simular Patrocinio",
+  "utm_source": null,
+  "utm_medium": null,
+  "utm_campaign": null,
+  "utm_content": null,
+  "utm_term": null,
+  "project": {
+    "pronac_number": "265397",
+    "edition_year": 2026
+  },
+  "sponsorship_simulation": {
+    "snapshot_version": "1.0.0",
+    "engine_version": "1.0.0",
+    "policy_version": "1.0.0",
+    "catalog_version": "2026-V2.1",
+    "briefing_schema_version": "1.0.0",
+    "confirmed": true,
+    "confirmed_at": "2026-09-11T18:00:00-03:00",
+    "briefing": {
+      "area_decision": "INSTITUTIONAL_RELATIONS",
+      "objectives": ["INSTITUTIONAL_ASSOCIATION"],
+      "audiences": ["CLIENTS", "STAKEHOLDERS"],
+      "depth_intent": "OWN_AXIS",
+      "investment": {
+        "status": "DEFINED_AMOUNT",
+        "min": 100000,
+        "max": 100000,
+        "currency": "BRL"
+      },
+      "proof_needs": ["EXECUTIVE_REPORT"]
+    },
+    "interests": {
+      "tier_interest": ["CARAJAS"],
+      "axis_interest": ["FORMACAO"],
+      "activation_interest": [],
+      "property_interest": [],
+      "asset_interest": []
+    },
+    "recommendation": {
+      "state": "READY",
+      "primary": {
+        "tier_id": "CARAJAS",
+        "axis_id": "FORMACAO",
+        "activation_id": null,
+        "property_id": null,
+        "fit_level": "HIGH",
+        "availability": "NOT_CHECKED"
+      },
+      "alternatives": [
+        {
+          "tier_id": "EXPERIENCE",
+          "axis_id": "FORMACAO",
+          "activation_id": null,
+          "property_id": null,
+          "fit_level": "MODERATE",
+          "availability": "NOT_CHECKED"
+        }
+      ]
+    },
+    "display_snapshot": {
+      "objective_labels": ["Associacao institucional"],
+      "depth_label": "Assumir um territorio cultural",
+      "experience_labels": ["Formacao"],
+      "proof_labels": ["Relatorio executivo"]
+    }
+  }
+}
