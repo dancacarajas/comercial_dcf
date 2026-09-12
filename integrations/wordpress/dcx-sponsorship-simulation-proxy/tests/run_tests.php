@@ -311,6 +311,11 @@ $mutations = [
     ['path' => 'sponsorship_simulation.display_snapshot.fit_label', 'value' => 'x', 'id' => 'M_display'],
     ['path' => 'sponsorship_simulation.interests.tier_interest', 'value' => ['bad id'], 'id' => 'M_interest_ref'],
     ['path' => 'sponsorship_simulation.extra_nested', 'value' => 1, 'id' => 'M_addl_nested'],
+    ['path' => 'sponsorship_simulation.briefing.__unknown', 'value' => 1, 'id' => 'M_addl_briefing'],
+    ['path' => 'sponsorship_simulation.briefing.investment.__unknown', 'value' => 1, 'id' => 'M_addl_investment'],
+    ['path' => 'sponsorship_simulation.recommendation.__unknown', 'value' => 1, 'id' => 'M_addl_recommendation'],
+    ['path' => 'sponsorship_simulation.interests.tier_interest', 'value' => ['A'], 'id' => 'M_ref_one_char_interest'],
+    ['path' => 'sponsorship_simulation.recommendation.primary.tier_id', 'value' => 'A', 'id' => 'M_ref_one_char_primary'],
 ];
 
 $schemaPass = 0;
@@ -323,6 +328,55 @@ foreach ($mutations as $m) {
         $schemaPass++;
     }
 }
+
+// Nested unknown keys must not leak into Envelope B even if somehow validated.
+foreach (['M_addl_briefing' => 'sponsorship_simulation.briefing.__unknown', 'M_addl_investment' => 'sponsorship_simulation.briefing.investment.__unknown', 'M_addl_recommendation' => 'sponsorship_simulation.recommendation.__unknown'] as $id => $path) {
+    $p = fresh_payload();
+    set_path($p, $path, 1);
+    $v = Dcx_Ssp_Validator::validate($p);
+    assert_true($v['ok'] === false, $id . '_no_B');
+}
+
+// Investment state machine negatives
+$p = fresh_payload();
+$p['sponsorship_simulation']['briefing']['investment'] = [
+    'status' => 'OPEN', 'min' => 10000, 'max' => 20000, 'currency' => 'BRL',
+];
+assert_true(Dcx_Ssp_Validator::validate($p)['ok'] === false, 'M_inv_open_with_amount');
+
+$p = fresh_payload();
+$p['sponsorship_simulation']['briefing']['investment'] = [
+    'status' => 'UNDEFINED', 'min' => 10000, 'max' => 10000, 'currency' => 'BRL',
+];
+assert_true(Dcx_Ssp_Validator::validate($p)['ok'] === false, 'M_inv_undefined_with_amount');
+
+// Investment state machine positives
+$p = fresh_payload();
+$p['sponsorship_simulation']['briefing']['investment'] = [
+    'status' => 'OPEN', 'min' => null, 'max' => null, 'currency' => 'BRL',
+];
+assert_true(Dcx_Ssp_Validator::validate($p)['ok'] === true, 'M_inv_open_ok');
+
+$p = fresh_payload();
+$p['sponsorship_simulation']['briefing']['investment'] = [
+    'status' => 'UNDEFINED', 'min' => null, 'max' => null, 'currency' => 'BRL',
+];
+assert_true(Dcx_Ssp_Validator::validate($p)['ok'] === true, 'M_inv_undefined_ok');
+
+$p = fresh_payload();
+$p['sponsorship_simulation']['briefing']['investment'] = [
+    'status' => 'DEFINED_AMOUNT', 'min' => 50000, 'max' => 50000, 'currency' => 'BRL',
+];
+assert_true(Dcx_Ssp_Validator::validate($p)['ok'] === true, 'M_inv_amount_ok');
+
+$p = fresh_payload();
+$p['sponsorship_simulation']['briefing']['investment'] = [
+    'status' => 'DEFINED_RANGE', 'min' => 10000, 'max' => 24999.99, 'currency' => 'BRL',
+];
+assert_true(Dcx_Ssp_Validator::validate($p)['ok'] === true, 'M_inv_range_ok');
+
+assert_true(Dcx_Ssp_Validator::isCatalogRefId('AB') === true, 'M_ref_two_chars');
+assert_true(Dcx_Ssp_Validator::isCatalogRefId('A') === false, 'M_ref_one_char_helper');
 
 echo "=== ETAPA 22.1 PROXY TEST REPORT ===\n";
 echo implode("\n", $lines) . "\n";

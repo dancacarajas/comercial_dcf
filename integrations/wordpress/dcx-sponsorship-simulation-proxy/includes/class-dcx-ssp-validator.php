@@ -221,21 +221,37 @@ final class Dcx_Ssp_Validator
      */
     private static function validateBriefing(array &$b, array &$errors): void
     {
+        $allowed = [
+            'area_decision',
+            'objectives',
+            'audiences',
+            'depth_intent',
+            'investment',
+            'proof_needs',
+        ];
+        foreach (array_keys($b) as $key) {
+            if (!in_array((string) $key, $allowed, true)) {
+                $errors['briefing.' . $key] = 'Campo nao permitido.';
+            }
+        }
+
+        $clean = [];
+
         $ad = strtoupper(trim((string) ($b['area_decision'] ?? '')));
         if (!in_array($ad, Dcx_Ssp_Constants::AREA_DECISIONS, true)) {
             $errors['briefing.area_decision'] = 'area_decision invalida.';
         } else {
-            $b['area_decision'] = $ad;
+            $clean['area_decision'] = $ad;
         }
 
         $depth = strtoupper(trim((string) ($b['depth_intent'] ?? '')));
         if (!in_array($depth, Dcx_Ssp_Constants::DEPTH_INTENTS, true)) {
             $errors['briefing.depth_intent'] = 'depth_intent invalido.';
         } else {
-            $b['depth_intent'] = $depth;
+            $clean['depth_intent'] = $depth;
         }
 
-        $b['objectives'] = self::enumList(
+        $clean['objectives'] = self::enumList(
             $b['objectives'] ?? null,
             Dcx_Ssp_Constants::OBJECTIVES,
             8,
@@ -244,7 +260,7 @@ final class Dcx_Ssp_Validator
             true
         );
         if (array_key_exists('audiences', $b)) {
-            $b['audiences'] = self::enumList(
+            $clean['audiences'] = self::enumList(
                 $b['audiences'],
                 Dcx_Ssp_Constants::AUDIENCES,
                 8,
@@ -253,7 +269,7 @@ final class Dcx_Ssp_Validator
                 false
             );
         }
-        $b['proof_needs'] = self::enumList(
+        $clean['proof_needs'] = self::enumList(
             $b['proof_needs'] ?? null,
             Dcx_Ssp_Constants::PROOF_NEEDS,
             10,
@@ -266,8 +282,10 @@ final class Dcx_Ssp_Validator
         if (!is_array($inv)) {
             $errors['briefing.investment'] = 'investment obrigatorio.';
         } else {
-            $b['investment'] = self::validateInvestment($inv, $errors);
+            $clean['investment'] = self::validateInvestment($inv, $errors);
         }
+
+        $b = $clean;
     }
 
     /**
@@ -277,6 +295,12 @@ final class Dcx_Ssp_Validator
      */
     private static function validateInvestment(array $inv, array &$errors): array
     {
+        foreach (array_keys($inv) as $key) {
+            if (!in_array((string) $key, ['status', 'min', 'max', 'currency'], true)) {
+                $errors['briefing.investment.' . $key] = 'Campo nao permitido.';
+            }
+        }
+
         $status = strtoupper(trim((string) ($inv['status'] ?? '')));
         if (!in_array($status, Dcx_Ssp_Constants::INVESTMENT_STATUSES, true)) {
             $errors['briefing.investment.status'] = 'status de investment invalido.';
@@ -285,8 +309,21 @@ final class Dcx_Ssp_Validator
         if ($currency !== 'BRL') {
             $errors['briefing.investment.currency'] = 'currency deve ser BRL.';
         }
-        $min = $inv['min'] ?? null;
-        $max = $inv['max'] ?? null;
+
+        $min = array_key_exists('min', $inv) ? $inv['min'] : null;
+        $max = array_key_exists('max', $inv) ? $inv['max'] : null;
+
+        if ($status === 'UNDEFINED' || $status === 'OPEN') {
+            if ($min !== null || $max !== null) {
+                $errors['briefing.investment'] = $status . ' exige min e max null.';
+            }
+            return [
+                'status' => $status !== '' ? $status : 'UNDEFINED',
+                'min' => null,
+                'max' => null,
+                'currency' => 'BRL',
+            ];
+        }
 
         if ($status === 'DEFINED_AMOUNT') {
             if (!is_numeric($min) || !is_numeric($max) || abs((float) $min - (float) $max) > 0.001) {
@@ -337,7 +374,7 @@ final class Dcx_Ssp_Validator
             $clean = [];
             foreach ($list as $item) {
                 $ref = strtoupper(trim((string) $item));
-                if (!preg_match('/^[A-Z][A-Z0-9_]{0,79}$/', $ref)) {
+                if (!self::isCatalogRefId($ref)) {
                     $errors['interests.' . $key] = 'catalog_ref_id invalido.';
                     break;
                 }
@@ -361,6 +398,12 @@ final class Dcx_Ssp_Validator
      */
     private static function validateRecommendation(array $rec, array &$errors): ?array
     {
+        foreach (array_keys($rec) as $key) {
+            if (!in_array((string) $key, ['state', 'primary', 'alternatives'], true)) {
+                $errors['recommendation.' . $key] = 'Campo nao permitido.';
+            }
+        }
+
         if (($rec['state'] ?? null) !== 'READY') {
             $errors['recommendation.state'] = 'state deve ser READY.';
         }
@@ -416,7 +459,7 @@ final class Dcx_Ssp_Validator
             }
         }
         $tier = strtoupper(trim((string) ($c['tier_id'] ?? '')));
-        if (!preg_match('/^[A-Z][A-Z0-9_]{0,79}$/', $tier)) {
+        if (!self::isCatalogRefId($tier)) {
             $errors[$prefix . '.tier_id'] = 'tier_id invalido.';
         }
         $fit = strtoupper(trim((string) ($c['fit_level'] ?? '')));
@@ -435,7 +478,7 @@ final class Dcx_Ssp_Validator
                 continue;
             }
             $ref = strtoupper(trim((string) $v));
-            if (!preg_match('/^[A-Z][A-Z0-9_]{0,79}$/', $ref)) {
+            if (!self::isCatalogRefId($ref)) {
                 $errors[$prefix . '.' . $k] = 'catalog_ref_id invalido.';
             }
         }
@@ -541,6 +584,12 @@ final class Dcx_Ssp_Validator
             '/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/',
             $uuid
         );
+    }
+
+    /** catalog_ref_id: 2..80 chars, ^[A-Z][A-Z0-9_]*$ */
+    public static function isCatalogRefId(string $ref): bool
+    {
+        return (bool) preg_match('/^[A-Z][A-Z0-9_]{1,79}$/', $ref);
     }
 
     public static function isRfc3339(string $value): bool
