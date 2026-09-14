@@ -7,7 +7,9 @@ namespace App\Controllers\Api;
 use App\Core\Controller;
 use App\Models\ActivityLog;
 use App\Models\Lead;
+use App\Services\Sponsorship\SnapshotV2Contract;
 use App\Services\SponsorshipLeadIntake;
+use App\Services\SponsorshipLeadIntakeV2;
 use Throwable;
 
 /**
@@ -147,7 +149,15 @@ final class LeadApiController extends Controller
      */
     private function handleSponsorshipSimulation(array $raw, string $ip): void
     {
-        $result = (new SponsorshipLeadIntake())->intake(
+        $sim = is_array($raw['sponsorship_simulation'] ?? null) ? $raw['sponsorship_simulation'] : [];
+        $snapshotVersion = (string) ($sim['snapshot_version'] ?? '');
+
+        // Dispatch explícito por snapshot_version — V1 permanece bit-compatível.
+        $intake = $snapshotVersion === SnapshotV2Contract::SNAPSHOT_VERSION
+            ? new SponsorshipLeadIntakeV2()
+            : new SponsorshipLeadIntake();
+
+        $result = $intake->intake(
             $raw,
             $ip,
             (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''),

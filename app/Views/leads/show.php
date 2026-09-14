@@ -47,6 +47,57 @@ $labels = static function ($value): string {
 </dl>
 
 <h4 class="h3-card" style="margin-top:16px;">Recomendação</h4>
+<?php
+$scenarioV2 = is_array($simulation['scenario_result_snapshot'] ?? null)
+    ? $simulation['scenario_result_snapshot']
+    : [];
+$isV2 = ((string) ($simulation['snapshot_version'] ?? '') === '2.0.0')
+    || ($scenarioV2 !== []);
+?>
+<?php if ($isV2): ?>
+<dl class="meta-list">
+<dt>Snapshot</dt><dd><?= e($dash($simulation['snapshot_version'] ?? '2.0.0')) ?></dd>
+<dt>Tipo de cenário</dt><dd><?= e($dash($simulation['result_type'] ?? ($scenarioV2['result_type'] ?? ''))) ?></dd>
+<dt>Disponibilidade</dt><dd><?= e($simModel->availabilityLabel($simulation['availability_status'] ?? 'NOT_CHECKED')) ?></dd>
+</dl>
+<?php
+$unitsV2 = $scenarioV2['units'] ?? [];
+if (is_array($unitsV2) && $unitsV2 !== []):
+?>
+<h4 class="h3-card" style="margin-top:16px;">Composição apresentada</h4>
+<ul>
+<?php foreach ($unitsV2 as $unit): if (!is_array($unit)) continue; ?>
+<li><?= e($simModel->tierLabel($unit['tier_id'] ?? null)) ?>
+ · <?= e(isset($unit['amount_cents']) ? ('R$ ' . number_format(((int)$unit['amount_cents']) / 100, 2, ',', '.')) : '—') ?>
+ <?php if (!empty($unit['axis_id'])): ?> · <?= e((string)$unit['axis_id']) ?><?php elseif (($unit['tier_id'] ?? '') === 'CARAJAS'): ?> · Território a definir<?php endif; ?></li>
+<?php endforeach; ?>
+</ul>
+<?php endif; ?>
+<?php
+$nearV2 = $scenarioV2['near_options'] ?? [];
+if (is_array($nearV2) && $nearV2 !== []):
+?>
+<h4 class="h3-card" style="margin-top:16px;">Opções próximas (interesse)</h4>
+<ul>
+<?php foreach ($nearV2 as $near): if (!is_array($near)) continue; ?>
+<li><?= e($simModel->tierLabel($near['tier_id'] ?? null)) ?>
+ · <?= e(isset($near['total_amount_cents']) ? ('R$ ' . number_format(((int)$near['total_amount_cents']) / 100, 2, ',', '.')) : '—') ?></li>
+<?php endforeach; ?>
+</ul>
+<?php endif; ?>
+<?php
+$stratV2 = $scenarioV2['strategic_options'] ?? [];
+if (is_array($stratV2) && $stratV2 !== []):
+?>
+<h4 class="h3-card" style="margin-top:16px;">Opções estratégicas</h4>
+<ul>
+<?php foreach ($stratV2 as $opt): if (!is_array($opt)) continue; ?>
+<li><?= e($simModel->tierLabel($opt['tier_id'] ?? null)) ?>
+ <?php if (!empty($opt['axis_id'])): ?> · <?= e((string)$opt['axis_id']) ?><?php endif; ?></li>
+<?php endforeach; ?>
+</ul>
+<?php endif; ?>
+<?php else: ?>
 <dl class="meta-list">
 <dt>Configuração</dt><dd><?= e($simModel->tierLabel($simulation['primary_tier_ref'] ?? null)) ?></dd>
 <dt>Território</dt><dd><?= e($dash($simulation['primary_axis_ref'] ?? '')) ?></dd>
@@ -67,6 +118,7 @@ if (is_array($alts) && $alts !== []):
  · <?= e($simModel->availabilityLabel($alt['availability'] ?? 'NOT_CHECKED')) ?></li>
 <?php endforeach; ?>
 </ul>
+<?php endif; ?>
 <?php endif; ?>
 <p class="page-sub" style="margin-top:12px;">Snapshot histórico do Guide. A negociação comercial ocorre na oportunidade — sem reservar cota automaticamente.</p>
 </article>

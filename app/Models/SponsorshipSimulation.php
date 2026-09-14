@@ -60,6 +60,8 @@ final class SponsorshipSimulation extends Model
         'interests_snapshot',
         'recommendation_snapshot',
         'display_snapshot',
+        'scenario_result_snapshot',
+        'result_type',
         'snapshot_hash',
     ];
 
@@ -126,7 +128,13 @@ final class SponsorshipSimulation extends Model
             $payload[$col] = $data[$col];
         }
 
-        foreach (['briefing_snapshot', 'interests_snapshot', 'recommendation_snapshot', 'display_snapshot'] as $jsonCol) {
+        foreach ([
+            'briefing_snapshot',
+            'interests_snapshot',
+            'recommendation_snapshot',
+            'display_snapshot',
+            'scenario_result_snapshot',
+        ] as $jsonCol) {
             if (isset($payload[$jsonCol]) && is_array($payload[$jsonCol])) {
                 $payload[$jsonCol] = $this->encodeSnapshot($payload[$jsonCol]);
             }
@@ -216,6 +224,7 @@ final class SponsorshipSimulation extends Model
             'EXPERIENCE' => 'Experience',
             'CARAJAS' => 'Carajás',
             'APRESENTA' => 'Apresenta',
+            'NONE' => '—',
         ];
 
         return $map[$ref] ?? $ref;
@@ -269,6 +278,11 @@ final class SponsorshipSimulation extends Model
         $row['display_snapshot'] = $this->decodeSnapshot(
             is_string($row['display_snapshot'] ?? null) ? $row['display_snapshot'] : null
         );
+        if (array_key_exists('scenario_result_snapshot', $row)) {
+            $row['scenario_result_snapshot'] = $this->decodeSnapshot(
+                is_string($row['scenario_result_snapshot'] ?? null) ? $row['scenario_result_snapshot'] : null
+            );
+        }
         $row['confirmed'] = (int) ($row['confirmed'] ?? 0);
 
         return $row;

@@ -2365,6 +2365,8 @@ CREATE TABLE IF NOT EXISTS `sponsorship_simulations` (
     `interests_snapshot` LONGTEXT NOT NULL,
     `recommendation_snapshot` LONGTEXT NOT NULL,
     `display_snapshot` LONGTEXT NULL DEFAULT NULL,
+    `scenario_result_snapshot` LONGTEXT NULL DEFAULT NULL,
+    `result_type` VARCHAR(64) NULL DEFAULT NULL,
     `snapshot_hash` CHAR(64) NOT NULL,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NULL DEFAULT NULL,
@@ -2373,6 +2375,7 @@ CREATE TABLE IF NOT EXISTS `sponsorship_simulations` (
     UNIQUE KEY `uniq_sponsorship_sim_lead` (`lead_id`),
     KEY `idx_sponsorship_sim_project` (`incentive_project_id`),
     KEY `idx_sponsorship_sim_tier` (`primary_tier_ref`),
+    KEY `idx_sponsorship_sim_result_type` (`result_type`),
     KEY `idx_sponsorship_sim_created` (`created_at`),
     CONSTRAINT `fk_sponsorship_sim_lead`
         FOREIGN KEY (`lead_id`) REFERENCES `leads` (`id`)
